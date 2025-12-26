@@ -1,17 +1,13 @@
 import React from 'react';
-
+import { exams_mock } from '../../mocks/examsMock';
 const SelectExamPage = ({ navigate }) => {
   // נתונים זמניים להצגה
-  const exams = [
-    { id: '101', name: 'מבוא למחשבים', room: 'אולם 1' },
-    { id: '202', name: 'מבני נתונים', room: 'מעבדה 3' }
-  ];
 
   return (
     <div className="p-10 text-right" dir="rtl">
       <h1 className="text-2xl font-bold mb-6">בחר מבחן לניהול</h1>
       <div className="grid gap-4">
-        {exams.map(exam => (
+        {exams_mock.map(exam => (
           <div key={exam.id} className="p-4 border rounded shadow hover:bg-gray-50 flex justify-between items-center">
             <div>
               <p className="font-bold">{exam.name}</p>

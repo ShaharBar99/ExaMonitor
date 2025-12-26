@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-
+import { botResponses } from "../../mocks/botMessagesMock";
 const ExamBotPanel = () => {
   const [input, setInput] = useState("");
   const [chat, setChat] = useState([
@@ -25,12 +25,7 @@ const ExamBotPanel = () => {
 
     // מענה דמה של הבוט לאחר השהייה קלה
     setTimeout(() => {
-      const botResponses = [
-        "אני בודק את זה עבורך...",
-        "בוצע. שלחתי הודעה למשגיח הקומה.",
-        "כרגע כל הסטודנטים נוכחים בכיתה חוץ משולחן 2.",
-        "נשארו עוד 45 דקות לסיום המבחן. האם תרצה שאפיץ התראה?"
-      ];
+
       const randomReply = botResponses[Math.floor(Math.random() * botResponses.length)];
       
       setChat(prev => [...prev, { 
