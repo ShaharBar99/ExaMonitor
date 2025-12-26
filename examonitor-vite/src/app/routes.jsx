@@ -10,16 +10,16 @@ export default function AppRoutes() {
   const navigate = useNavigate();
   return (
     <Routes>
-      <Route path="/login" element={<LoginPage />} />
+      {/*<Route path="/login" element={<LoginPage />} />*/}
       
       {/* זה הדף שאנחנו רוצים להגיע אליו */}
-      <Route path="/exam/select" element={<SelectExamPage navigate={navigate} />} />
+      <Route path="/" element={<SelectExamPage navigate={navigate} />} />
       
       {/* דף המבחן עצמו (אחרי שבוחרים) */}
       <Route path="/exam/active/:examId" element={<ActiveExamConsolePage />} />
       
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/*<Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/login" replace />} />*/}
     </Routes>
   );
 }
