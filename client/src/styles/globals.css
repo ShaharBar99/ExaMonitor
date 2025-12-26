@@ -1,0 +1,16 @@
+/* client/src/styles/globals.css */
+
+/* Custom scrollbar for chat window */ /* Matches styles.css */
+.chat-scroll::-webkit-scrollbar { /* Scrollbar width */
+  width: 6px; /* Same width */
+}
+.chat-scroll::-webkit-scrollbar-track { /* Track background */
+  background: #f1f1f1; /* Same track color */
+}
+.chat-scroll::-webkit-scrollbar-thumb { /* Thumb */
+  background: #888; /* Same thumb color */
+  border-radius: 3px; /* Same rounding */
+}
+.chat-scroll::-webkit-scrollbar-thumb:hover { /* Thumb hover */
+  background: #555; /* Same hover color */
+}
