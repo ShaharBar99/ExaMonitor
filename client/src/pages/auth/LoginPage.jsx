@@ -50,7 +50,8 @@ export default function LoginPage() { // Login page component
           <div className="mb-4"> {/* Role selection */}
             <label className="block text-xs font-medium text-slate-600 mb-2">בחר תפקיד</label> {/* Label */}
 
-            <div className="grid grid-cols-3 gap-2 text-xs font-medium" id="role-toggle"> {/* 3 role buttons */}
+            <div className="grid grid-cols-3 gap-2 text-xs font-medium" id="role-toggle"> {/* 4 role buttons */}
+              <button type="button" className={getRoleButtonClass("Student")} onClick={() => setRole("Student")}>סטודנט</button> {/* Student */}
               <button type="button" className={getRoleButtonClass("invigilator")} onClick={() => setRole("invigilator")}>משגיח</button> {/* Invigilator */}
               <button type="button" className={getRoleButtonClass("lecturer")} onClick={() => setRole("lecturer")}>מרצה</button> {/* Lecturer */}
               <button type="button" className={getRoleButtonClass("admin")} onClick={() => setRole("admin")}>מנהל מערכת</button> {/* Admin */}
