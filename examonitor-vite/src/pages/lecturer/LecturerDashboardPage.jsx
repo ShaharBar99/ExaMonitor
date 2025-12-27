@@ -43,7 +43,7 @@ export default function LecturerDashboardPage() {
         logoColor="bg-rose-600"
       >
         {/* הוספת ה-Key כאן היא קריטית כדי שהצ'אט יתאפס כשעוברים טאב */}
-        <SidebarPanel key={activeTab} activeTab={activeTab} userRole="lecturer" />
+        <SidebarPanel activeTab={activeTab} userRole="lecturer" />
       </Sidebar>
 
       {/* 2. Main Content Area */}

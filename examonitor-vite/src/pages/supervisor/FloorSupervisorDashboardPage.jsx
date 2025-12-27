@@ -159,7 +159,7 @@ export default function FloorSupervisorDashboardPage() {
 // --- רכיבי עזר פנימיים ---
 
 const StatHeader = ({ label, value, color }) => (
-  <div className="bg-white px-6 py-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center min-w-[120px]">
+  <div className="bg-white px-6 py-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center min-w-30">
     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{label}</p>
     <p className={`text-2xl font-black ${color === 'red' ? 'text-red-500 animate-pulse' : 'text-slate-800'}`}>{value}</p>
   </div>

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-export default function ChatInterface({ title, messages, onSendMessage, accentColor = "blue" }) {
+export default function ChatInterface({ title, messages = [], onSendMessage, accentColor = "blue" }) {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef(null);
 
@@ -18,7 +18,7 @@ export default function ChatInterface({ title, messages, onSendMessage, accentCo
     if (!inputText.trim()) return;
     
     onSendMessage(inputText);
-    setInputText(''); // ניקוי השדה מיד לאחר השליחה
+    setInputText(''); 
   };
 
   const colors = {
@@ -29,22 +29,23 @@ export default function ChatInterface({ title, messages, onSendMessage, accentCo
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Header הצ'אט */}
+      {/* Header */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between">
         <h3 className="font-black text-slate-800 italic uppercase text-sm">{title}</h3>
-        <div className={`w-2 h-2 rounded-full ${colors[accentColor]} animate-pulse`}></div>
+        <div className={`w-2 h-2 rounded-full ${colors[accentColor] || colors.blue} animate-pulse`}></div>
       </div>
 
-      {/* אזור ההודעות */}
+      {/* אזור ההודעות - כאן התיקון המרכזי */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
-        {messages.map((msg) => (
+        {/* הגנה מפני undefined בעזרת || [] */}
+        {(messages || []).map((msg, index) => (
           <div 
-            key={msg.id || `temp-${Math.random()}`} // פתרון ה-Key: עדיפות ל-ID מהשרת, אחרת מזהה זמני
+            key={msg.id || `msg-${index}-${Math.random()}`} 
             className={`flex flex-col ${msg.isMe ? 'items-start' : 'items-end'}`}
           >
             <div className={`max-w-[80%] p-3 rounded-2xl text-sm font-bold shadow-sm ${
               msg.isMe 
-                ? `${colors[accentColor]} text-white rounded-tl-none` 
+                ? `${colors[accentColor] || colors.blue} text-white rounded-tl-none` 
                 : 'bg-white text-slate-700 border border-slate-100 rounded-tr-none'
             }`}>
               {msg.text}
@@ -70,7 +71,7 @@ export default function ChatInterface({ title, messages, onSendMessage, accentCo
           />
           <button 
             type="submit"
-            className={`absolute right-2 p-2 rounded-xl text-white transition-all active:scale-90 ${colors[accentColor]}`}
+            className={`absolute right-2 p-2 rounded-xl text-white transition-all active:scale-90 ${colors[accentColor] || colors.blue}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
