@@ -1,31 +1,44 @@
-// src/handlers/incidentHandlers.js
+import { incidentsApi } from '../api/incidentsApi';
 
 export const incidentHandlers = {
-    /**
-     * מטפל בקריאה למשגיח קומה
-     * @param {string} examId - מזהה המבחן
-     * @param {string} roomId - מספר החדר
-     */
-    handleCallManager: async (examId, roomId) => {
-        // בעתיד כאן תהיה קריאה ל-API (למשל: axios.post('/incidents/call-manager', ...))
-        console.log(`[Incident] Calling manager to Room ${roomId} for Exam ${examId}`);
-        
-        // כרגע נשתמש באישור פשוט למשתמש
-        const isConfirmed = window.confirm(`האם לשלוח קריאה למשגיח קומה לחדר ${roomId}?`);
-        
-        if (isConfirmed) {
-            // כאן אפשר להוסיף לוגיקה של טעינה או הצלחה
-            alert("קריאה נשלחה. משגיח קומה יגיע בהקדם.");
-            return true;
-        }
-        return false;
-    },
+  // קריאה למנהל קומה
+  handleCallManager: async (examId, roomId) => {
+    try {
+      const reason = prompt("מהי סיבת הקריאה?");
+      
+      // אם המשתמש לחץ על 'ביטול' או לא הזין סיבה
+      if (reason === null) return; 
+      if (!reason.trim()) {
+        alert("חובה להזין סיבת קריאה");
+        return;
+      }
 
-    /**
-     * דיווח על אירוע חריג (למשל חשד להעתקה)
-     */
-    reportIncident: async (studentId, type) => {
-        console.log(`[Incident] Reporting ${type} for student ${studentId}`);
-        // לוגיקת דיווח...
+      await incidentsApi.callFloorManager(roomId, reason);
+      alert("קריאה נשלחה למנהל הקומה");
+      
+    } catch (error) {
+      console.error("Failed to call floor manager:", error);
+      alert("תקלה בשליחת הקריאה. נסה שנית או צור קשר טלפוני.");
     }
+  },
+
+  // שליחת דוח אירוע מהטופס
+  submitReport: async (formData, navigate) => {
+    try {
+      // בדיקת תקינות בסיסית לפני שליחה
+      if (!formData || !formData.studentId || !formData.description) {
+        throw new Error("Missing required report fields");
+      }
+
+      await incidentsApi.reportIncident(formData);
+      alert("הדיווח נשלח בהצלחה ותועד במערכת");
+      
+      if (navigate) {
+        navigate(-1); // חזרה לדף הקודם
+      }
+    } catch (error) {
+      console.error("Incident report submission failed:", error);
+      alert("הדיווח לא נשלח. וודא שכל השדות מלאים ונסה שוב.");
+    }
+  }
 };

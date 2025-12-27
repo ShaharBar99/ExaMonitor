@@ -61,7 +61,7 @@ export default function RoomCard({ room, supervisors, onSupervisorChange, readOn
               <div className="overflow-hidden">
                 <p className="text-sm font-black text-slate-700 truncate">
                   {room.supervisor || 'טרם שובץ משגיח'}
-                </p>;
+                </p>
               </div>
             </div>
           ) : (

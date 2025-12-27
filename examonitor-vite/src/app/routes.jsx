@@ -18,7 +18,7 @@ export default function AppRoutes() {
       
       {/* זה הדף שאנחנו רוצים להגיע אליו */}
       <Route path="/" element={<SelectExamPage navigate={navigate} />} />
-      
+      <Route path="/select-exam" element={<SelectExamPage navigate={navigate} />} />
       {/* דף המבחן עצמו (אחרי שבוחרים) */}
       <Route path="/exam/active/:examId" element={<SupervisorDashboardPage />} />
       <Route path="/supervisor/floorsupervisorDashboardPage" element={<FloorSupervisorDashboardPage />} />

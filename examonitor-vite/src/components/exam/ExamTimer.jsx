@@ -1,26 +1,29 @@
 import React, { useState, useEffect } from 'react';
 
 const ExamTimer = ({ initialSeconds, onTimeUp }) => {
+  // אתחול ה-State
   const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
 
+  // --- תוספת חשובה: עדכון השעון כשהערך הראשוני מגיע מה-API ---
   useEffect(() => {
-    // אם הזמן נגמר
+    setSecondsLeft(initialSeconds);
+  }, [initialSeconds]);
+
+  useEffect(() => {
     if (secondsLeft <= 0) {
       if (onTimeUp) onTimeUp();
       return;
     }
 
-    // יצירת אינטרוול שרץ כל שנייה
     const timerId = setInterval(() => {
       setSecondsLeft((prev) => prev - 1);
     }, 1000);
 
-    // ניקוי האינטרוול כשהרכיב נסגר (Unmount)
     return () => clearInterval(timerId);
   }, [secondsLeft, onTimeUp]);
 
-  // פונקציית עזר לפורמט HH:MM:SS
   const formatTime = (totalSeconds) => {
+    if (totalSeconds < 0) return "00:00:00";
     const hrs = Math.floor(totalSeconds / 3600);
     const mins = Math.floor((totalSeconds % 3600) / 60);
     const secs = totalSeconds % 60;
@@ -29,7 +32,6 @@ const ExamTimer = ({ initialSeconds, onTimeUp }) => {
       .join(":");
   };
 
-  // שינוי צבע כשהזמן נמוך (פחות מ-10 דקות)
   const isUrgent = secondsLeft < 600;
 
   return (

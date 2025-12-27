@@ -23,11 +23,11 @@ export default function IncidentReportPage() {
     "אחר"
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("דיווח נשלח:", formData);
     // כאן תבוא הלוגיקה של שליחה לשרת/למרצה
-    alert("הדיווח נשלח בהצלחה ודווח למרצה ולמשגיח הקומה");
+    await incidentHandlers.submitReport(formData, navigate);
     navigate(-1); // חזרה לדף הקודם
   };
 

@@ -1,25 +1,44 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // הוספת useNavigate
+import { useParams, useNavigate } from 'react-router-dom';
 import { attendanceHandlers } from '../../handlers/attendanceHandlers';
 import { incidentHandlers } from '../../handlers/incidentHandlers';
+import { timerHandlers } from '../../handlers/timerHandlers';
 import Sidebar from '../../components/layout/Sidebar';
 import SidebarPanel from '../../components/exam/SidebarPanel';
 import StudentGrid from '../../components/exam/StudentGrid';
 import ExamTimer from '../../components/exam/ExamTimer';
+import { useExam } from '../../state/ExamContext';
 
 export default function SupervisorDashboard() {
   const { examId } = useParams();
-  const navigate = useNavigate(); // אתחול הניווט
+  const navigate = useNavigate();
   
+  // --- Context ---
+  const { examData, setExamData } = useExam();
+
   // --- States ---
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('bot');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [remainingTime, setRemainingTime] = useState(null); // התחלנו כ-null כדי לדעת מתי הסנכרון הסתיים
 
   // --- Initial Data Load ---
   useEffect(() => {
-    attendanceHandlers.initConsole(examId, setStudents, setLoading);
+    // טעינת סטודנטים ועדכון נתוני המבחן בקונטקסט
+    attendanceHandlers.initConsole(examId, setStudents, setLoading, setExamData);
+  }, [examId, setExamData]);
+
+  useEffect(() => {
+    const loadTime = async () => {
+      try {
+        const seconds = await timerHandlers.getRemainingSeconds(examId);
+        setRemainingTime(seconds);
+      } catch (error) {
+        console.error("Failed to load time:", error);
+      }
+    };
+    loadTime();
   }, [examId]);
 
   // --- Handlers ---
@@ -54,6 +73,19 @@ export default function SupervisorDashboard() {
     }
   };
 
+  const handleFinishExam = async () => {
+    const confirmed = window.confirm("האם אתה בטוח שברצונך לסיים את המבחן? פעולה זו תנעל את הגישה.");
+    if (confirmed) {
+      try {
+        // כאן אפשר להוסיף קריאת API לסיום המבחן
+        alert("המבחן הסתיים בהצלחה. המערכת נועלת נתונים.");
+        navigate('/select-exam');
+      } catch (error) {
+        alert("שגיאה בסיום המבחן");
+      }
+    }
+  };
+
   // --- Stats Calculation ---
   const stats = {
     total: students.length,
@@ -68,7 +100,12 @@ export default function SupervisorDashboard() {
     { id: 'notifications', icon: '🔔', label: 'יומן התראות' }
   ];
 
-  if (loading) return <div className="h-screen flex items-center justify-center font-black text-slate-300 italic animate-pulse">טוען נתונים...</div>;
+  if (loading) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="font-black text-slate-400 italic tracking-widest uppercase">Initializing Room Control...</div>
+    </div>
+  );
 
   return (
     <div className="h-screen flex bg-[#f8fafc] overflow-hidden font-sans text-right" dir="rtl">
@@ -87,7 +124,7 @@ export default function SupervisorDashboard() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         
-        {/* Header מעודכן עם כפתור דיווח */}
+        {/* Header מעודכן */}
         <header className="bg-white border-b border-slate-100 px-8 py-6 flex justify-between items-center z-30 shadow-sm">
           <div className="flex items-center gap-6">
             <div>
@@ -95,35 +132,38 @@ export default function SupervisorDashboard() {
               <div className="flex items-center gap-2 mt-2">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
                 <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest font-mono">
-                  ROOM ID: {examId} | BLDG A
+                  ROOM ID: {examId} | {examData?.room || 'BLDG A'}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            {/* כפתור קריאה דחופה (נשאר כפי שהיה) */}
             <button 
-              onClick={() => incidentHandlers.handleCallManager(examId, "302")} 
+              onClick={() => incidentHandlers.handleCallManager(examId, examData?.room || "302")} 
               className="bg-[#fffbeb] text-[#92400e] px-6 py-4 rounded-[22px] text-sm font-black border-2 border-[#fde68a] hover:bg-[#fef3c7] transition-all flex items-center gap-2 active:scale-95 shadow-sm"
             >
-              קריאה למנהל
+              קריאה למנהל קומה
               <span className="w-2 h-2 bg-[#f59e0b] rounded-full animate-bounce"></span>
             </button>
 
-            {/* כפתור דיווח אירוע חדש - עבור המשגיח בכיתה */}
             <button 
-              onClick={() => navigate('/exam/incident-report')}
+              onClick={() => navigate(`/exam/incident-report/${examId}`)}
               className="bg-rose-50 text-rose-600 px-6 py-4 rounded-[22px] text-sm font-black border-2 border-rose-100 hover:bg-rose-100 transition-all flex items-center gap-2 active:scale-95 shadow-sm"
             >
               ⚠️ דיווח חריג
             </button>
             
             <div className="mx-4 shrink-0">
-              <ExamTimer initialSeconds={5391} onTimeUp={() => {}} />
+              {remainingTime !== null && (
+                <ExamTimer initialSeconds={remainingTime} onTimeUp={() => alert("הזמן הסתיים!")} />
+              )}
             </div>
 
-            <button className="bg-[#0f172a] text-white px-8 py-4 rounded-[22px] text-sm font-black hover:bg-red-600 transition-all active:scale-95">
+            <button 
+              onClick={handleFinishExam}
+              className="bg-[#0f172a] text-white px-8 py-4 rounded-[22px] text-sm font-black hover:bg-red-600 transition-all active:scale-95"
+            >
               סיום מבחן
             </button>
           </div>
@@ -135,7 +175,9 @@ export default function SupervisorDashboard() {
             <div className="flex justify-between items-end">
               <div>
                 <h2 className="text-4xl font-black text-slate-800 tracking-tight italic">ניהול חדר בחינה</h2>
-                <p className="text-slate-400 font-bold text-sm mt-1 uppercase tracking-wide">מבוא למדעי המחשב | ניטור נוכחות</p>
+                <p className="text-slate-400 font-bold text-sm mt-1 uppercase tracking-wide">
+                  {examData?.name || 'מבוא למדעי המחשב'} | ניטור נוכחות
+                </p>
               </div>
               
               <div className="flex gap-4">

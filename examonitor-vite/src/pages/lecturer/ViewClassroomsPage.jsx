@@ -2,36 +2,35 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import RoomGrid from '../../components/exam/RoomGrid';
 import { INITIAL_ROOMS, AVAILABLE_SUPERVISORS } from '../../mocks/floorSupervisor_MockData';
+import { useExam } from '../../state/ExamContext'; // ייבוא חובה
 
 export default function ViewClassroomsPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { examData } = useExam(); // שליפת נתוני המבחן האמיתיים
   
-  // זיהוי התפקיד מתוך ה-State של הניווט או כברירת מחדל
-  // בדר"כ בפרויקט אמיתי זה יגיע מ-AuthContext
   const userRole = location.state?.role || 'floor_manager'; 
-  const lecturerExamName = "מבוא למדעי המחשב"; // השם של המבחן של המרצה הנוכחי
+  
+  // שימוש בשם המבחן מה-Context, ואם אין - שימוש בברירת מחדל
+  const lecturerExamName = examData?.courseName || "מבוא למדעי המחשב"; 
 
   const [rooms, setRooms] = useState(INITIAL_ROOMS);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // 1. לוגיקת סינון חכמה לפי תפקיד
   const filteredRooms = useMemo(() => {
     let baseRooms = rooms;
 
-    // אם המשתמש הוא מרצה - הצג רק את החדרים של המבחן שלו
+    // עכשיו הסינון יתבסס על המבחן שהמרצה באמת מנהל
     if (userRole === 'lecturer') {
       baseRooms = rooms.filter(room => room.examName === lecturerExamName);
     }
 
-    // סינון נוסף לפי תיבת החיפוש
     return baseRooms.filter(room => 
       room.id.includes(searchQuery) || 
       room.examName.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [rooms, searchQuery, userRole]);
+  }, [rooms, searchQuery, userRole, lecturerExamName]);
 
-  // הגדרות עיצוב לפי תפקיד
   const theme = {
     color: userRole === 'lecturer' ? 'rose' : 'indigo',
     title: userRole === 'lecturer' ? `מעקב חדרים: ${lecturerExamName}` : 'פריסת חדרים בקומה',
@@ -41,14 +40,14 @@ export default function ViewClassroomsPage() {
   return (
     <div className="min-h-screen bg-[#f8fafc] p-12 text-right" dir="rtl">
       
-      {/* Header הדף */}
       <header className="flex justify-between items-center mb-12">
         <div className="flex items-center gap-6">
           <button 
             onClick={() => navigate(-1)} 
             className="p-4 bg-white rounded-2xl shadow-sm hover:bg-slate-50 transition-all border border-slate-100"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 rotate-180 text-${theme.color}-600`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {/* תיקון צבע דינמי לחץ החזרה */}
+            <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 rotate-180 ${userRole === 'lecturer' ? 'text-rose-600' : 'text-indigo-600'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
@@ -60,7 +59,6 @@ export default function ViewClassroomsPage() {
           </div>
         </div>
 
-        {/* חיפוש מהיר - רק אם יש הרבה חדרים (רלוונטי יותר למנהל קומה) */}
         {userRole === 'floor_manager' && (
           <div className="relative w-96">
             <input 
@@ -74,20 +72,17 @@ export default function ViewClassroomsPage() {
         )}
       </header>
 
-      {/* גריד החדרים */}
       <div className={`${userRole === 'lecturer' ? 'max-w-5xl mx-auto' : ''}`}>
         <RoomGrid 
           rooms={filteredRooms} 
           supervisors={AVAILABLE_SUPERVISORS} 
-          // ה-Prop הזה יכובד בתוך ה-RoomGrid רק אם theme.canEdit הוא true
           onSupervisorChange={theme.canEdit ? (id, sup) => {
             setRooms(prev => prev.map(r => r.id === id ? {...r, supervisor: sup} : r))
           } : null} 
-          readOnly={!theme.canEdit} // שליחת דגל ReadOnly לרכיב ה-Grid
+          readOnly={!theme.canEdit} 
         />
       </div>
 
-      {/* התראה למרצה במידה והוא במבט צפייה בלבד */}
       {userRole === 'lecturer' && (
         <div className="mt-8 p-6 bg-rose-50 rounded-[30px] border border-rose-100 text-rose-700 font-bold text-center">
           שים לב: מבט זה מיועד למעקב בלבד. לשינוי משגיחים או הקצאת חדרים יש לפנות למנהל הקומה.
