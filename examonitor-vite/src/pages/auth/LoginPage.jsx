@@ -2,7 +2,8 @@
 
 import React, { useMemo, useState } from "react"; // React + hooks
 import { useNavigate } from "react-router-dom"; // Router navigation
-
+import RoleSelector from "../../components/auth/RoleSelector";
+import FormField from "../../components/shared/FormField";
 import { DEFAULT_ROLE, loginWithApi, normalizeRole } from "../../handlers/authHandlers"; // Auth handlers (backend-driven)
 
 export default function LoginPage() { // Login page component
@@ -99,51 +100,39 @@ export default function LoginPage() { // Login page component
           <div className="mb-4"> {/* Role selection */}
             <label className="block text-xs font-medium text-slate-600 mb-2">בחר תפקיד</label> {/* Label */}
 
-            <div className="grid grid-cols-2 gap-2 text-xs font-medium" id="role-toggle"> {/* 4 role buttons */}
-              <button type="button" className={getRoleButtonClass("student")} onClick={() => setRole("student")}>סטודנט</button> {/* Student */}
-              <button type="button" className={getRoleButtonClass("invigilator")} onClick={() => setRole("invigilator")}>משגיח</button> {/* Invigilator */}
-              <button type="button" className={getRoleButtonClass("lecturer")} onClick={() => setRole("lecturer")}>מרצה</button> {/* Lecturer */}
-              <button type="button" className={getRoleButtonClass("admin")} onClick={() => setRole("admin")}>מנהל מערכת</button> {/* Admin */}
-            </div> {/* End role toggle */}
+            <RoleSelector value={role} onChange={setRole} disabled={isSubmitting} />
 
             <p className="text-[11px] text-slate-500 mt-1">ההרשאות והמסכים במערכת יותאמו לפי תפקידך.</p> {/* Helper text */}
           </div> {/* End role selection */}
 
           <form className="space-y-4 mt-4" onSubmit={onSubmit}> {/* Form */}
             <div> {/* Username field */}
-              <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="username">שם משתמש</label> {/* Label */}
-              <input
-                id="username" // Input id
-                name="username" // Input name
-                type="text" // Type text
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-slate-400 bg-white" // Styling
-                placeholder="הכנס שם משתמש מוסדי" // Placeholder
-                value={username} // Controlled value
-                onChange={(e) => setUsername(e.target.value)} // Update state
-                aria-invalid={Boolean(fieldErrors.username)} // Accessibility: mark invalid
-              /> {/* End input */}
-              {fieldErrors.username ? ( // Field error message
-                <p className="mt-1 text-[11px] text-red-600">{fieldErrors.username}</p> // Show error
-              ) : null} {/* End conditional */}
-            </div> {/* End username */}
+             <FormField
+                  id="username"
+                  name="username"
+                  type="text"
+                  label="שם משתמש"
+                  placeholder="הכנס שם משתמש מוסדי"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  error={fieldErrors.username}
+                  disabled={isSubmitting}
+                  autoComplete="username"
+                />
 
-            <div> {/* Password field */}
-              <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="password">סיסמה</label> {/* Label */}
-              <input
-                id="password" // Input id
-                name="password" // Input name
-                type="password" // Password type
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder-slate-400 bg-white" // Styling
-                placeholder="הכנס סיסמה" // Placeholder
-                value={password} // Controlled value
-                onChange={(e) => setPassword(e.target.value)} // Update state
-                aria-invalid={Boolean(fieldErrors.password)} // Accessibility: mark invalid
-              /> {/* End input */}
-              {fieldErrors.password ? ( // Field error message
-                <p className="mt-1 text-[11px] text-red-600">{fieldErrors.password}</p> // Show error
-              ) : null} {/* End conditional */}
+                <FormField
+                  id="password"
+                  name="password"
+                  type="password"
+                  label="סיסמה"
+                  placeholder="הכנס סיסמה"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  error={fieldErrors.password}
+                  disabled={isSubmitting}
+                  autoComplete="current-password"
+                />
             </div> {/* End password */}
-
             <div className="flex items-center justify-between text-xs"> {/* Remember + Forgot row */}
               <label className="inline-flex items-center gap-2 text-slate-600"> {/* Checkbox label */}
                 <input

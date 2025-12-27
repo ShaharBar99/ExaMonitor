@@ -14,30 +14,46 @@ export function normalizeRole(role) { // Convert any input role to a supported r
   return AUTH_ROLES.includes(r) ? r : DEFAULT_ROLE; // Return safe role
 } // End normalizeRole
 
-// Validate the login payload before calling the API. // Very light validation
-export function validateLoginPayload({ username, password, role }) { // Validate inputs
-  const errors = {}; // Collect field errors
-  const u = String(username || "").trim(); // Normalize username
-  const p = String(password || "").trim(); // Normalize password
-  const safeRole = normalizeRole(role); // Normalize role
+// src/handlers/authHandlers.js
 
-  if (!u) errors.username = "Username is required"; // Require username
-  if (!p) errors.password = "Password is required"; // Require password
+// ...keep your existing imports and constants above... // Keep your current top part
 
-  return { // Return validation result
+// Define role options in one place (value + Hebrew label). // Used by UI components
+export const ROLE_OPTIONS = [ // Role options array
+  { value: "student", label: "סטודנט" }, // Student
+  { value: "invigilator", label: "משגיח" }, // Invigilator
+  { value: "lecturer", label: "מרצה" }, // Lecturer
+  { value: "admin", label: "מנהל מערכת" }, // Admin
+]; // End role options
+
+// Single validator for login/register. // Avoid duplicate validation functions
+export function validateAuthPayload(payload, requireName) { // Validate inputs with optional name requirement
+  const errors = {}; // Create errors object
+  const username = String(payload?.username || "").trim(); // Normalize username
+  const password = String(payload?.password || "").trim(); // Normalize password
+  const role = normalizeRole(payload?.role); // Normalize role
+  const name = String(payload?.name || "").trim(); // Normalize name
+
+  if (!username) errors.username = "Username is required"; // Require username
+  if (!password) errors.password = "Password is required"; // Require password
+  if (requireName && !name) errors.name = "Name is required"; // Require name only when asked
+
+  return { // Return normalized result
     ok: Object.keys(errors).length === 0, // True if no errors
-    errors, // Errors object for UI
-    value: { username: u, password: p, role: safeRole }, // Normalized payload
+    errors, // Field errors
+    value: { username, password, role, name }, // Normalized payload
   }; // End return
-} // End validateLoginPayload
+} // End validateAuthPayload
 
+// Update loginWithApi to use validateAuthPayload. // Removes validateLoginPayload duplication
 export async function loginWithApi({ username, password, role, rememberMe }, deps) { // Backend-driven login
-  const { ok, errors, value } = validateLoginPayload({ username, password, role }); // Validate payload
+  const { ok, errors, value } = validateAuthPayload( // Validate using shared validator
+    { username, password, role }, // Payload
+    false // requireName = false for login
+  ); // End validate
   if (!ok) return { ok: false, errors }; // Return validation errors
 
   const authApi = deps?.authApi || authApiDefault; // Use injected api or default REST module
-
-  // Optional: allow mock via deps or env var. // Vite env example: VITE_USE_AUTH_MOCK=true
   const envMock = String(import.meta.env.VITE_USE_AUTH_MOCK || "").toLowerCase() === "true"; // Read env flag
   const useMock = Boolean(deps?.useMock) || envMock; // Decide whether to use mock
   const mockDelayMs = Number(deps?.mockDelayMs ?? 250); // Optional mock delay
@@ -46,21 +62,11 @@ export async function loginWithApi({ username, password, role, rememberMe }, dep
     return mockLogin(value, { delayMs: mockDelayMs }); // Return mock result
   } // End mock path
 
-  // Call real REST API. // Backend returns token/user/etc
-  const result = await authApi.login(value); // POST /auth/login
-
-  // Optional: persist token if backend returns it. // Uses rememberMe to choose storage
-  persistAuthToken(result?.token, Boolean(rememberMe)); // Save token if present
-
+  const result = await authApi.login({ username: value.username, password: value.password, role: value.role }); // Call REST login
+  persistAuthToken(result?.token, Boolean(rememberMe)); // Persist token if present
   return { ok: true, data: result }; // Return success
 } // End loginWithApi
 
-// Save token (if provided) into storage. // rememberMe chooses localStorage vs sessionStorage
-function persistAuthToken(token, rememberMe) { // Persist token helper
-  if (!token) return; // Do nothing if token missing
-  const store = rememberMe ? localStorage : sessionStorage; // Choose storage
-  store.setItem("auth_token", String(token)); // Save token under stable key
-} // End persistAuthToken
 
 // Simple mock login (temporary): checks username/password/role against mockUsers. // Replace later
 export async function mockLogin({ username, password, role }, options) { // Mock backend login
