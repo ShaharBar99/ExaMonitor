@@ -25,4 +25,4 @@ export async function logout(token) { // Logout request
     body: {}, // Empty JSON body (safe default)
     token, // Attach token if required by backend
   }); // Return backend response
-} // End logout
+} // End logou
