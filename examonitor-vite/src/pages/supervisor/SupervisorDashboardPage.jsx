@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom'; // הוספת useNavigate
 import { attendanceHandlers } from '../../handlers/attendanceHandlers';
 import { incidentHandlers } from '../../handlers/incidentHandlers';
 import Sidebar from '../../components/layout/Sidebar';
@@ -9,11 +9,12 @@ import ExamTimer from '../../components/exam/ExamTimer';
 
 export default function SupervisorDashboard() {
   const { examId } = useParams();
+  const navigate = useNavigate(); // אתחול הניווט
   
   // --- States ---
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('bot'); // ברירת מחדל לבוט
+  const [activeTab, setActiveTab] = useState('bot');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // --- Initial Data Load ---
@@ -61,7 +62,6 @@ export default function SupervisorDashboard() {
     out: students.filter(s => s.status === 'שירותים').length
   };
 
-  // טאבים למשגיח רגיל - שימוש ב-IDs שתואמים ל-MessageManager
   const tabs = [
     { id: 'bot', icon: '🤖', label: 'ExamBot Helper' },
     { id: 'chat', icon: '🏢', label: "קשר למשגיח קומה" },
@@ -73,7 +73,6 @@ export default function SupervisorDashboard() {
   return (
     <div className="h-screen flex bg-[#f8fafc] overflow-hidden font-sans text-right" dir="rtl">
       
-      {/* 1. Sidebar - הגדרת תפקיד Supervisor */}
       <Sidebar 
         tabs={tabs} 
         activeTab={activeTab} 
@@ -83,14 +82,12 @@ export default function SupervisorDashboard() {
         logoText="EX"
         logoColor="bg-blue-600"
       >
-        {/* העברת userRole="supervisor" מבטיחה שהמשגיח לא יראה את הצ'אט של המרצה */}
         <SidebarPanel activeTab={activeTab} userRole="supervisor" />
       </Sidebar>
 
-      {/* 2. Main Dashboard Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         
-        {/* Header */}
+        {/* Header מעודכן עם כפתור דיווח */}
         <header className="bg-white border-b border-slate-100 px-8 py-6 flex justify-between items-center z-30 shadow-sm">
           <div className="flex items-center gap-6">
             <div>
@@ -104,26 +101,34 @@ export default function SupervisorDashboard() {
             </div>
           </div>
 
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4">
+            {/* כפתור קריאה דחופה (נשאר כפי שהיה) */}
             <button 
               onClick={() => incidentHandlers.handleCallManager(examId, "302")} 
-              className="bg-[#fffbeb] text-[#92400e] px-8 py-4 rounded-[22px] text-lg font-black border-2 border-[#fde68a] hover:bg-[#fef3c7] transition-all flex items-center gap-3 active:scale-95 shadow-sm"
+              className="bg-[#fffbeb] text-[#92400e] px-6 py-4 rounded-[22px] text-sm font-black border-2 border-[#fde68a] hover:bg-[#fef3c7] transition-all flex items-center gap-2 active:scale-95 shadow-sm"
             >
-              קריאה למשגיח קומה
-              <span className="w-3 h-3 bg-[#f59e0b] rounded-full animate-bounce"></span>
+              קריאה למנהל
+              <span className="w-2 h-2 bg-[#f59e0b] rounded-full animate-bounce"></span>
+            </button>
+
+            {/* כפתור דיווח אירוע חדש - עבור המשגיח בכיתה */}
+            <button 
+              onClick={() => navigate('/exam/incident-report')}
+              className="bg-rose-50 text-rose-600 px-6 py-4 rounded-[22px] text-sm font-black border-2 border-rose-100 hover:bg-rose-100 transition-all flex items-center gap-2 active:scale-95 shadow-sm"
+            >
+              ⚠️ דיווח חריג
             </button>
             
-            <div className="scale-125 mx-4 shrink-0">
+            <div className="mx-4 shrink-0">
               <ExamTimer initialSeconds={5391} onTimeUp={() => {}} />
             </div>
 
-            <button className="bg-[#0f172a] text-white px-10 py-4 rounded-[22px] text-lg font-black hover:bg-red-600 transition-all active:scale-95 shadow-xl shadow-slate-200">
+            <button className="bg-[#0f172a] text-white px-8 py-4 rounded-[22px] text-sm font-black hover:bg-red-600 transition-all active:scale-95">
               סיום מבחן
             </button>
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-12 bg-[#f8fafc]">
           <div className="mb-12 flex flex-col gap-10">
             

@@ -8,6 +8,7 @@ import SupervisorDashboardPage from "../pages/supervisor/SupervisorDashboardPage
 import FloorSupervisorDashboardPage from "../pages/supervisor/FloorSupervisorDashboardPage";
 import ViewClassroomsPage from "../pages/lecturer/ViewClassroomsPage";
 import LecturerDashboardPage from "../pages/lecturer/LecturerDashboardPage";
+import IncidentReportPage from "../pages/exam/IncidentReportPage";
 
 export default function AppRoutes() {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ export default function AppRoutes() {
       <Route path="/supervisor/floorsupervisorDashboardPage" element={<FloorSupervisorDashboardPage />} />
       <Route path="/Lecturer/lecturerDashboardPage" element={<LecturerDashboardPage />} />
       <Route path="/exam/view-classrooms" element={<ViewClassroomsPage />} />
+      <Route path="/exam/incident-report" element={<IncidentReportPage />} />
       {/*<Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />*/}
     </Routes>

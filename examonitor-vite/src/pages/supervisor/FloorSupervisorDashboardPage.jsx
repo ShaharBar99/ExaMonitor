@@ -9,7 +9,7 @@ export default function FloorSupervisorDashboardPage() {
 
   // --- States ---
   const [rooms] = useState(INITIAL_ROOMS);
-  const [activeTab, setActiveTab] = useState('chat'); // chat (צוות) | lecturer (מרצה) | notifications (יומן)
+  const [activeTab, setActiveTab] = useState('chat'); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   // --- חישוב נתונים ללוח הבקרה ---
@@ -20,7 +20,6 @@ export default function FloorSupervisorDashboardPage() {
     supervisorsOnFloor: AVAILABLE_SUPERVISORS.length
   };
 
-  // טאבים המותאמים למשגיח קומה
   const tabs = [
     { id: 'chat', icon: '👥', label: "צ'אט צוות" },
     { id: 'lecturer', icon: '👨‍🏫', label: "קשר למרצה" },
@@ -30,7 +29,7 @@ export default function FloorSupervisorDashboardPage() {
   return (
     <div className="h-screen flex bg-[#f8fafc] overflow-hidden font-sans text-right" dir="rtl">
       
-      {/* 1. Sidebar - עם Role של Floor Manager */}
+      {/* 1. Sidebar */}
       <Sidebar 
         tabs={tabs} 
         activeTab={activeTab} 
@@ -40,7 +39,6 @@ export default function FloorSupervisorDashboardPage() {
         logoText="FM"
         logoColor="bg-indigo-600"
       >
-        {/* העברת ה-Role מאפשרת ל-SidebarPanel להציג את הצ'אטים הנכונים */}
         <SidebarPanel activeTab={activeTab} userRole="floor_manager" />
       </Sidebar>
 
@@ -49,7 +47,7 @@ export default function FloorSupervisorDashboardPage() {
         
         {/* Header */}
         <header className="bg-white border-b border-slate-100 px-12 py-8 flex justify-between items-center z-30 shadow-sm">
-          <div className="flex items-center gap-12">
+          <div className="flex items-center gap-8">
             <div>
               <h1 className="text-3xl font-black text-slate-800 italic tracking-tight leading-none uppercase">Floor Management</h1>
               <p className="text-slate-400 font-bold mt-2 uppercase tracking-widest text-[11px] flex items-center gap-2">
@@ -58,13 +56,24 @@ export default function FloorSupervisorDashboardPage() {
               </p>
             </div>
 
-            <button 
-              onClick={() => navigate('/exam/view-classrooms', { state: { role: 'floor_manager' } })}
-              className="flex items-center gap-3 bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95"
-            >
-              <span className="text-xl">📱</span>
-              צפייה בפריסת חדרים
-            </button>
+            <div className="flex gap-3">
+                <button 
+                  onClick={() => navigate('/exam/view-classrooms', { state: { role: 'floor_manager' } })}
+                  className="flex items-center gap-3 bg-indigo-600 text-white px-6 py-4 rounded-2xl font-black text-sm hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95"
+                >
+                  <span className="text-xl">📱</span>
+                  פריסת חדרים
+                </button>
+
+                {/* כפתור דיווח אירוע חריג - בולט למשגיח */}
+                <button 
+                  onClick={() => navigate('/exam/incident-report')}
+                  className="flex items-center gap-3 bg-white border-2 border-rose-100 text-rose-600 px-6 py-4 rounded-2xl font-black text-sm hover:bg-rose-50 transition-all active:scale-95"
+                >
+                  <span className="text-xl">⚠️</span>
+                  דיווח חריג
+                </button>
+            </div>
           </div>
 
           <div className="flex gap-4">
@@ -98,7 +107,12 @@ export default function FloorSupervisorDashboardPage() {
               <h3 className="text-2xl font-black mb-6 italic">פעולות ניהול מהירות</h3>
               <div className="grid grid-cols-2 gap-4">
                 <QuickActionButton icon="📢" label="הודעה לכל המשגיחים" color="bg-slate-800/50 hover:bg-indigo-600" />
-                <QuickActionButton icon="📝" label="דוח סיכום קומה" color="bg-slate-800/50 hover:bg-slate-700" />
+                <QuickActionButton 
+                    icon="⚠️" 
+                    label="דיווח אירוע חדש" 
+                    color="bg-rose-900/20 hover:bg-rose-600 border border-rose-500/20" 
+                    onClick={() => navigate('/exam/incident-report')}
+                />
                 <QuickActionButton icon="🆘" label="קריאה לתמיכה" color="bg-red-900/40 hover:bg-red-900" />
                 <QuickActionButton icon="⚙️" label="הגדרות" color="bg-slate-800/50 hover:bg-slate-700" />
               </div>
@@ -140,8 +154,11 @@ const StatHeader = ({ label, value, color }) => {
   );
 };
 
-const QuickActionButton = ({ icon, label, color }) => (
-  <button className={`${color} p-6 rounded-[30px] flex flex-col items-center justify-center gap-3 transition-all border border-white/5 active:scale-95`}>
+const QuickActionButton = ({ icon, label, color, onClick }) => (
+  <button 
+    onClick={onClick}
+    className={`${color} p-6 rounded-[30px] flex flex-col items-center justify-center gap-3 transition-all border border-white/5 active:scale-95`}
+  >
     <span className="text-2xl">{icon}</span>
     <span className="text-[10px] font-black uppercase tracking-tight text-center leading-tight">{label}</span>
   </button>
