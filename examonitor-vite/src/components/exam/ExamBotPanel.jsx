@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { botResponses } from "../../mocks/botMessagesMock";
-const ExamBotPanel = () => {
+
+export default function ExamBotPanel() {
   const [input, setInput] = useState("");
   const [chat, setChat] = useState([
     { role: "bot", text: "שלום, אני העוזר האישי שלך. איך אני יכול לעזור בניהול המבחן?", time: "09:00" }
   ]);
   const scrollRef = useRef(null);
 
-  // גלילה אוטומטית לסוף הצ'אט
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -18,16 +18,17 @@ const ExamBotPanel = () => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // הוספת הודעת המשתמש
-    const userMsg = { role: "user", text: input, time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) };
+    const userMsg = { 
+      role: "user", 
+      text: input, 
+      time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) 
+    };
+    
     setChat(prev => [...prev, userMsg]);
     setInput("");
 
-    // מענה דמה של הבוט לאחר השהייה קלה
     setTimeout(() => {
-
       const randomReply = botResponses[Math.floor(Math.random() * botResponses.length)];
-      
       setChat(prev => [...prev, { 
         role: "bot", 
         text: randomReply, 
@@ -37,30 +38,33 @@ const ExamBotPanel = () => {
   };
 
   return (
-    <aside className="w-80 bg-white border-l border-slate-100 flex flex-col h-full shadow-lg">
-      {/* Header */}
-      <div className="p-6 border-b border-slate-50 flex items-center justify-between">
+    <div className="flex flex-col h-full bg-white">
+      {/* Header מותאם לסיידבר */}
+      <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-white/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-          <h2 className="font-black text-slate-800 text-lg">ExamBot Helper</h2>
+          <div className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-pulse"></div>
+          <h2 className="font-black text-slate-800 text-lg italic uppercase tracking-tight">ExamBot AI</h2>
         </div>
-        <div className="bg-slate-100 px-2 py-1 rounded text-[10px] font-bold text-slate-500">LIVE</div>
+        <div className="bg-blue-50 px-2 py-1 rounded text-[10px] font-black text-blue-600">ONLINE</div>
       </div>
 
       {/* Chat Area */}
       <div 
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/30"
+        className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/30 scrollbar-hide"
       >
         {chat.map((msg, index) => (
-          <div key={index} className={`flex ${msg.role === 'user' ? 'justify-start' : 'justify-end'}`}>
-            <div className={`max-w-[85%] p-3 rounded-2xl text-sm font-medium shadow-sm leading-relaxed ${
+          <div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-start' : 'items-end'}`}>
+            <span className="text-[9px] font-black text-slate-400 mb-1 px-1 uppercase">
+              {msg.role === 'user' ? 'המשגיח' : 'ExamBot'}
+            </span>
+            <div className={`max-w-[85%] p-4 rounded-[22px] text-sm font-bold shadow-sm leading-relaxed ${
               msg.role === 'user' 
-                ? 'bg-white border border-slate-200 text-slate-700 rounded-tr-none' 
-                : 'bg-blue-600 text-white rounded-tl-none'
+                ? 'bg-white border border-slate-200 text-slate-700 rounded-tl-none' 
+                : 'bg-[#1e293b] text-white rounded-tr-none'
             }`}>
               <p>{msg.text}</p>
-              <span className={`text-[9px] mt-1 block opacity-60 ${msg.role === 'user' ? 'text-slate-400' : 'text-blue-100'}`}>
+              <span className={`text-[8px] mt-2 block opacity-50 font-black ${msg.role === 'user' ? 'text-slate-400' : 'text-slate-300'}`}>
                 {msg.time}
               </span>
             </div>
@@ -69,30 +73,26 @@ const ExamBotPanel = () => {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 border-t border-slate-100 bg-white">
-        <form onSubmit={handleSendMessage} className="relative">
+      <div className="p-4 border-t border-slate-100 bg-white shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.05)]">
+        <form onSubmit={handleSendMessage} className="relative flex gap-2">
           <input 
             type="text" 
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="שאל את הבוט או בקש פעולה..."
-            className="w-full pl-10 pr-4 py-3 bg-slate-100 border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none font-medium"
+            placeholder="שאל את הבוט..."
+            className="w-full pl-4 pr-4 py-3.5 bg-slate-100 border-2 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm transition-all outline-none font-bold text-slate-700"
           />
           <button 
             type="submit"
-            className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all"
+            disabled={!input.trim()}
+            className="p-3 bg-[#1e293b] text-white rounded-xl hover:bg-blue-600 transition-all shadow-lg active:scale-95 disabled:opacity-20"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </button>
         </form>
-        <p className="text-[9px] text-slate-400 text-center mt-3 font-bold uppercase tracking-tighter">
-          הבוט זמין לשאלות על נוכחות, זמנים ודיווחים
-        </p>
       </div>
-    </aside>
+    </div>
   );
-};
-
-export default ExamBotPanel;
+}

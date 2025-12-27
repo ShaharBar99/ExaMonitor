@@ -1,28 +1,20 @@
 import React from 'react';
-import ExamBotPanel from './ExamBotPanel';
-import ChatMessages from './ChatMessages'; // וודא שהנתיב נכון
-import Notifications from './Notifications'; // וודא שהנתיב נכון
+import MessageManager from './MessageManager';
+import NotificationManager from './NotificationManager';
+import ExamBotPanel from './ExamBotPanel'; // הרכיב שהרגע עדכנו
 
-const SidebarPanel = ({ activeTab }) => {
-  // פונקציית עזר להחזרת התוכן הרלוונטי
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'bot':
-        return <ExamBotPanel />;
-      case 'chat':
-        return <ChatMessages />;
-      case 'notifications':
-        return <Notifications />;
-      default:
-        return <ExamBotPanel />;
-    }
-  };
+export default function SidebarPanel({ activeTab, userRole }) {
+  
+  // 1. טאב התראות - משותף לכולם (עם סינון פנימי)
+  if (activeTab === 'notifications') {
+    return <NotificationManager userRole={userRole} />;
+  }
 
-  return (
-    <div className="h-full w-full overflow-hidden flex flex-col bg-white">
-      {renderContent()}
-    </div>
-  );
-};
+  // 2. טאב בוט - זמין למשגיח חדר בלבד
+  if (activeTab === 'bot' && userRole === 'supervisor') {
+    return <ExamBotPanel />;
+  }
 
-export default SidebarPanel;
+  // 3. ניהול הודעות (צ'אט מרצה / צ'אט קומה) - לפי הרשאות רכיב MessageManager
+  return <MessageManager activeTab={activeTab} userRole={userRole} />;
+}

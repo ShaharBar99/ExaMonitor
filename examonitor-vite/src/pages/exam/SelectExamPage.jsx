@@ -14,7 +14,7 @@ const SelectExamPage = ({ navigate }) => {
               <p className="text-sm text-gray-500">{exam.room}</p>
             </div>
             <button 
-              onClick={() => navigate(`/exam/active/${exam.id}`)}
+              onClick={() => navigate(`/exam/active/${exam.room}`)}
               className="bg-blue-600 text-white px-4 py-2 rounded"
             >
               כניסה למבחן
