@@ -47,8 +47,8 @@ export default function LoginPage() { // Login page component
     setIsSubmitting(true); // Set loading state
     try { // Start try/catch for async call
       const result = await loginWithApi( // Call handler (which calls the API)
-        { username, password, role }, // Payload from UI state
-        { authApi: authApiMock, useMock: true, mockDelayMs: 250 } // Use mock for now
+        { username, password, role, rememberMe }, // Payload from UI state
+        {} // Use mock for now
       ); // End handler call
 
       if (!result.ok) { // If validation failed (handler returns errors)
