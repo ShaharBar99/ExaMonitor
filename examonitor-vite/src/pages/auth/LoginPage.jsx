@@ -159,14 +159,16 @@ export default function LoginPage() { // Login page component
             </button> {/* End submit */}
 
             <button
-              type="button" // Secondary action
-              className="w-full mt-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-md shadow-emerald-500/30 transition" // Styling
+              type="button"
+              onClick={() => navigate("/register")}
+              className="w-full mt-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-md shadow-emerald-500/30 transition"
             >
-              <span>הרשמה</span> {/* Text */}
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"> {/* Plus icon */}
-                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v6h6a1 1 0 110 2h-6v6a1 1 0 11-2 0v-6H3a1 1 0 110-2h6V3a1 1 0 011-1z" clipRule="evenodd" /> {/* Path */}
-              </svg> {/* End icon */}
-            </button> {/* End register button */}
+              <span>הרשמה</span>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v6h6a1 1 0 110 2h-6v6a1 1 0 11-2 0v-6H3a1 1 0 110-2h6V3a1 1 0 011-1z" clipRule="evenodd" />
+              </svg>
+            </button>
+
           </form> {/* End form */}
 
           <p className="mt-4 text-[11px] text-center text-slate-400">גישה מאובטחת. ניסיונות כניסה נרשמים ומנוטרים.</p> {/* Footer text */}

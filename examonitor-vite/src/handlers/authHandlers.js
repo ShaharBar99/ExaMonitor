@@ -1,6 +1,6 @@
 
 import * as authApiDefault from "../api/authApi";
-import { findMockUser } from "../mocks/authMock"; // Import mock lookup helper
+import { findMockUser,addMockUser  } from "../mocks/authMock"; // Import mock lookup helper
 
 // Supported roles in the UI. // Keep this in one place
 export const AUTH_ROLES = ["student", "invigilator", "lecturer", "admin"]; // Added student
@@ -66,7 +66,32 @@ export async function loginWithApi({ username, password, role, rememberMe }, dep
   persistAuthToken(result?.token, Boolean(rememberMe)); // Persist token if present
   return { ok: true, data: result }; // Return success
 } // End loginWithApi
+export async function registerWithApi({ name, username, password, role }, deps) { // Register handler
+  const { ok, errors, value } = validateAuthPayload( // Use the shared validator
+    { name, username, password, role }, // Payload
+    true // requireName = true for register
+  ); // End validate
+  if (!ok) return { ok: false, errors }; // Return validation errors
 
+  const authApi = deps?.authApi || authApiDefault; // Default to REST module
+  const envMock = String(import.meta.env.VITE_USE_AUTH_MOCK || "").toLowerCase() === "true"; // Env flag
+  const useMock = Boolean(deps?.useMock) || envMock; // Decide mock usage
+  const mockDelayMs = Number(deps?.mockDelayMs ?? 250); // Delay
+
+  if (useMock) { // Mock path
+    await new Promise((resolve) => setTimeout(resolve, mockDelayMs)); // Delay
+    const res = addMockUser(value); // Add user to mock list
+    if (!res.ok) return { ok: false, apiError: { message: res.message } }; // Return mock error
+    return { ok: true, data: { user: res.user } }; // Success (no token needed yet)
+  } // End mock path
+
+  if (!authApi?.register) { // Guard until backend exists
+    throw new Error("authApi.register is missing (backend not connected yet)"); // Fail fast
+  } // End guard
+
+  const result = await authApi.register(value); // Call REST register when ready
+  return { ok: true, data: result }; // Return backend result
+} // End registerWithApi 
 
 // Simple mock login (temporary): checks username/password/role against mockUsers. // Replace later
 export async function mockLogin({ username, password, role }, options) { // Mock backend login
