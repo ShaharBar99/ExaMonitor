@@ -1,35 +1,43 @@
-// src/handlers/attendanceHandlers.js
 import { attendanceApi } from '../api/attendanceApi';
 
 export const attendanceHandlers = {
-  initConsole: async (examId, setStudents, setLoading, setExamContext) => {
+  /**
+   * אתחול מסך ניהול הכיתה
+   */
+  initConsole: async (roomId, setStudents, setLoading, setExamContext) => {
     try {
-      setLoading(true);
-      // משיכת נתוני הסטודנטים
-      const students = await attendanceApi.getStudentsByRoom(examId);
+      if (setLoading) setLoading(true);
+      
+      // משיכת נתוני הסטודנטים מה-API
+      const students = await attendanceApi.getStudentsByRoom(roomId);
       setStudents(students);
       
-      // כאן אנחנו "מעדכנים" את הקונטקסט בפרטי המבחן שחזרו מהשרת
+      // עדכון הקונטקסט בפרטי המבחן והחדר
       if (setExamContext) {
-        setExamContext({
-          id: examId,
-          name: "מבוא למדעי המחשב", // נתון שיגיע מה-API
-          room: "302"
-        });
+        setExamContext(prev => ({
+          ...prev,
+          roomId: roomId,
+          roomName: `חדר ${roomId}`,
+          lastSync: new Date().toLocaleTimeString()
+        }));
       }
     } catch (error) {
-      console.error("Initialization failed", error);
+      console.error("Initialization failed:", error);
+      alert("נכשל בטעינת נתוני הכיתה");
     } finally {
-      setLoading(false);
+      if (setLoading) setLoading(false);
     }
   },
+
+  /**
+   * שינוי סטטוס סטודנט (כולל עדכון UI מקומי)
+   */
   changeStudentStatus: async (studentId, newStatus, setStudents) => {
     try {
-      // 1. מעדכנים את השרת/API
-      await attendanceApi.updateStatus(studentId, newStatus);
+      // עדכון השרת בשימוש בשם הפונקציה המדויק: updateStudentStatus
+      await attendanceApi.updateStudentStatus(studentId, newStatus);
 
-      // 2. מעדכנים את ה-UI (ה-State של React)
-      // אנחנו עוברים על רשימת הסטודנטים ורק לסטודנט הספציפי משנים את הסטטוס
+      // עדכון ה-State של React בצורה אופטימית
       setStudents(prevStudents => 
         prevStudents.map(student => 
           student.id === studentId 
@@ -38,8 +46,42 @@ export const attendanceHandlers = {
         )
       );
     } catch (error) {
-      console.error("Failed to update status", error);
-      alert("חלה שגיאה בעדכון הסטטוס");
+      console.error("Failed to update status:", error);
+      alert("חלה שגיאה בעדכון הסטטוס בשרת");
+    }
+  },
+
+  /**
+   * טעינת סיכום קומה (עבור מנהל קומה)
+   */
+  loadFloorSummary: async (floorId, setSummary) => {
+    try {
+      const data = await attendanceApi.getFloorSummary(floorId);
+      setSummary(data);
+    } catch (error) {
+      console.error("Failed to load floor summary:", error);
+    }
+  },
+
+  /**
+   * שיבוץ משגיח לחדר (פעולת מנהיגות)
+   */
+  handleAssignSupervisor: async (roomId, supervisorId, callback) => {
+    try {
+      await attendanceApi.assignSupervisor(roomId, supervisorId);
+      if (callback) callback();
+      alert(`משגיח שובץ בהצלחה לחדר ${roomId}`);
+    } catch (error) {
+      console.error("Assignment failed:", error);
+      alert("שיבוץ המשגיח נכשל");
+    }
+  },
+  handleGetExamsOnFloor: async (floorId, setExams) => {
+    try {
+      const data = await attendanceApi.getExamsOnFloor(floorId);
+      setExams(data);
+    } catch (error) {
+      console.error("Failed to load exams on floor:", error);
     }
   }
 };

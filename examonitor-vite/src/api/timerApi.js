@@ -29,3 +29,33 @@ export const timerApi = {
     return { success: true, newDuration: 195 };
   }
 };
+
+// //// Actual usage:
+// export const timerApi = {
+//   // GET /exams/:id/timing
+//   getExamTiming: async (examId) => {
+//     // סנכרון זמנים: startTime, originalDuration, extraTime, isPaused
+//     return http.get(`/exams/${examId}/timing`);
+//   },
+
+//   // POST /exams/:id/extra-time
+//   addExtraTime: async (examId, minutes, reason) => {
+//     // הוספת תוספת זמן גלובלית לבחינה
+//     return http.post(`/exams/${examId}/extra-time`, { minutes, reason });
+//   },
+//    /**
+  //  * POST /exams/:id/pause
+  //  * עצירת הבחינה לכולם (למשל במקרה של אזעקה או תקלה)
+  //  */
+  // pauseExam: async (examId, reason) => {
+  //   return http.post(`/exams/${examId}/pause`, { reason });
+  // },
+
+  // /**
+  //  * POST /exams/:id/resume
+  //  * המשך הבחינה לאחר עצירה
+  //  */
+  // resumeExam: async (examId) => {
+  //   return http.post(`/exams/${examId}/resume`, {});
+  // }
+// };

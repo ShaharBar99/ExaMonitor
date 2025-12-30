@@ -34,3 +34,18 @@ export const messageApi = {
     };
   }
 };
+
+// // Actual usage:
+// export const messageApi = {
+//   // GET /chat/:examId?type=:type
+//   getMessages: async (examId, type) => {
+//     // שליפת היסטוריית הודעות לפי סוג ערוץ (למשל lecturer_to_floor)
+//     return http.get(`/chat/${examId}?type=${type}`);
+//   },
+
+//   // POST /chat/:examId
+//   sendMessage: async (examId, payload) => {
+//     // שליחת הודעה: payload = { type, text, recipientId? }
+//     return http.post(`/chat/${examId}`, payload);
+//   }
+// };

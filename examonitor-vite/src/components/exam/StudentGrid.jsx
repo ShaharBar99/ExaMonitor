@@ -4,32 +4,25 @@ import StudentCard from './StudentCard';
 const StudentGrid = ({ students, onStatusChange }) => {
   const [search, setSearch] = useState('');
 
-  // לוגיקת סינון בזמן אמת
   const filteredStudents = students.filter(s => 
     s.name.includes(search) || s.id.includes(search)
   );
 
   return (
-    <div className="flex flex-col h-full">
-      {/* שורת חיפוש */}
-      <div className="mb-6 sticky top-0 z-10 bg-slate-50/80 backdrop-blur-md py-2">
-        <div className="relative max-w-md mx-auto">
-          <input 
-            type="text" 
-            placeholder="חפש סטודנט לפי שם או תעודת זהות..."
-            className="w-full pl-4 pr-10 py-3 rounded-2xl border-none shadow-sm focus:ring-2 focus:ring-blue-500 text-sm outline-none"
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-        </div>
+    <div className="flex flex-col h-full bg-transparent" dir="rtl">
+      {/* שורת חיפוש - סגנון מינימליסטי */}
+      <div className="mb-10 relative max-w-xl">
+        <span className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 text-xl">🔍</span>
+        <input 
+          type="text" 
+          placeholder="חפש סטודנט לפי שם או תעודת זהות..."
+          className="w-full pr-14 pl-6 py-5 rounded-[22px] bg-slate-50 border-2 border-transparent focus:border-emerald-500/20 focus:bg-white text-slate-700 font-bold shadow-sm outline-none transition-all italic text-sm"
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
-      {/* ה-Grid עצמו */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
+      {/* פריסת הגריד */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
         {filteredStudents.map(student => (
           <StudentCard 
             key={student.id} 
@@ -39,10 +32,10 @@ const StudentGrid = ({ students, onStatusChange }) => {
         ))}
       </div>
 
-      {/* הודעה כשאין תוצאות */}
       {filteredStudents.length === 0 && (
-        <div className="text-center py-20 text-slate-400 font-medium">
-          לא נמצאו סטודנטים התואמים לחיפוש...
+        <div className="flex flex-col items-center justify-center py-24 opacity-20">
+          <span className="text-6xl mb-4">👤</span>
+          <p className="text-slate-900 font-black italic uppercase tracking-widest text-xl">לא נמצאו סטודנטים</p>
         </div>
       )}
     </div>

@@ -1,14 +1,19 @@
+// src/components/layout/DashboardLayout.jsx
 import React from 'react';
 
 export default function DashboardLayout({ sidebar, header, children }) {
   return (
-    <div className="h-screen flex bg-[#f8fafc] overflow-hidden font-sans text-right" dir="rtl">
+    <div className="h-screen flex bg-[#0f172a] overflow-hidden font-sans text-right text-white" dir="rtl">
       {sidebar}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white border-b border-slate-100 px-8 py-6 flex justify-between items-center z-30 shadow-sm">
+      
+      <div className="flex-1 flex flex-col overflow-hidden relative">
+        {/* Header with Glassmorphism */}
+        <header className="bg-white/5 border-b border-white/10 px-10 py-8 flex justify-between items-center z-30 backdrop-blur-md">
           {header}
         </header>
-        <main className="flex-1 overflow-y-auto p-12 bg-[#f8fafc]">
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto p-12 bg-[#0f172a] space-y-10">
           {children}
         </main>
       </div>

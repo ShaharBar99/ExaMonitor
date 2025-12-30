@@ -24,7 +24,7 @@ export default function AppRoutes() {
       <Route path="/supervisor/floorsupervisorDashboardPage" element={<FloorSupervisorDashboardPage />} />
       <Route path="/Lecturer/lecturerDashboardPage" element={<LecturerDashboardPage />} />
       <Route path="/exam/view-classrooms" element={<ViewClassroomsPage />} />
-      <Route path="/exam/incident-report" element={<IncidentReportPage />} />
+      <Route path="/exam/incident-report/:examId" element={<IncidentReportPage />} />
       {/*<Route path="/" element={<Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/login" replace />} />*/}
     </Routes>

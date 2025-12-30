@@ -25,5 +25,27 @@ export const timerHandlers = {
       console.error("Error calculating time:", error);
       return 5391; // ערך ברירת מחדל במקרה של שגיאה
     }
+  },
+  handlePause: async (examId, reason) => {
+    try {
+      // קריאה ל-Route: POST /exams/:id/pause 
+      return await timerApi.pauseExam(examId, reason);
+    } catch (error) {
+      console.error("Failed to pause exam:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * חידוש המבחן דרך ה-API
+   */
+  handleResume: async (examId) => {
+    try {
+      // קריאה ל-Route: POST /exams/:id/resume 
+      return await timerApi.resumeExam(examId);
+    } catch (error) {
+      console.error("Failed to resume exam:", error);
+      throw error;
+    }
   }
 };

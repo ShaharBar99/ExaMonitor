@@ -12,3 +12,18 @@ export const notificationsApi = {
     return { success: true };
   }
 };
+
+// //// Actual usage:
+// export const notificationsApi = {
+//   // GET /notifications?contextId=:id
+//   // GET /notifications?contextId=:id
+//   getNotifications: async (contextId) => {
+//     // קבלת לוג הודעות ואירועים (Audit Log) לפי מזהה בחינה או קומה
+//     return http.get(`/notifications?contextId=${contextId}`);
+//   },
+//   // PATCH /notifications/:id/read
+//   markAsRead: async (notificationId) => {
+//     // סימון התראה כנקראה
+//     return http.patch(`/notifications/${notificationId}/read`);
+//   }
+// };

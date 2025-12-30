@@ -1,28 +1,55 @@
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom'; // הוספנו useParams
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+
+// רכיבי מערכת
 import Sidebar from '../../components/layout/Sidebar';
 import SidebarPanel from '../../components/exam/SidebarPanel';
 import ExamTimer from '../../components/exam/ExamTimer';
-import { useExam } from '../../state/ExamContext'; // הוספנו Context
+
+// לוגיקה ו-Context
+import { useExam } from '../../state/ExamContext';
+import { examHandlers } from '../../handlers/examHandlers';
+import { timerHandlers } from '../../handlers/timerHandlers';
+import { notificationHandlers } from '../../handlers/notificationHandlers';
+import StatCard from '../../components/exam/StatCard';
 
 export default function LecturerDashboardPage() {
   const navigate = useNavigate();
-  const { examId } = useParams(); // שליפת ה-ID מה-URL לצורך הצ'אט
-  const { examData } = useExam(); // שימוש בנתונים גלובליים
+  const { examId } = useParams();
+  const { examData, setExamData } = useExam();
   
-  // --- States ---
-  const [activeTab, setActiveTab] = useState('floor_chat'); 
+  // ניהול מצב
+  const [activeTab, setActiveTab] = useState('notifications'); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [notifications, setNotifications] = useState([]);
+  const [remainingTime, setRemainingTime] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // שימוש בנתונים מהקונטקסט עם גיבוי לנתונים ידניים אם הקונטקסט ריק
-  const displayStats = {
-    title: examData?.courseName || "מבוא למדעי המחשב",
-    code: examData?.courseCode || "CS101",
-    totalStudents: examData?.totalStudents || 145,
-    submitted: 32,
-    activeRooms: 5,
-    flaggedIncidents: 1
-  };
+  // אתחול הקונסול
+  useEffect(() => {
+    const initLecturerConsole = async () => {
+      setIsLoading(true);
+      await notificationHandlers.loadNotifications(examId, setNotifications, setIsLoading);
+      const seconds = await timerHandlers.getRemainingSeconds(examId);
+      setRemainingTime(seconds);
+      setIsLoading(false);
+    };
+    initLecturerConsole();
+  }, [examId]);
+
+  // פעולות (Handlers)
+  const handleBroadcast = () => examHandlers.handleBroadcast(examId);
+  const handleStatusChange = (newStatus) => examHandlers.handleChangeStatus(examId, newStatus, setExamData);
+
+  // חישוב נתונים (Memoized)
+  const stats = useMemo(() => ({
+    totalStudents: examData?.totalStudents || 0,
+    submitted: examData?.submittedCount || 0,
+    activeRooms: examData?.roomsCount || 0,
+    flaggedIncidents: notifications.filter(n => n.severity === 'high' && !n.isRead).length,
+    attendanceRate: 98.2, 
+    avgCompletionTime: "01:45"
+  }), [examData, notifications]);
 
   const tabs = [
     { id: 'floor_chat', icon: '🏢', label: 'משגיח קומה' },
@@ -30,113 +57,112 @@ export default function LecturerDashboardPage() {
   ];
 
   return (
-    <div className="h-screen flex bg-[#f8fafc] overflow-hidden font-sans text-right" dir="rtl">
+    <div className="h-screen flex bg-[#0f172a] overflow-hidden font-sans text-right text-white" dir="rtl">
       
-      {/* 1. Sidebar */}
+      {/* תפריט צד */}
       <Sidebar 
         tabs={tabs} 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        isSidebarOpen={isSidebarOpen} 
-        setIsSidebarOpen={setIsSidebarOpen}
-        logoText="LT"
-        logoColor="bg-rose-600"
+        activeTab={activeTab} setActiveTab={setActiveTab} 
+        isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen}
+        logoText="מרצה" logoColor="bg-rose-600"
       >
-        {/* הוספת ה-Key כאן היא קריטית כדי שהצ'אט יתאפס כשעוברים טאב */}
-        <SidebarPanel activeTab={activeTab} userRole="lecturer" />
+        <SidebarPanel key={activeTab} activeTab={activeTab} userRole="lecturer" />
       </Sidebar>
 
-      {/* 2. Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         
-        {/* Header */}
-        <header className="bg-white border-b border-slate-100 px-12 py-8 flex justify-between items-center z-30 shadow-sm">
+        {/* כותרת עליונה - Glassmorphism */}
+        <header className="bg-white/5 border-b border-white/10 px-12 py-8 flex justify-between items-center z-30 backdrop-blur-md">
           <div className="flex items-center gap-10">
             <div>
-              <h1 className="text-3xl font-black text-slate-800 italic uppercase leading-none">Lecturer Console</h1>
-              <p className="text-slate-400 font-bold mt-2 uppercase tracking-widest text-[11px] flex items-center gap-2">
-                <span className="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
-                {displayStats.title} ({displayStats.code}) | מזהה: {examId}
-              </p>
+              <h1 className="text-3xl font-black italic leading-none tracking-tight">קונסול מרצה</h1>
+              <div className="flex items-center gap-3 mt-3">
+                <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${examData?.status === 'paused' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}></span>
+                <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">
+                  {examData?.name || 'בחינה כללית'} • קוד קורס: {examData?.courseId} • מזהה: {examId}
+                </p>
+              </div>
             </div>
 
             <button 
               onClick={() => navigate('/exam/view-classrooms', { state: { role: 'lecturer' } })}
-              className="flex items-center gap-3 bg-white border-2 border-rose-100 text-rose-600 px-6 py-4 rounded-2xl font-black text-sm hover:bg-rose-50 transition-all shadow-sm active:scale-95"
+              className="flex items-center gap-3 bg-white/5 border border-white/10 text-white px-6 py-4 rounded-2xl font-black text-xs tracking-widest hover:bg-white/10 transition-all active:scale-95 shadow-lg shadow-black/20"
             >
               <span className="text-xl">📊</span>
-              מעקב כלל הכיתות
+              מעקב פריסת חדרים
             </button>
           </div>
 
           <div className="flex items-center gap-8">
-            <div className="scale-110">
-              <ExamTimer initialSeconds={7200} />
+            <div className="scale-125 mx-6">
+              {remainingTime !== null && (
+                <ExamTimer 
+                  initialSeconds={remainingTime} 
+                  isPaused={examData?.status === 'paused'} 
+                />
+              )}
             </div>
-            <button className="bg-rose-600 text-white px-8 py-4 rounded-2xl font-black text-sm hover:bg-rose-700 shadow-lg shadow-rose-100 active:scale-95 transition-all">
-              פרסום הודעה לכל החדרים
+            <button 
+              onClick={handleBroadcast}
+              className="bg-rose-600 text-white px-10 py-5 rounded-2xl font-black text-xs tracking-widest hover:bg-rose-500 shadow-2xl shadow-rose-900/40 active:scale-95 transition-all"
+            >
+              שידור הודעה לכל הנבחנים
             </button>
           </div>
         </header>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-12 bg-[#f8fafc] space-y-8">
+        <main className="flex-1 overflow-y-auto p-12 bg-[#0f172a] space-y-10">
           
-          <div className="flex flex-col gap-4">
-            <div className="flex justify-between items-end px-2">
-                <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">מצב בחינה בזמן אמת</h3>
-                <button className="text-xs font-black text-rose-600 hover:underline">הפקת דוח בחינה מלא (PDF)</button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <StatCard label="סה״כ נבחנים" value={displayStats.totalStudents} color="slate" />
-              <StatCard label="הגישו בפועל" value={displayStats.submitted} color="emerald" progress={(displayStats.submitted/displayStats.totalStudents)*100} />
-              <StatCard label="חדרים פעילים" value={displayStats.activeRooms} color="blue" />
-              <StatCard label="אירועים חריגים" value={displayStats.flaggedIncidents} color="rose" highlight />
-            </div>
+          {/* מטריקות מהירות */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard label="סטודנטים בבחינה" value={stats.totalStudents} color="white" icon="👥" />
+            <StatCard label="טפסי בחינה שהוגשו" value={stats.submitted} color="emerald" progress={stats.totalStudents > 0 ? (stats.submitted/stats.totalStudents)*100 : 0} icon="📝" />
+            <StatCard label="חדרי בחינה פעילים" value={stats.activeRooms} color="blue" icon="🏠" />
+            <StatCard label="דיווחים חריגים" value={stats.flaggedIncidents} color="rose" highlight={stats.flaggedIncidents > 0} icon="⚠️" />
           </div>
 
-          {/* אזור מרכזי: שאלות וקבצים */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <div className="lg:col-span-2 bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm flex flex-col">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-black text-slate-800 italic">שאלות ממתינות מהסטודנטים</h3>
-                <div className="flex gap-2">
-                    <span className="px-4 py-1 bg-rose-50 text-rose-600 rounded-full text-[10px] font-black uppercase">דחוף (1)</span>
-                    <span className="px-4 py-1 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase">סה"כ 2</span>
-                </div>
+          {/* לוח ניתוח נתונים מרכזי */}
+          <div className="bg-white rounded-[50px] p-12 shadow-2xl border border-white/10 overflow-hidden relative">
+            <div className="flex justify-between items-center mb-12">
+              <div>
+                <h3 className="text-4xl font-black text-[#0f172a] italic tracking-tight uppercase">ניתוח נתונים מתקדם</h3>
+                <p className="text-slate-400 font-bold text-[11px] mt-2 uppercase tracking-widest">בקרה וניטור תהליך הבחינה בזמן אמת</p>
               </div>
-              
-              <div className="space-y-4 flex-1">
-                <QuestionRow 
-                  room="302" 
-                  student="ישראל ישראלי" 
-                  question="האם בשאלה 4 הכוונה למערך דו-מימדי או רשימה?" 
-                  time="12:10" 
-                />
-                <QuestionRow 
-                  room="405" 
-                  student="מיכל כהן" 
-                  question="חסר נתון לגבי קבוע הגרביטציה בסעיף ב'" 
-                  time="12:05"
-                  isUrgent
-                />
+              <div className="flex gap-4">
+                  <button onClick={() => handleStatusChange(examData?.status === 'active' ? 'paused' : 'active')} 
+                          className={`px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${examData?.status === 'active' ? 'bg-amber-500 text-white shadow-amber-500/20' : 'bg-emerald-500 text-white shadow-emerald-500/20'}`}>
+                    {examData?.status === 'active' ? 'הקפאת בחינה גלובלית' : 'חידוש בחינה'}
+                  </button>
+                  <button className="px-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-slate-200 transition-colors">
+                    ייצוא דוח נתונים
+                  </button>
               </div>
             </div>
 
-            <div className="bg-[#0f172a] rounded-[40px] p-10 shadow-2xl text-white flex flex-col">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-black italic">נספחים</h3>
-                <span className="text-[20px]">📂</span>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-20">
+              {/* מדדי התקדמות */}
+              <div className="space-y-12">
+                <ProgressRow label="שיעור נוכחות נוכחי" percent={stats.attendanceRate} color="bg-rose-500" />
+                <ProgressRow label="קצב התקדמות נבחנים" percent={75} color="bg-indigo-500" />
+                <ProgressRow label="נבחנים בשלב ההגשה" percent={15} color="bg-emerald-500" />
               </div>
-              <div className="space-y-4 flex-1">
-                <FileItem name="טופס בחינה - מקור.pdf" size="1.2MB" />
-                <FileItem name="דף נוסחאות מאושר.pdf" size="450KB" />
+
+              {/* קוביות סיכום */}
+              <div className="grid grid-cols-2 gap-6">
+                <SummaryBox icon="⏱️" label="זמן הגשה ממוצע" value={stats.avgCompletionTime} />
+                <SummaryBox icon="🧊" label="בקשות הארכה" value="4" />
+                <SummaryBox icon="🚪" label="יציאות לשירותים" value="12" />
+                <SummaryBox icon="📢" label="הודעות שנשלחו" value="3" />
               </div>
-              <button className="w-full py-5 bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl text-xs font-black uppercase tracking-widest transition-all mt-6 active:scale-95">
-                העלאת נספח חדש לכל החדרים
-              </button>
+            </div>
+
+            <div className="mt-16 pt-8 border-t border-slate-50 flex justify-between items-center opacity-40">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  סנכרון נתונים פעיל • מערכת מבוזרת
+                </div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  עדכון אחרון: {new Date().toLocaleTimeString('he-IL')}
+                </div>
             </div>
           </div>
         </main>
@@ -145,58 +171,24 @@ export default function LecturerDashboardPage() {
   );
 }
 
-// --- פונקציות עזר (אותו דבר) ---
-const StatCard = ({ label, value, color, progress, highlight }) => {
-    const colorClasses = {
-      slate: 'text-slate-800',
-      emerald: 'text-emerald-600',
-      blue: 'text-blue-600',
-      rose: 'text-rose-600'
-    };
-    return (
-      <div className={`bg-white p-8 rounded-[35px] border border-slate-100 shadow-sm relative overflow-hidden transition-all hover:shadow-md ${highlight ? 'border-rose-200 ring-4 ring-rose-50' : ''}`}>
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{label}</p>
-        <div className="flex items-baseline gap-2">
-          <span className={`text-4xl font-black ${highlight ? 'animate-pulse' : ''} ${colorClasses[color]}`}>{value}</span>
-          {progress && <span className="text-xs font-bold text-slate-300">({Math.round(progress)}%)</span>}
-        </div>
-        {progress && (
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-slate-50">
-            <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${progress}%` }}></div>
-          </div>
-        )}
-      </div>
-    );
-};
+// --- רכיבי עזר פנימיים ---
 
-const QuestionRow = ({ room, student, question, time, isUrgent }) => (
-    <div className={`p-6 rounded-[28px] border-2 transition-all hover:scale-[1.01] ${isUrgent ? 'bg-rose-50/40 border-rose-100 shadow-sm' : 'bg-slate-50/50 border-transparent hover:border-slate-100'}`}>
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-center gap-3">
-          <span className={`px-3 py-1 rounded-xl text-[10px] font-black shadow-sm border ${isUrgent ? 'bg-rose-600 text-white border-rose-600' : 'bg-white text-slate-800 border-slate-100'}`}>
-              חדר {room}
-          </span>
-          <span className="text-xs font-bold text-slate-500">{student}</span>
-        </div>
-        <span className="text-[10px] font-bold text-slate-400 tabular-nums">{time}</span>
-      </div>
-      <p className="text-sm font-bold text-slate-700 leading-relaxed mb-4">{question}</p>
-      <div className="flex gap-3">
-        <button className="px-6 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase hover:bg-rose-600 transition-all active:scale-95 shadow-lg shadow-slate-200">השב עכשיו</button>
-        <button className="px-6 py-2 bg-white text-slate-400 rounded-xl text-[10px] font-black uppercase border border-slate-200 hover:text-slate-600 transition-all">סמן כטופל</button>
-      </div>
-    </div>
+const SummaryBox = ({ icon, label, value }) => (
+  <div className="bg-slate-50 p-10 rounded-[40px] flex flex-col items-center justify-center text-center border border-slate-100 group hover:bg-white hover:shadow-2xl hover:scale-[1.05] transition-all duration-500">
+    <span className="text-4xl mb-4 group-hover:scale-125 transition-transform duration-500">{icon}</span>
+    <p className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">{label}</p>
+    <p className="text-3xl font-black text-[#0f172a] italic leading-none tabular-nums">{value}</p>
+  </div>
 );
 
-const FileItem = ({ name, size }) => (
-    <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/10 transition-all cursor-pointer group">
-      <div className="flex items-center gap-4">
-        <span className="text-xl group-hover:rotate-12 transition-transform">📄</span>
-        <div>
-          <p className="text-xs font-bold text-slate-200">{name}</p>
-          <p className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{size}</p>
-        </div>
-      </div>
-      <span className="text-slate-600 group-hover:text-white transition-colors">📥</span>
+const ProgressRow = ({ label, percent, color }) => (
+  <div className="space-y-4 group">
+    <div className="flex justify-between items-end px-2">
+      <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">{label}</span>
+      <span className="text-lg font-black text-slate-400 italic tabular-nums">{percent}%</span>
     </div>
+    <div className="h-6 bg-slate-100 rounded-full overflow-hidden p-1.5 shadow-inner">
+      <div className={`h-full ${color} rounded-full transition-all duration-1000 shadow-lg group-hover:brightness-110`} style={{ width: `${percent}%` }}></div>
+    </div>
+  </div>
 );

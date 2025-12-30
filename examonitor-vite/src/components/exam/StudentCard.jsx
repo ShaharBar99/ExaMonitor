@@ -4,38 +4,48 @@ const StudentCard = ({ student, onStatusChange, onMoveClass }) => {
   const isOut = student.status === 'שירותים';
   const isFinished = student.status === 'סיים';
 
+  // לוגיקת עיצוב לפי סטטוס
+  const getStatusConfig = () => {
+    if (isFinished) return { bg: 'bg-slate-100', text: 'text-slate-400', label: 'הגיש מבחן', dot: 'bg-slate-300' };
+    if (isOut) return { bg: 'bg-amber-50', text: 'text-amber-600', label: 'יצא מהחדר', dot: 'bg-amber-500' };
+    return { bg: 'bg-emerald-50', text: 'text-emerald-600', label: 'במבחן פעיל', dot: 'bg-emerald-500' };
+  };
+
+  const config = getStatusConfig();
+
   return (
-    <div className={`relative bg-white rounded-[32px] p-6 shadow-sm border-2 transition-all duration-300
-      ${isOut ? 'border-amber-400 ring-4 ring-amber-50' : 'border-transparent'} 
-      ${isFinished ? 'opacity-40 grayscale' : 'hover:shadow-md'}`}>
+    <div className={`group relative bg-white rounded-4xl p-7 border-2 transition-all duration-300 text-right
+      ${isOut ? 'border-amber-200 shadow-xl shadow-amber-500/5' : 'border-slate-50 hover:border-emerald-500/20 hover:shadow-2xl hover:shadow-slate-200/50'} 
+      ${isFinished ? 'opacity-50 grayscale-[0.5]' : ''}`} dir="rtl">
       
-      {/* תגיות סטטוס ומספר שולחן (בתוך הכרטיס) */}
-      <div className="flex justify-between items-center mb-8">
-        <div className={`px-4 py-1.5 rounded-full text-[11px] font-black tracking-tight ${
-          isOut ? 'bg-amber-100 text-amber-600' : 
-          isFinished ? 'bg-slate-100 text-slate-400' : 
-          'bg-emerald-100 text-emerald-600'
-        }`}>
-          {student.status}
+      {/* שורה עליונה: סטטוס ומספר שולחן */}
+      <div className="flex justify-between items-center mb-6">
+        <div className={`flex items-center gap-2 px-4 py-1.5 rounded-full ${config.bg} ${config.text} border border-current/10`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${config.dot} ${!isFinished && 'animate-pulse'}`}></span>
+          <span className="text-[10px] font-black uppercase tracking-tight">{config.label}</span>
         </div>
       </div>
 
-      {/* פרטי סטודנט */}
-      <div className="text-center mb-8">
-        <h3 className="text-2xl font-black text-slate-800 tracking-tight">{student.name}</h3>
-        <p className="text-xs text-slate-300 font-bold mt-1 uppercase">ID: {student.id}</p>
+      {/* פרטי הסטודנט */}
+      <div className="mb-8">
+        <h3 className="text-2xl font-black text-slate-900 tracking-tighter leading-none group-hover:text-emerald-600 transition-colors">
+          {student.name}
+        </h3>
+        <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-widest">ת.ז • {student.id}</p>
       </div>
 
-      {/* כפתורי פעולה */}
-      <div className="flex flex-col gap-3">
-        <div className="flex gap-3">
-          {/* כפתור יציאה/חזרה */}
+      {/* אזור פעולות */}
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          {/* פעולה מרכזית: יציאה/חזרה */}
           <button 
             onClick={() => onStatusChange(student.id, isOut ? 'במבחן' : 'שירותים')}
             disabled={isFinished}
-            className={`flex-[1.5] py-4 rounded-2xl text-sm font-black text-white transition-all active:scale-95 shadow-lg ${
-              isOut ? 'bg-[#059669] shadow-emerald-100' : 'bg-[#eab308] shadow-amber-100'
-            }`}
+            className={`flex-2 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-sm
+              ${isOut 
+                ? 'bg-emerald-500 text-white shadow-emerald-200 hover:bg-emerald-600' 
+                : 'bg-amber-500 text-white shadow-amber-200 hover:bg-amber-600'} 
+              disabled:bg-slate-100 disabled:text-slate-300 disabled:shadow-none`}
           >
             {isOut ? 'חזר לחדר' : 'יצא לשירותים'}
           </button>
@@ -44,25 +54,29 @@ const StudentCard = ({ student, onStatusChange, onMoveClass }) => {
           <button 
             onClick={() => onStatusChange(student.id, 'סיים')}
             disabled={isFinished}
-            className="flex-1 bg-[#f1f5f9] text-slate-400 py-4 rounded-2xl text-sm font-black hover:bg-slate-200 transition-colors active:scale-95"
+            className="flex-1 bg-slate-900 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-colors active:scale-95 shadow-lg shadow-slate-200"
           >
             הגשה
           </button>
         </div>
 
-        {/* כפתור העברת כיתה - בולט ונגיש */}
+        {/* העברת כיתה */}
         {!isFinished && (
           <button 
-            onClick={() => onMoveClass(student.id)}
-            className="w-full py-3 border-2 border-slate-50 rounded-2xl text-[11px] font-black text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-100 transition-all flex items-center justify-center gap-2"
+            onClick={() => onMoveClass && onMoveClass(student.id)}
+            className="w-full py-3 bg-slate-50 rounded-xl text-[9px] font-black text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-            </svg>
-            העברה לכיתה אחרת
+            <span>🔄</span> העברה לכיתה אחרת
           </button>
         )}
       </div>
+
+      {/* פס התקדמות דקורטיבי בתחתית הכרטיס */}
+      {!isFinished && (
+         <div className="absolute bottom-0 left-8 right-8 h-1 bg-slate-50 rounded-full overflow-hidden">
+            <div className={`h-full transition-all duration-1000 ${isOut ? 'bg-amber-500 w-full' : 'bg-emerald-500 w-1/3'}`}></div>
+         </div>
+      )}
     </div>
   );
 };

@@ -1,92 +1,84 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { attendanceHandlers } from '../../handlers/attendanceHandlers';
 import { incidentHandlers } from '../../handlers/incidentHandlers';
 import { timerHandlers } from '../../handlers/timerHandlers';
+import { examHandlers } from '../../handlers/examHandlers';
 import Sidebar from '../../components/layout/Sidebar';
 import SidebarPanel from '../../components/exam/SidebarPanel';
 import StudentGrid from '../../components/exam/StudentGrid';
 import ExamTimer from '../../components/exam/ExamTimer';
 import { useExam } from '../../state/ExamContext';
+import StatCard from '../../components/exam/StatCard';
+import {HeaderButton} from '../../components/shared/Button';
 
 export default function SupervisorDashboard() {
   const { examId } = useParams();
   const navigate = useNavigate();
   
-  // --- Context ---
   const { examData, setExamData } = useExam();
-
-  // --- States ---
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('bot');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [remainingTime, setRemainingTime] = useState(null); // התחלנו כ-null כדי לדעת מתי הסנכרון הסתיים
+  const [remainingTime, setRemainingTime] = useState(null);
+  
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isRemoveBarOpen, setIsRemoveBarOpen] = useState(false);
+  
+  const [newStudent, setNewStudent] = useState({ name: '', id: '' });
+  const [removeSearchQuery, setRemoveSearchQuery] = useState('');
 
-  // --- Initial Data Load ---
   useEffect(() => {
-    // טעינת סטודנטים ועדכון נתוני המבחן בקונטקסט
     attendanceHandlers.initConsole(examId, setStudents, setLoading, setExamData);
   }, [examId, setExamData]);
 
   useEffect(() => {
-    const loadTime = async () => {
-      try {
-        const seconds = await timerHandlers.getRemainingSeconds(examId);
-        setRemainingTime(seconds);
-      } catch (error) {
-        console.error("Failed to load time:", error);
-      }
+    const syncTime = async () => {
+      const seconds = await timerHandlers.getRemainingSeconds(examId);
+      setRemainingTime(seconds);
     };
-    loadTime();
+    syncTime();
+    const interval = setInterval(syncTime, 60000);
+    return () => clearInterval(interval);
   }, [examId]);
 
-  // --- Handlers ---
+  const filteredForRemoval = useMemo(() => {
+    if (!removeSearchQuery || removeSearchQuery.length < 2) return [];
+    return students.filter(s => 
+      s.id.includes(removeSearchQuery) || 
+      s.name.toLowerCase().includes(removeSearchQuery.toLowerCase())
+    ).slice(0, 3);
+  }, [students, removeSearchQuery]);
+
   const handleStatusChange = async (id, status) => {
     await attendanceHandlers.changeStudentStatus(id, status, setStudents);
   };
 
-  const addStudent = () => {
-    const name = prompt("הכנס שם סטודנט:");
-    const id = prompt("הכנס תעודת זהות:");
-    if (name && id) {
-      setStudents(prev => [...prev, { 
-        id, 
-        name, 
-        status: 'במבחן', 
-        desk: prev.length + 1 
-      }]);
-    }
+  const handleAddStudent = async (e) => {
+    e.preventDefault();
+    if (!newStudent.name || !newStudent.id) return;
+    const studentToAdd = { ...newStudent, status: 'במבחן', id: newStudent.id.toString() };
+    setStudents(prev => [...prev, studentToAdd]);
+    setNewStudent({ name: '', id: '' });
+    setIsAddModalOpen(false);
   };
 
-  const removeStudent = () => {
-    const id = prompt("הכנס תעודת זהות של הסטודנט להסרה:");
-    if (id) {
-      const studentExists = students.find(s => s.id === id);
-      if (studentExists) {
-        if (window.confirm(`האם אתה בטוח שברצונך להסיר את ${studentExists.name}?`)) {
-          setStudents(prev => prev.filter(s => s.id !== id));
-        }
-      } else {
-        alert("סטודנט לא נמצא במערכת");
-      }
+  const confirmRemoval = (student) => {
+    if (window.confirm(`להסיר את ${student.name} מהמבחן?`)) {
+      setStudents(prev => prev.filter(s => s.id !== student.id));
+      setRemoveSearchQuery('');
+      setIsRemoveBarOpen(false);
     }
   };
 
   const handleFinishExam = async () => {
-    const confirmed = window.confirm("האם אתה בטוח שברצונך לסיים את המבחן? פעולה זו תנעל את הגישה.");
-    if (confirmed) {
-      try {
-        // כאן אפשר להוסיף קריאת API לסיום המבחן
-        alert("המבחן הסתיים בהצלחה. המערכת נועלת נתונים.");
-        navigate('/select-exam');
-      } catch (error) {
-        alert("שגיאה בסיום המבחן");
-      }
+    if (window.confirm("האם אתה בטוח שברצונך לסיים את המבחן לכולם?")) {
+      await examHandlers.handleChangeStatus(examId, 'ended', setExamData);
+      navigate('/select-exam');
     }
   };
 
-  // --- Stats Calculation ---
   const stats = {
     total: students.length,
     submitted: students.filter(s => s.status === 'סיים').length,
@@ -94,148 +86,132 @@ export default function SupervisorDashboard() {
     out: students.filter(s => s.status === 'שירותים').length
   };
 
-  const tabs = [
-    { id: 'bot', icon: '🤖', label: 'ExamBot Helper' },
-    { id: 'chat', icon: '🏢', label: "קשר למשגיח קומה" },
-    { id: 'notifications', icon: '🔔', label: 'יומן התראות' }
-  ];
-
   if (loading) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
-      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      <div className="font-black text-slate-400 italic tracking-widest uppercase">Initializing Room Control...</div>
+    <div className="h-screen flex flex-col items-center justify-center bg-[#0f172a] text-white font-black italic uppercase tracking-widest">
+        Initializing System...
     </div>
   );
 
   return (
-    <div className="h-screen flex bg-[#f8fafc] overflow-hidden font-sans text-right" dir="rtl">
+    <div className="h-screen flex bg-[#0f172a] overflow-hidden font-sans text-right" dir="rtl">
       
       <Sidebar 
-        tabs={tabs} 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        isSidebarOpen={isSidebarOpen} 
-        setIsSidebarOpen={setIsSidebarOpen}
-        logoText="EX"
-        logoColor="bg-blue-600"
+        tabs={[{ id: 'bot', icon: '🤖', label: 'ExamBot' }, { id: 'chat', icon: '🏢', label: "קשר" }]} 
+        activeTab={activeTab} setActiveTab={setActiveTab} 
+        isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} 
+        logoText="EX" logoColor="bg-emerald-600"
       >
         <SidebarPanel activeTab={activeTab} userRole="supervisor" />
       </Sidebar>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
         
-        {/* Header מעודכן */}
-        <header className="bg-white border-b border-slate-100 px-8 py-6 flex justify-between items-center z-30 shadow-sm">
-          <div className="flex items-center gap-6">
+        {/* Header המערכת */}
+        <header className="bg-white/5 border-b border-white/10 px-10 py-8 flex justify-between items-center z-30 backdrop-blur-md">
+          <div className="flex items-center gap-8 text-white">
             <div>
-              <h1 className="text-2xl font-black text-slate-800 leading-none tracking-tight uppercase italic">Room Control</h1>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest font-mono">
-                  ROOM ID: {examId} | {examData?.room || 'BLDG A'}
+              <h1 className="text-3xl font-black leading-none tracking-tight uppercase italic">Room Control</h1>
+              <div className="flex items-center gap-3 mt-3">
+                <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${examData?.status === 'paused' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">
+                   {examData?.roomName || 'SECURE WING'} • {examId}
                 </p>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => incidentHandlers.handleCallManager(examId, examData?.room || "302")} 
-              className="bg-[#fffbeb] text-[#92400e] px-6 py-4 rounded-[22px] text-sm font-black border-2 border-[#fde68a] hover:bg-[#fef3c7] transition-all flex items-center gap-2 active:scale-95 shadow-sm"
-            >
-              קריאה למנהל קומה
-              <span className="w-2 h-2 bg-[#f59e0b] rounded-full animate-bounce"></span>
-            </button>
-
-            <button 
-              onClick={() => navigate(`/exam/incident-report/${examId}`)}
-              className="bg-rose-50 text-rose-600 px-6 py-4 rounded-[22px] text-sm font-black border-2 border-rose-100 hover:bg-rose-100 transition-all flex items-center gap-2 active:scale-95 shadow-sm"
-            >
-              ⚠️ דיווח חריג
-            </button>
-            
-            <div className="mx-4 shrink-0">
-              {remainingTime !== null && (
-                <ExamTimer initialSeconds={remainingTime} onTimeUp={() => alert("הזמן הסתיים!")} />
-              )}
+            <HeaderButton onClick={() => incidentHandlers.handleCallManager(examId)} variant="warning" label="קריאה למנהל" icon="🆘" />
+            <HeaderButton onClick={() => navigate(`/exam/incident-report/${examId}`)} variant="danger" label="דיווח חריג" icon="⚠️" />
+            <div className="mx-6 px-6 border-x border-white/10 shrink-0">
+              {remainingTime !== null && <ExamTimer initialSeconds={remainingTime} isPaused={examData?.status === 'paused'} />}
             </div>
-
-            <button 
-              onClick={handleFinishExam}
-              className="bg-[#0f172a] text-white px-8 py-4 rounded-[22px] text-sm font-black hover:bg-red-600 transition-all active:scale-95"
-            >
+            <button onClick={handleFinishExam} className="bg-white text-[#0f172a] px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-2xl">
               סיום מבחן
             </button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-12 bg-[#f8fafc]">
-          <div className="mb-12 flex flex-col gap-10">
-            
-            <div className="flex justify-between items-end">
-              <div>
-                <h2 className="text-4xl font-black text-slate-800 tracking-tight italic">ניהול חדר בחינה</h2>
-                <p className="text-slate-400 font-bold text-sm mt-1 uppercase tracking-wide">
-                  {examData?.name || 'מבוא למדעי המחשב'} | ניטור נוכחות
-                </p>
-              </div>
-              
-              <div className="flex gap-4">
-                <button 
-                  onClick={removeStudent} 
-                  className="bg-white text-red-600 border-2 border-red-50 px-6 py-4 rounded-[22px] font-black text-sm shadow-sm hover:bg-red-50 transition-all active:scale-95"
-                >
-                  הסרת סטודנט
-                </button>
-                <button 
-                  onClick={addStudent} 
-                  className="bg-emerald-600 text-white px-8 py-4 rounded-[22px] font-black text-sm shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all active:scale-95"
-                >
-                  הוספת סטודנט
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-4 gap-6">
-              <StatCard label="סה״כ רשומים" value={stats.total} color="slate" />
-              <StatCard label="הגישו מבחן" value={stats.submitted} color="emerald" border />
-              <StatCard label="נוכחים כעת" value={stats.inRoom} color="blue" />
-              <StatCard label="בחוץ / שירותים" value={stats.out} color="amber" border />
-            </div>
+        <main className="flex-1 overflow-y-auto p-12 bg-[#0f172a] space-y-10">
+          
+          {/* כרטיסי סטטיסטיקה */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <StatCard label="רשומים" value={stats.total} color="white" icon="👥" />
+            <StatCard label="הגישו" value={stats.submitted} color="emerald" progress={(stats.submitted/stats.total)*100} icon="📝" />
+            <StatCard label="בחדר" value={stats.inRoom} color="blue" icon="🏠" />
+            <StatCard label="בחוץ" value={stats.out} color="amber" highlight={stats.out > 0} icon="🚶" />
           </div>
 
-          <div className="pb-20">
-            <StudentGrid 
-              students={students} 
-              onStatusChange={handleStatusChange} 
-              onMoveClass={(id) => alert(`העברת סטודנט ${id}`)} 
-            />
+          {/* קונטיינר הנוכחות המרכזי */}
+          <div className="bg-white rounded-[50px] shadow-2xl border border-white/10 min-h-150 flex flex-col relative overflow-hidden">
+            
+            {/* Inline Removal Bar */}
+            <div className={`absolute top-0 left-0 w-full z-40 transition-all duration-500 ease-in-out bg-rose-600 shadow-2xl ${isRemoveBarOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+                <div className="px-12 py-8 flex items-center gap-8">
+                    <div className="flex-1 relative">
+                        <input 
+                            type="text" placeholder="הקלד שם או ת.ז להסרה מהירה..."
+                            className="w-full bg-white/20 border-2 border-white/30 rounded-2xl py-4 px-8 text-white placeholder:text-rose-100 outline-none focus:bg-white/30 transition-all font-bold"
+                            value={removeSearchQuery} onChange={(e) => setRemoveSearchQuery(e.target.value)}
+                        />
+                        {filteredForRemoval.length > 0 && (
+                            <div className="absolute top-full mt-3 left-0 flex gap-4 animate-in slide-in-from-top-2">
+                                {filteredForRemoval.map(student => (
+                                    <button key={student.id} onClick={() => confirmRemoval(student)} className="bg-white px-6 py-4 rounded-2xl shadow-2xl border-2 border-rose-100 hover:scale-105 transition-transform flex flex-col items-start min-w-45">
+                                        <span className="font-black text-slate-800 text-sm">{student.name}</span>
+                                        <span className="text-[10px] text-rose-500 font-bold uppercase mt-1">לחץ להסרה ✖</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <button onClick={() => {setIsRemoveBarOpen(false); setRemoveSearchQuery('');}} className="text-white font-black text-xs uppercase tracking-widest hover:opacity-70 transition-opacity">ביטול</button>
+                </div>
+            </div>
+
+            {/* Attendance Header + המבנה המקורי של Add Student */}
+            <div className="p-12 flex flex-col gap-10 border-b border-slate-50">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-4xl font-black text-[#0f172a] tracking-tight italic uppercase">Attendance</h2>
+                  <p className="text-slate-400 font-bold text-[11px] mt-2 uppercase tracking-[0.2em]">ניהול נוכחות פעילה בזמן אמת</p>
+                </div>
+                <button onClick={() => setIsRemoveBarOpen(true)} className="bg-rose-50 text-rose-500 px-8 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all border-2 border-rose-100 flex items-center gap-3">
+                  <span className="text-lg">✖</span> הסרה מהירה
+                </button>
+              </div>
+
+              {/* טופס הוספה מקורי בתוך ה-UI כפי שהיה */}
+              <form onSubmit={handleAddStudent} className="flex items-end gap-4 bg-slate-50 p-6 rounded-[30px] border border-slate-100">
+                <div className="flex-1">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 mr-2 tracking-widest">שם מלא</label>
+                  <input 
+                    type="text" placeholder="ישראל ישראלי" 
+                    className="w-full bg-white border-2 border-transparent focus:border-emerald-500 py-4 px-6 rounded-2xl outline-none font-bold text-[#0f172a] shadow-sm transition-all"
+                    value={newStudent.name} onChange={e => setNewStudent({...newStudent, name: e.target.value})}
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 mr-2 tracking-widest">תעודת זהות</label>
+                  <input 
+                    type="text" placeholder="312345678" 
+                    className="w-full bg-white border-2 border-transparent focus:border-emerald-500 py-4 px-6 rounded-2xl outline-none font-bold text-[#0f172a] shadow-sm transition-all"
+                    value={newStudent.id} onChange={e => setNewStudent({...newStudent, id: e.target.value})}
+                  />
+                </div>
+                <button type="submit" className="bg-emerald-500 text-white px-10 py-4 h-14.5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:bg-emerald-600 transition-all">
+                  הוסף סטודנט
+                </button>
+              </form>
+            </div>
+
+            {/* גריד הסטודנטים */}
+            <div className="flex-1 p-12 pt-0 overflow-y-auto">
+              <StudentGrid students={students} onStatusChange={handleStatusChange} />
+            </div>
           </div>
         </main>
       </div>
     </div>
   );
 }
-
-const StatCard = ({ label, value, color, border }) => {
-  const colors = {
-    slate: 'text-slate-800',
-    emerald: 'text-emerald-600',
-    blue: 'text-blue-600',
-    amber: 'text-amber-500'
-  };
-
-  const borderColors = {
-    emerald: 'border-r-emerald-500',
-    amber: 'border-r-amber-400'
-  };
-
-  return (
-    <div className={`bg-white p-7 rounded-[35px] border border-slate-100 shadow-sm ${
-      border ? `border-r-8 ${borderColors[color]}` : ''
-    }`}>
-      <p className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">{label}</p>
-      <p className={`text-4xl font-black ${colors[color]}`}>{value}</p>
-    </div>
-  );
-};
