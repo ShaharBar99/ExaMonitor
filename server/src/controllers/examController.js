@@ -1,0 +1,101 @@
+import { ExamService } from '../services/examService.js';
+import { AuditTrailService } from '../services/auditTrailService.js';
+
+
+const ALLOWED_STATUS = new Set(['pending', 'active', 'finished']);
+
+export const ExamController = {
+  async list(req, res, next) {
+    try {
+      const status = req.query.status || null; // e.g. "active"
+      const exams = await ExamService.listExams(status);
+      res.json({ exams });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getOne(req, res, next) {
+    try {
+      const exam = await ExamService.getExamById(req.params.id);
+      res.json({ exam });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async create(req, res, next) {
+    try {
+      const { course_id, original_start_time, original_duration } = req.body;
+
+      if (!course_id || !original_start_time || typeof original_duration !== 'number') {
+        return res.status(400).json({
+          error: 'course_id, original_start_time, original_duration (number) are required',
+        });
+      }
+
+      const exam = await ExamService.createExam({
+        course_id,
+        original_start_time,
+        original_duration,
+      });
+
+      await AuditTrailService.log({
+        userId: req.user?.id ?? null,
+        action: 'exam.created',
+        metadata: {
+          examId: exam.id,
+          courseId: exam.course_id,
+        },
+      });
+
+
+      res.status(201).json({ exam });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async updateStatus(req, res, next) {
+    try {
+      const { status } = req.body;
+
+      if (!ALLOWED_STATUS.has(status)) {
+        return res.status(400).json({
+          error: 'status must be one of: pending, active, finished',
+        });
+      }
+
+      const exam = await ExamService.updateStatus(req.params.id, status);
+      res.json({ exam });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async addExtraTime(req, res, next) {
+    try {
+      const { minutes } = req.body;
+
+      if (typeof minutes !== 'number' || minutes <= 0) {
+        return res.status(400).json({ error: 'minutes must be a positive number' });
+      }
+
+      const exam = await ExamService.addExtraTime(req.params.id, minutes);
+
+      await AuditTrailService.log({
+        userId: req.user?.id ?? null,
+        action: 'exam.extra_time_added',
+        metadata: {
+          examId: exam.id,
+          minutesAdded: minutes,
+          newExtraTime: exam.extra_time,
+        },
+      });
+
+      res.json({ exam });
+    } catch (err) {
+      next(err);
+    }
+  },
+};
