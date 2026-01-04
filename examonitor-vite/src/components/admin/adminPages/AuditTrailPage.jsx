@@ -1,9 +1,9 @@
 // src/pages/admin/AuditTrailPage.jsx
 
 import React, { useEffect, useMemo, useState } from "react"; // React + hooks
-import FormField from "../../components/shared/FormField"; // Reusable text input
-import { fetchAuditEvents, filterAuditEvents } from "../../handlers/auditTrailHandlers"; // Audit handlers
-import AdminTable from "../../components/admin/AdminTable";
+import FormField from "../../shared/FormField"; // Reusable text input
+import { fetchAuditEvents, filterAuditEvents } from "../../../handlers/auditTrailHandlers"; // Audit handlers
+import AdminTable from "../adminComponents/AdminTable";
 
 export default function AuditTrailPage() { // Audit trail page
   const [events, setEvents] = useState([]); // Events list

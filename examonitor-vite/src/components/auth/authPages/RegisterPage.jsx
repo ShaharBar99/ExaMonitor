@@ -2,9 +2,9 @@
 
 import React, { useState } from "react"; // React + hooks
 import { useNavigate } from "react-router-dom"; // Router navigation
-import RoleSelector from "../../components/auth/RoleSelector"; // Role selector
-import FormField from "../../components/shared/FormField"; // Reusable input
-import { DEFAULT_ROLE, registerWithApi } from "../../handlers/authHandlers"; // Auth handler
+import RoleSelector from "../authComponents/RoleSelector"; // Role selector
+import FormField from "../../shared/FormField"; // Reusable input
+import { DEFAULT_ROLE, registerWithApi } from "../../../handlers/authHandlers"; // Auth handler
 
 export default function RegisterPage() { // Register page component
   const navigate = useNavigate(); // Navigation function

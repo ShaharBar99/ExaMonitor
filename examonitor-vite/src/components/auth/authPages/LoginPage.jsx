@@ -2,9 +2,9 @@
 
 import React, { useMemo, useState } from "react"; // React + hooks
 import { useNavigate } from "react-router-dom"; // Router navigation
-import RoleSelector from "../../components/auth/RoleSelector";
-import FormField from "../../components/shared/FormField";
-import { DEFAULT_ROLE, loginWithApi, normalizeRole } from "../../handlers/authHandlers"; // Auth handlers (backend-driven)
+import RoleSelector from "../authComponents/RoleSelector";
+import FormField from "../../shared/FormField"; // Input component
+import { DEFAULT_ROLE, loginWithApi, normalizeRole } from "../../../handlers/authHandlers"; // Auth handlers (backend-driven)
 
 export default function LoginPage() { // Login page component
   const navigate = useNavigate(); // Create navigation function
@@ -98,11 +98,9 @@ export default function LoginPage() { // Login page component
           ) : null} {/* End conditional */}
 
           <div className="mb-4"> {/* Role selection */}
-            <label className="block text-xs font-medium text-slate-600 mb-2">בחר תפקיד</label> {/* Label */}
 
             <RoleSelector value={role} onChange={setRole} disabled={isSubmitting} />
 
-            <p className="text-[11px] text-slate-500 mt-1">ההרשאות והמסכים במערכת יותאמו לפי תפקידך.</p> {/* Helper text */}
           </div> {/* End role selection */}
 
           <form className="space-y-4 mt-4" onSubmit={onSubmit}> {/* Form */}

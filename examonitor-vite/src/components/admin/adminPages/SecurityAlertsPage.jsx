@@ -1,9 +1,9 @@
 // src/pages/admin/SecurityAlertsPage.jsx
 
 import React, { useEffect, useMemo, useState } from "react"; // React + hooks
-import SelectField from "../../components/shared/SelectField"; // Reusable select
-import { fetchSecurityAlerts, filterSecurityAlerts, resolveAlert } from "../../handlers/securityAlertsHandlers"; // Security handlers
-import AdminTable from "../../components/admin/AdminTable";
+import SelectField from "../../shared/SelectField"; // Reusable select
+import { fetchSecurityAlerts, filterSecurityAlerts, resolveAlert } from "../../../handlers/securityAlertsHandlers"; // Security handlers
+import AdminTable from "../adminComponents/AdminTable";
 
 export default function SecurityAlertsPage() { // Security alerts page
   const [alerts, setAlerts] = useState([]); // Alerts list

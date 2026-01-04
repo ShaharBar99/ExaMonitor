@@ -3,14 +3,13 @@
 import React from "react"; // React import (needed for JSX in some setups)
 import { Navigate, Route, Routes } from "react-router-dom"; // Router components
 
-import LoginPage from "../pages/auth/LoginPage"; // Login route page
-import RegisterPage from "../pages/auth/RegisterPage"; // Register route page
-import ActiveExamConsolePage from "../pages/exam/ActiveExamConsolePage"; // Exam route page
-
-import AdminLayout from "../components/admin/AdminLayout"; // Admin layout wrapper
-import ManageUsersPage from "../pages/admin/ManageUsersPage"; // Admin route page
-import AuditTrailPage from "../pages/admin/AuditTrailPage"; // Admin route page
-import SecurityAlertsPage from "../pages/admin/SecurityAlertsPage"; // Admin route page
+import LoginPage from "../components/auth/authPages/LoginPage"; // Login route page
+import RegisterPage from "../components/auth/authPages/RegisterPage"; // Register route page
+import ActiveExamConsolePage from "../components/exam/examPages/ActiveExamConsolePage"; // Exam route page
+import AdminLayout from "../components/admin/adminComponents/AdminLayout"; // Admin layout wrapper
+import ManageUsersPage from "../components/admin/adminPages/ManageUsersPage"; // Admin route page
+import AuditTrailPage from "../components/admin/adminPages/AuditTrailPage"; // Admin route page
+import SecurityAlertsPage from "../components/admin/adminPages/SecurityAlertsPage"; // Admin route page
 
 export default function AppRoutes() { // Export a component that holds the route table
   return ( // Return the routing tree

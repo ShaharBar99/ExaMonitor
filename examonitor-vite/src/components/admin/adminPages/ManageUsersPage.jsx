@@ -1,10 +1,10 @@
 // src/pages/admin/ManageUsersPage.jsx
 
 import React, { useEffect, useMemo, useState } from "react"; // React + hooks
-import FormField from "../../components/shared/FormField"; // Input
-import SelectField from "../../components/shared/SelectField"; // Select
-import AdminTable from "../../components/admin/AdminTable"; // Table wrapper
-import { changeUserRole, changeUserStatus, fetchUsers, filterUsers } from "../../handlers/adminUserHandlers"; // Handlers
+import FormField from "../../shared/FormField"; // Input
+import SelectField from "../../shared/SelectField"; // Select
+import AdminTable from "../../admin/adminComponents/AdminTable"; // Table wrapper
+import { changeUserRole, changeUserStatus, fetchUsers, filterUsers } from "../../../handlers/adminUserHandlers"; // Handlers
 
 export default function ManageUsersPage() { // Page component
   const [users, setUsers] = useState([]); // Users list
