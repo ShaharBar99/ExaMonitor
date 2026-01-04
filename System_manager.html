@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ExamMonitor - Admin Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-100 flex flex-col">
+
+  <!-- Top bar -->
+  <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6">
+    <div class="flex items-center gap-3">
+      <span class="text-xl font-extrabold text-blue-700">ExamMonitor</span>
+      <span class="text-gray-300">|</span>
+      <span class="text-sm font-medium text-gray-700">ממשק מנהל מערכת</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="text-right">
+        <div class="text-sm font-bold text-gray-800">ישראל ישראלי</div>
+        <div class="text-xs text-gray-500">מנהל מערכת</div>
+      </div>
+      <div class="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold">
+        מ"מ
+      </div>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main class="flex-1 px-6 py-6">
+    <div class="max-w-6xl mx-auto">
+
+      <!-- Title + actions -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+          <h1 class="text-xl font-bold text-gray-900">ניהול משתמשים והרשאות</h1>
+          <p class="text-sm text-gray-500 mt-1">
+            הצגת כל המרצים והמשגיחים במערכת וניהול ההרשאות שלהם.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm"
+        >
+          <span>הוספת משתמש חדש</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fill-rule="evenodd"
+              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Filters -->
+      <div class="bg-white border border-gray-200 rounded-2xl p-4 mb-4 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+        <div class="flex flex-wrap gap-3">
+          <div class="relative">
+            <input
+              id="search-input"
+              type="text"
+              class="w-64 max-w-full pl-8 pr-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="חיפוש לפי שם / מייל"
+            />
+            <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fill-rule="evenodd"
+                  d="M12.9 14.32a8 8 0 111.414-1.414l3.387 3.387a1 1 0 01-1.414 1.414l-3.387-3.387zM14 8a6 6 0 11-12 0 6 6 0 0112 0z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+            </span>
+          </div>
+
+          <select
+            id="role-filter"
+            class="px-3 py-2 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">כל התפקידים</option>
+            <option value="lecturer">מרצים בלבד</option>
+            <option value="invigilator">משגיחים בלבד</option>
+          </select>
+
+          <select
+            id="status-filter"
+            class="px-3 py-2 border border-gray-300 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">כל המצבים</option>
+            <option value="active">פעילים</option>
+            <option value="inactive">לא פעילים</option>
+          </select>
+        </div>
+
+        <button
+          type="button"
+          class="text-xs text-gray-500 hover:text-gray-700"
+          onclick="resetFilters()"
+        >
+          איפוס סינון
+        </button>
+      </div>
+
+      <!-- Users table -->
+      <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+          <span class="text-sm font-semibold text-gray-800">משתמשים</span>
+          <span id="users-count" class="text-xs text-gray-500"></span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-50 text-gray-600 text-xs">
+              <tr>
+                <th class="px-4 py-3 text-right font-medium">שם מלא</th>
+                <th class="px-4 py-3 text-right font-medium">דוא"ל</th>
+                <th class="px-4 py-3 text-right font-medium">תפקיד</th>
+                <th class="px-4 py-3 text-right font-medium">סטטוס</th>
+                <th class="px-4 py-3 text-right font-medium">הרשאות עיקריות</th>
+                <th class="px-4 py-3 text-right font-medium">פעולות</th>
+              </tr>
+            </thead>
+            <tbody id="users-table-body" class="divide-y divide-gray-100">
+              <!-- Rows will be rendered by JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Permissions modal -->
+  <div
+    id="permissions-modal"
+    class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 hidden"
+  >
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 relative">
+      <button
+        type="button"
+        class="absolute top-3 left-3 text-gray-400 hover:text-gray-600"
+        onclick="closePermissionsModal()"
+      >
+        ✕
+      </button>
+
+      <h2 class="text-lg font-semibold text-gray-900 mb-1">ניהול הרשאות</h2>
+      <p id="modal-user-name" class="text-sm text-gray-500 mb-4"></p>
+
+      <div class="space-y-3 text-sm">
+        <label class="flex items-center justify-between gap-2">
+          <span>ניהול בחינות</span>
+          <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+        </label>
+        <label class="flex items-center justify-between gap-2">
+          <span>צפייה בדוחות וסטטיסטיקות</span>
+          <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+        </label>
+        <label class="flex items-center justify-between gap-2">
+          <span>ניהול משתמשים</span>
+          <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+        </label>
+      </div>
+
+      <div class="mt-5 flex justify-end gap-2">
+        <button
+          type="button"
+          class="px-4 py-2 text-xs rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50"
+          onclick="closePermissionsModal()"
+        >
+          ביטול
+        </button>
+        <button
+          type="button"
+          class="px-4 py-2 text-xs rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700"
+        >
+          שמירה
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const users = [
+      {
+        id: 1,
+        name: "ד\"ר יעל לוי",
+        email: "yael.levi@braude.ac.il",
+        role: "lecturer",
+        status: "active",
+        permissions: "ניהול בחינות, צפייה בדוחות"
+      },
+      {
+        id: 2,
+        name: "אורי כהן",
+        email: "uri.cohen@braude.ac.il",
+        role: "invigilator",
+        status: "active",
+        permissions: "ניהול נוכחות, דיווח חריגים"
+      },
+      {
+        id: 3,
+        name: "פרופ' דני ישראלי",
+        email: "dan.israeli@braude.ac.il",
+        role: "lecturer",
+        status: "inactive",
+        permissions: "צפייה בדוחות"
+      },
+      {
+        id: 4,
+        name: "רוית בן חמו",
+        email: "ravit.bh@braude.ac.il",
+        role: "invigilator",
+        status: "active",
+        permissions: "ניהול נוכחות"
+      }
+    ];
+
+    function getRoleLabel(role) {
+      if (role === "lecturer") return "מרצה";
+      if (role === "invigilator") return "משגיח";
+      return role;
+    }
+
+    function getRoleBadgeClass(role) {
+      if (role === "lecturer") {
+        return "bg-purple-50 text-purple-700 border border-purple-200";
+      }
+      if (role === "invigilator") {
+        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+      }
+      return "bg-gray-50 text-gray-700 border border-gray-200";
+    }
+
+    function getStatusBadge(status) {
+      if (status === "active") {
+        return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">פעיל</span>';
+      }
+      return '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">לא פעיל</span>';
+    }
+
+    function renderUsers() {
+      const tbody = document.getElementById("users-table-body");
+      const searchValue = document.getElementById("search-input").value.toLowerCase();
+      const roleFilter = document.getElementById("role-filter").value;
+      const statusFilter = document.getElementById("status-filter").value;
+
+      tbody.innerHTML = "";
+
+      const filtered = users.filter((user) => {
+        const matchesSearch =
+          user.name.toLowerCase().includes(searchValue) ||
+          user.email.toLowerCase().includes(searchValue);
+
+        const matchesRole =
+          roleFilter === "all" ? true : user.role === roleFilter;
+
+        const matchesStatus =
+          statusFilter === "all" ? true : user.status === statusFilter;
+
+        return matchesSearch && matchesRole && matchesStatus;
+      });
+
+      filtered.forEach((user) => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-gray-50";
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 whitespace-nowrap">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-700">
+                ${user.name
+                  .split(" ")
+                  .slice(0, 2)
+                  .map((p) => p[0] || "")
+                  .join("")}
+              </div>
+              <div>
+                <div class="font-medium text-gray-900 text-sm">${user.name}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+            ${user.email}
+          </td>
+          <td class="px-4 py-3 whitespace-nowrap">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getRoleBadgeClass(
+              user.role
+            )}">
+              ${getRoleLabel(user.role)}
+            </span>
+          </td>
+          <td class="px-4 py-3 whitespace-nowrap">
+            ${getStatusBadge(user.status)}
+          </td>
+          <td class="px-4 py-3 text-sm text-gray-600">
+            ${user.permissions}
+          </td>
+          <td class="px-4 py-3 whitespace-nowrap">
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold border border-blue-500 text-blue-600 bg-blue-50 hover:bg-blue-100"
+              onclick="openPermissionsModal(${user.id})"
+            >
+              <span>ניהול הרשאות</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  d="M11.3 1.046a1 1 0 00-1.6 0L7.337 3.8 4.153 4.46a1 1 0 00-.55 1.657l2.27 2.338-.383 3.268a1 1 0 001.448 1.004L10 11.88l3.062 1.847a1 1 0 001.449-1.004l-.384-3.268 2.27-2.338a1 1 0 00-.55-1.657L12.663 3.8 11.3 1.046z"
+                />
+              </svg>
+            </button>
+          </td>
+        `;
+
+        tbody.appendChild(tr);
+      });
+
+      const countElement = document.getElementById("users-count");
+      countElement.textContent = `סך הכל ${filtered.length} משתמשים`;
+    }
+
+    function resetFilters() {
+      document.getElementById("search-input").value = "";
+      document.getElementById("role-filter").value = "all";
+      document.getElementById("status-filter").value = "all";
+      renderUsers();
+    }
+
+    function openPermissionsModal(userId) {
+      const user = users.find((u) => u.id === userId);
+      if (!user) return;
+      const modal = document.getElementById("permissions-modal");
+      const nameElement = document.getElementById("modal-user-name");
+      nameElement.textContent = `${user.name} (${getRoleLabel(user.role)})`;
+      modal.classList.remove("hidden");
+    }
+
+    function closePermissionsModal() {
+      const modal = document.getElementById("permissions-modal");
+      modal.classList.add("hidden");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderUsers();
+      document
+        .getElementById("search-input")
+        .addEventListener("input", renderUsers);
+      document
+        .getElementById("role-filter")
+        .addEventListener("change", renderUsers);
+      document
+        .getElementById("status-filter")
+        .addEventListener("change", renderUsers);
+    });
+  </script>
+</body>
+</html>
