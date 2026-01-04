@@ -4,11 +4,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 // רכיבי תשתית
 import Sidebar from '../../components/layout/Sidebar';
 import SidebarPanel from '../../components/exam/SidebarPanel';
-
 // לוגיקה ונתונים
 import { notificationHandlers } from '../../handlers/notificationHandlers';
 import { INITIAL_ROOMS, AVAILABLE_SUPERVISORS } from '../../mocks/floorSupervisor_MockData';
-import { useExam } from '../../state/ExamContext';
+import { useExam } from '../state/ExamContext';
 
 export default function FloorSupervisorDashboardPage() {
   const { examId } = useParams();

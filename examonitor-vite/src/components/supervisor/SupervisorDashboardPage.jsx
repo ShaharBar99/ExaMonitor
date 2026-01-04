@@ -4,13 +4,13 @@ import { attendanceHandlers } from '../../handlers/attendanceHandlers';
 import { incidentHandlers } from '../../handlers/incidentHandlers';
 import { timerHandlers } from '../../handlers/timerHandlers';
 import { examHandlers } from '../../handlers/examHandlers';
-import Sidebar from '../../components/layout/Sidebar';
-import SidebarPanel from '../../components/exam/SidebarPanel';
-import StudentGrid from '../../components/exam/StudentGrid';
-import ExamTimer from '../../components/exam/ExamTimer';
-import { useExam } from '../../state/ExamContext';
-import StatCard from '../../components/exam/StatCard';
-import {HeaderButton} from '../../components/shared/Button';
+import Sidebar from '../layout/Sidebar';
+import SidebarPanel from '../exam/SidebarPanel';
+import StudentGrid from '../exam/StudentGrid';
+import ExamTimer from '../exam/ExamTimer';
+import { useExam } from '../state/ExamContext';
+import StatCard from '../exam/StatCard';
+import {HeaderButton} from '../shared/Button';
 
 export default function SupervisorDashboard() {
   const { examId } = useParams();
@@ -87,13 +87,13 @@ export default function SupervisorDashboard() {
   };
 
   if (loading) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-[#0f172a] text-white font-black italic uppercase tracking-widest">
+    <div className="h-screen flex flex-col items-center justify-center bg-[#0f172a] text-white font-black  uppercase tracking-widest">
         Initializing System...
     </div>
   );
 
   return (
-    <div className="h-screen flex bg-[#0f172a] overflow-hidden font-sans text-right" dir="rtl">
+    <div className="h-screen flex bg-[#0f172a] overflow-hidden text-right" dir="rtl">
       
       <Sidebar 
         tabs={[{ id: 'bot', icon: '🤖', label: 'ExamBot' }, { id: 'chat', icon: '🏢', label: "קשר" }]} 
@@ -110,7 +110,7 @@ export default function SupervisorDashboard() {
         <header className="bg-white/5 border-b border-white/10 px-10 py-8 flex justify-between items-center z-30 backdrop-blur-md">
           <div className="flex items-center gap-8 text-white">
             <div>
-              <h1 className="text-3xl font-black leading-none tracking-tight uppercase italic">Room Control</h1>
+              <h1 className="text-3xl font-black leading-none tracking-tight uppercase ">Room Control</h1>
               <div className="flex items-center gap-3 mt-3">
                 <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${examData?.status === 'paused' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
                 <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">
@@ -173,7 +173,7 @@ export default function SupervisorDashboard() {
             <div className="p-12 flex flex-col gap-10 border-b border-slate-50">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-4xl font-black text-[#0f172a] tracking-tight italic uppercase">Attendance</h2>
+                  <h2 className="text-4xl font-black text-[#0f172a] tracking-tight  uppercase">Attendance</h2>
                   <p className="text-slate-400 font-bold text-[11px] mt-2 uppercase tracking-[0.2em]">ניהול נוכחות פעילה בזמן אמת</p>
                 </div>
                 <button onClick={() => setIsRemoveBarOpen(true)} className="bg-rose-50 text-rose-500 px-8 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all border-2 border-rose-100 flex items-center gap-3">

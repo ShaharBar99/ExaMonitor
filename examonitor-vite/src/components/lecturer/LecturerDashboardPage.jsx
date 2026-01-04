@@ -2,16 +2,16 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
 // רכיבי מערכת
-import Sidebar from '../../components/layout/Sidebar';
-import SidebarPanel from '../../components/exam/SidebarPanel';
-import ExamTimer from '../../components/exam/ExamTimer';
+import Sidebar from '../layout/Sidebar';
+import SidebarPanel from '../exam/SidebarPanel';
+import ExamTimer from '../exam/ExamTimer';
 
 // לוגיקה ו-Context
-import { useExam } from '../../state/ExamContext';
+import { useExam } from '../state/ExamContext';
 import { examHandlers } from '../../handlers/examHandlers';
 import { timerHandlers } from '../../handlers/timerHandlers';
 import { notificationHandlers } from '../../handlers/notificationHandlers';
-import StatCard from '../../components/exam/StatCard';
+import StatCard from '../exam/StatCard';
 
 export default function LecturerDashboardPage() {
   const navigate = useNavigate();

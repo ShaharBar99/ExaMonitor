@@ -1,14 +1,14 @@
 import React from "react";
 import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
-import LoginPage from "../pages/auth/LoginPage";
-import ManageUsersPage from "../pages/admin/ManageUsersPage";
-import SelectExamPage from "../pages/exam/SelectExamPage";
-import SupervisorDashboardPage from "../pages/supervisor/SupervisorDashboardPage";
-import FloorSupervisorDashboardPage from "../pages/supervisor/FloorSupervisorDashboardPage";
-import ViewClassroomsPage from "../pages/lecturer/ViewClassroomsPage";
-import LecturerDashboardPage from "../pages/lecturer/LecturerDashboardPage";
-import IncidentReportPage from "../pages/exam/IncidentReportPage";
+import LoginPage from "../components/auth/LoginPage";
+import ManageUsersPage from "../components/admin/ManageUsersPage";
+import SelectExamPage from "../components/exam/SelectExamPage";
+import SupervisorDashboardPage from "../components/supervisor/SupervisorDashboardPage";
+import FloorSupervisorDashboardPage from "../components/supervisor/FloorSupervisorDashboardPage";
+import ViewClassroomsPage from "../components/lecturer/ViewClassroomsPage";
+import LecturerDashboardPage from "../components/lecturer/LecturerDashboardPage";
+import IncidentReportPage from "../components/exam/IncidentReportPage";
 
 export default function AppRoutes() {
   const navigate = useNavigate();
