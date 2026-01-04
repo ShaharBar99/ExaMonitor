@@ -57,7 +57,7 @@ export default function LecturerDashboardPage() {
   ];
 
   return (
-    <div className="h-screen flex bg-[#0f172a] overflow-hidden font-sans text-right text-white" dir="rtl">
+    <div className="h-screen flex bg-[#0f172a] overflow-hidden font-sans text-right text-black" dir="rtl">
       
       {/* תפריט צד */}
       <Sidebar 

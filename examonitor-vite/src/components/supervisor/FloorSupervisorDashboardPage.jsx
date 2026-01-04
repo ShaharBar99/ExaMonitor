@@ -56,14 +56,14 @@ export default function FloorSupervisorDashboardPage() {
 
   if (isLoadingNotifications && notifications.length === 0) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-[#0f172a] text-white font-black italic uppercase tracking-widest">
+      <div className="h-screen flex flex-col items-center justify-center bg-[#0f172a] text-black font-black italic uppercase tracking-widest">
         מאתחל מערכת שליטה...
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex bg-[#0f172a] overflow-hidden font-sans text-right text-white" dir="rtl">
+    <div className="h-screen flex bg-[#0f172a] overflow-hidden font-sans text-right text-black" dir="rtl">
       
       <Sidebar 
         tabs={tabs} 
