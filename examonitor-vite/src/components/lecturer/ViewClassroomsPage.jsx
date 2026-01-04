@@ -55,7 +55,7 @@ export default function ViewClassroomsPage() {
           </button>
           
           <div>
-            <h1 className="text-4xl font-black italic tracking-tight uppercase">{config.title}</h1>
+            <h1 className="text-4xl font-black  tracking-tight uppercase">{config.title}</h1>
             <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-[10px] mt-2 opacity-70">
               {config.subtitle}
             </p>
@@ -78,7 +78,7 @@ export default function ViewClassroomsPage() {
       {/* אזור התוכן המרכזי */}
       <main className={`bg-white rounded-[50px] p-12 shadow-2xl ${isLecturer ? 'max-w-6xl mx-auto' : ''}`}>
         <div className="mb-8 flex justify-between items-center border-b border-slate-100 pb-8">
-            <h2 className="text-2xl font-black text-slate-800 uppercase italic">Classroom Layout</h2>
+            <h2 className="text-2xl font-black text-slate-800 uppercase ">Classroom Layout</h2>
             <div className="flex gap-4">
                 <LegendItem color="bg-emerald-500" label="פעיל" />
                 <LegendItem color="bg-amber-500" label="בהפסקה" />

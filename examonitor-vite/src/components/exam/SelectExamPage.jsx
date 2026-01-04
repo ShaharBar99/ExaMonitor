@@ -18,7 +18,7 @@ const SelectExamPage = ({ navigate }) => {
       {/* Header Section */}
       <div className="max-w-6xl mx-auto mb-10 flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-black text-white italic uppercase tracking-tight mb-2">
+          <h1 className="text-4xl font-black text-white  uppercase tracking-tight mb-2">
             Select Exam
           </h1>
           <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">
@@ -79,7 +79,7 @@ const SelectExamPage = ({ navigate }) => {
             >
               {/* Exam Name & ID */}
               <div className="col-span-2">
-                <div className="text-xl font-black text-slate-800 italic uppercase leading-tight group-hover:text-emerald-600 transition-colors">
+                <div className="text-xl font-black text-slate-800  uppercase leading-tight group-hover:text-emerald-600 transition-colors">
                   {exam.name}
                 </div>
                 <div className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">
@@ -124,7 +124,7 @@ const SelectExamPage = ({ navigate }) => {
         {filteredExams.length === 0 && (
           <div className="p-32 text-center">
             <div className="text-5xl mb-4 opacity-20">📂</div>
-            <p className="text-slate-300 italic font-black text-xl uppercase tracking-widest">
+            <p className="text-slate-300  font-black text-xl uppercase tracking-widest">
               No matching exams found
             </p>
             <button 

@@ -56,7 +56,7 @@ export default function FloorSupervisorDashboardPage() {
 
   if (isLoadingNotifications && notifications.length === 0) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-[#0f172a] text-black font-black italic uppercase tracking-widest">
+      <div className="h-screen flex flex-col items-center justify-center bg-[#0f172a] text-black font-black  uppercase tracking-widest">
         מאתחל מערכת שליטה...
       </div>
     );
@@ -80,12 +80,12 @@ export default function FloorSupervisorDashboardPage() {
         <header className="bg-white/5 border-b border-white/10 px-12 py-8 flex justify-between items-center z-30 backdrop-blur-md">
           <div className="flex items-center gap-8">
             <div>
-              <h1 className="text-3xl font-black italic uppercase tracking-tighter leading-none">
-                {examData?.courseName || 'מרכז שליטה קומתי'}
+              <h1 className="text-3xl text-white  uppercase tracking-tighter leading-none">
+                {examData?.courseName ||'משגיח קומה'}
               </h1>
               <div className="flex items-center gap-3 mt-3">
-                <span className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(99,102,241,0.8)]"></span>
-                <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-[10px]">
+                <span className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_14px_rgba(99,102,241,0.8)]"></span>
+                <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-[14px]">
                   קומה {examData?.floor || '03'} • גזרה דלתא • סשן פעיל
                 </p>
               </div>
@@ -113,23 +113,23 @@ export default function FloorSupervisorDashboardPage() {
             {/* כרטיס סטודנטים */}
             <div className="lg:col-span-1 bg-white/5 rounded-[45px] p-10 border border-white/10 flex flex-col justify-between hover:bg-white/[0.07] transition-colors group">
               <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">סה"כ נבחנים בקומה</p>
-                <h3 className="text-6xl font-black italic tracking-tighter group-hover:text-indigo-400 transition-colors tabular-nums">{stats.totalStudents}</h3>
+                <p className="text-[14px] font-black text-slate-400 uppercase tracking-widest mb-2">סה"כ נבחנים בקומה</p>
+                <h3 className="text-6xl tracking-tighter group-hover:text-indigo-400 transition-colors tabular-nums">{stats.totalStudents}</h3>
               </div>
               <div className="mt-8 pt-8 border-t border-white/5 flex justify-between items-center">
-                   <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">סטטוס סנכרון</span>
-                   <span className="text-indigo-500 font-black italic">מחובר בזמן אמת</span>
+                   <span className="text-[14px] font-black text-slate-500 uppercase tracking-widest">סטטוס סנכרון</span>
+                   <span className="text-indigo-500 font-black ">מחובר בזמן אמת</span>
               </div>
             </div>
 
             {/* פקודות מערכת */}
-            <div className="lg:col-span-2 bg-indigo-600 rounded-[45px] p-10 shadow-2xl shadow-indigo-900/20 flex flex-col justify-center">
+            <div className="lg:col-span-2 bg-white rounded-[45px] p-10 shadow-2xl shadow-indigo-900/20 flex flex-col justify-center">
               <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-black italic uppercase">פקודות מערכת</h3>
-                <span className="text-white/30 font-mono text-[10px] tracking-widest italic">ערוץ מאובטח</span>
+                <h3 className="text-2xl font-black  uppercase">פקודות מערכת</h3>
+                <span className="text-white/30 font-mono text-[14px] tracking-widest ">ערוץ מאובטח</span>
               </div>
               <div className="grid grid-cols-2 gap-6 text-right">
-                <QuickActionButton icon="📢" label="הודעה לכל המשגיחים" color="bg-white/10 hover:bg-white text-white hover:text-indigo-600" />
+                <QuickActionButton icon="📢" label="הודעה לכל המשגיחים" color="bg-indigo-600/10 hover:bg-blue-500 text-black hover:text-white  border border-indigo-600/20" />
                 <QuickActionButton icon="🆘" label="קריאה דחופה לתמיכה" color="bg-red-500/20 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20" />
               </div>
             </div>
@@ -140,15 +140,15 @@ export default function FloorSupervisorDashboardPage() {
             
             <div className="p-12 flex justify-between items-center border-b border-slate-50 bg-white">
               <div>
-                <h2 className="text-4xl font-black text-[#0f172a] tracking-tight italic uppercase leading-none">יומן אירועים</h2>
-                <p className="text-slate-400 font-bold text-[11px] mt-3 uppercase tracking-[0.2em]">התראות ודיווחים בזמן אמת מהחדרים</p>
+                <h2 className="text-4xl font-black text-[#0f172a] tracking-tight  uppercase leading-none">יומן אירועים</h2>
+                <p className="text-slate-400 font-bold text-[14px] mt-3 uppercase tracking-[0.2em]">התראות ודיווחים בזמן אמת מהחדרים</p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex -space-x-3 space-x-reverse ml-4">
                   {[1,2,3].map(i => <div key={i} className="w-8 h-8 rounded-full border-2 border-white bg-slate-200" />)}
-                  <div className="w-8 h-8 rounded-full border-2 border-white bg-indigo-500 flex items-center justify-center text-[10px] font-black">+{stats.supervisorsOnFloor - 3}</div>
+                  <div className="w-8 h-8 rounded-full border-2 border-white bg-indigo-500 flex items-center justify-center text-[14px] font-black">+{stats.supervisorsOnFloor - 3}</div>
                 </div>
-                <span className="px-5 py-2.5 bg-slate-50 rounded-xl text-[10px] font-black text-slate-400 uppercase italic border border-slate-100">סנכרון פעיל</span>
+                <span className="px-5 py-2.5 bg-slate-50 rounded-xl text-[14px] font-black text-slate-400 uppercase  border border-slate-100">סנכרון פעיל</span>
               </div>
             </div>
 
@@ -160,7 +160,7 @@ export default function FloorSupervisorDashboardPage() {
                   ))
                 ) : (
                   <div className="py-24 text-center border-2 border-dashed border-slate-50 rounded-[40px]">
-                    <p className="text-slate-300 font-black italic uppercase tracking-widest">אין התראות רשומות כרגע</p>
+                    <p className="text-slate-300 font-black  uppercase tracking-widest">אין התראות רשומות כרגע</p>
                   </div>
                 )}
               </div>
@@ -182,8 +182,8 @@ const StatHeader = ({ label, value, color }) => {
   };
   return (
     <div className={`px-8 py-4 rounded-2xl border transition-all ${colors[color]} flex flex-col items-center min-w-30`}>
-      <p className="text-[9px] font-black uppercase tracking-[0.2em] mb-1 opacity-60">{label}</p>
-      <p className="text-2xl font-black italic leading-none tabular-nums">{value}</p>
+      <p className="text-[15px] font-black  uppercase tracking-[0.2em] mb-1 opacity-60">{label}</p>
+      <p className="text-2xl font-black  leading-none tabular-nums">{value}</p>
     </div>
   );
 };
@@ -198,9 +198,9 @@ const QuickActionButton = ({ icon, label, color, onClick }) => (
 const EventRow = ({ time, room, msg, type }) => (
   <div className="group flex items-center justify-between py-6 border-b border-slate-50 last:border-0 hover:bg-slate-50 px-8 rounded-[25px] transition-all">
     <div className="flex items-center gap-8">
-      <span className="text-[11px] font-black text-slate-300 font-mono group-hover:text-indigo-500 transition-colors w-12">{time}</span>
+      <span className="text-[14px] font-black text-slate-300 font-mono group-hover:text-indigo-500 transition-colors w-12">{time}</span>
       <div className="flex flex-col min-w-20">
-        <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[10px] font-black uppercase tracking-tighter text-center">
+        <span className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[14px] font-black uppercase tracking-tighter text-center">
           {room || "מערכת"}
         </span>
       </div>
@@ -212,7 +212,7 @@ const EventRow = ({ time, room, msg, type }) => (
        {type === 'warning' && (
          <span className="text-[9px] font-black text-rose-500 uppercase tracking-widest animate-pulse">קריטי</span>
        )}
-       <div className={`w-2.5 h-2.5 rounded-full ${type === 'warning' ? 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.4)]' : 'bg-slate-200'}`}></div>
+       <div className={`w-2.5 h-2.5 rounded-full ${type === 'warning' ? 'bg-rose-500 shadow-[0_0_14px_rgba(244,63,94,0.4)]' : 'bg-slate-200'}`}></div>
     </div>
   </div>
 );

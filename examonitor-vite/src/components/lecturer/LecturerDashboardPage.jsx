@@ -75,7 +75,7 @@ export default function LecturerDashboardPage() {
         <header className="bg-white/5 border-b border-white/10 px-12 py-8 flex justify-between items-center z-30 backdrop-blur-md">
           <div className="flex items-center gap-10">
             <div>
-              <h1 className="text-3xl font-black italic leading-none tracking-tight">קונסול מרצה</h1>
+              <h1 className="text-3xl text-white  leading-none tracking-tight">קונסול מרצה</h1>
               <div className="flex items-center gap-3 mt-3">
                 <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${examData?.status === 'paused' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}></span>
                 <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">
@@ -86,7 +86,7 @@ export default function LecturerDashboardPage() {
 
             <button 
               onClick={() => navigate('/exam/view-classrooms', { state: { role: 'lecturer' } })}
-              className="flex items-center gap-3 bg-white/5 border border-white/10 text-white px-6 py-4 rounded-2xl font-black text-xs tracking-widest hover:bg-white/10 transition-all active:scale-95 shadow-lg shadow-black/20"
+             className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/20 active:scale-95 flex items-center gap-3"
             >
               <span className="text-xl">📊</span>
               מעקב פריסת חדרים
@@ -125,15 +125,15 @@ export default function LecturerDashboardPage() {
           <div className="bg-white rounded-[50px] p-12 shadow-2xl border border-white/10 overflow-hidden relative">
             <div className="flex justify-between items-center mb-12">
               <div>
-                <h3 className="text-4xl font-black text-[#0f172a] italic tracking-tight uppercase">ניתוח נתונים מתקדם</h3>
-                <p className="text-slate-400 font-bold text-[11px] mt-2 uppercase tracking-widest">בקרה וניטור תהליך הבחינה בזמן אמת</p>
+                <h3 className="text-4xl font-black text-[#0f172a]  tracking-tight uppercase">ניתוח נתונים מתקדם</h3>
+                <p className="text-slate-400 font-bold text-[14px] mt-2 uppercase tracking-widest">בקרה וניטור תהליך הבחינה בזמן אמת</p>
               </div>
               <div className="flex gap-4">
                   <button onClick={() => handleStatusChange(examData?.status === 'active' ? 'paused' : 'active')} 
-                          className={`px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${examData?.status === 'active' ? 'bg-amber-500 text-white shadow-amber-500/20' : 'bg-emerald-500 text-white shadow-emerald-500/20'}`}>
+                          className={`px-8 py-4 rounded-2xl font-black text-[15px] uppercase tracking-widest transition-all shadow-lg active:scale-95 ${examData?.status === 'active' ? 'bg-amber-500 text-white shadow-amber-500/20' : 'bg-emerald-500 text-white shadow-emerald-500/20'}`}>
                     {examData?.status === 'active' ? 'הקפאת בחינה גלובלית' : 'חידוש בחינה'}
                   </button>
-                  <button className="px-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-slate-200 transition-colors">
+                  <button className="px-8 py-4 bg-slate-300 text-slate-800 rounded-2xl font-black text-[15px] uppercase tracking-widest hover:bg-slate-500 transition-colors hover:text-white ">
                     ייצוא דוח נתונים
                   </button>
               </div>
@@ -176,16 +176,16 @@ export default function LecturerDashboardPage() {
 const SummaryBox = ({ icon, label, value }) => (
   <div className="bg-slate-50 p-10 rounded-[40px] flex flex-col items-center justify-center text-center border border-slate-100 group hover:bg-white hover:shadow-2xl hover:scale-[1.05] transition-all duration-500">
     <span className="text-4xl mb-4 group-hover:scale-125 transition-transform duration-500">{icon}</span>
-    <p className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">{label}</p>
-    <p className="text-3xl font-black text-[#0f172a] italic leading-none tabular-nums">{value}</p>
+    <p className="text-[15px] font-black text-[#0f172a] uppercase mb-2 tracking-widest">{label}</p>
+    <p className="text-3xl font-black text-[#0f172a]  leading-none tabular-nums">{value}</p>
   </div>
 );
 
 const ProgressRow = ({ label, percent, color }) => (
   <div className="space-y-4 group">
     <div className="flex justify-between items-end px-2">
-      <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-800 transition-colors">{label}</span>
-      <span className="text-lg font-black text-slate-400 italic tabular-nums">{percent}%</span>
+      <span className="text-[15px] font-black text-black uppercase tracking-widest group-hover:text-slate-800 transition-colors">{label}</span>
+      <span className="text-lg font-black text-black  tabular-nums">{percent}%</span>
     </div>
     <div className="h-6 bg-slate-100 rounded-full overflow-hidden p-1.5 shadow-inner">
       <div className={`h-full ${color} rounded-full transition-all duration-1000 shadow-lg group-hover:brightness-110`} style={{ width: `${percent}%` }}></div>

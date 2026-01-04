@@ -35,7 +35,7 @@ export default function Sidebar({
       {/* 1. הבר הצר השמאלי (Icons) */}
       <nav className="w-20 flex flex-col items-center py-8 gap-8 border-l border-slate-800/50">
         {/* Logo */}
-        <div className={`w-12 h-12 ${logoColor} rounded-2xl flex items-center justify-center text-white font-black text-xl mb-4 italic shadow-lg shrink-0`}>
+        <div className={`w-12 h-12 ${logoColor} rounded-2xl flex items-center justify-center text-white font-black text-xl mb-4  shadow-lg shrink-0`}>
           {logoText}
         </div>
         
@@ -81,7 +81,7 @@ export default function Sidebar({
             <h2 className={`text-[9px] font-black uppercase tracking-[0.2em] ${logoColor.replace('bg-', 'text-')}`}>
               Exam Management System
             </h2>
-            <h3 className="text-xl font-black text-slate-800 italic tracking-tight uppercase">
+            <h3 className="text-xl font-black text-slate-800  tracking-tight uppercase">
               {currentTab?.label}
             </h3>
           </div>

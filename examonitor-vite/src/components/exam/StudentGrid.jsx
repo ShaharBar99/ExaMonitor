@@ -16,7 +16,7 @@ const StudentGrid = ({ students, onStatusChange }) => {
         <input 
           type="text" 
           placeholder="חפש סטודנט לפי שם או תעודת זהות..."
-          className="w-full pr-14 pl-6 py-5 rounded-[22px] bg-slate-50 border-2 border-transparent focus:border-emerald-500/20 focus:bg-white text-slate-700 font-bold shadow-sm outline-none transition-all italic text-sm"
+          className="w-full pr-14 pl-6 py-5 rounded-[22px] bg-slate-50 border-2 border-transparent focus:border-emerald-500/20 focus:bg-white text-slate-700 font-bold shadow-sm outline-none transition-all  text-sm"
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
@@ -35,7 +35,7 @@ const StudentGrid = ({ students, onStatusChange }) => {
       {filteredStudents.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 opacity-20">
           <span className="text-6xl mb-4">👤</span>
-          <p className="text-slate-900 font-black italic uppercase tracking-widest text-xl">לא נמצאו סטודנטים</p>
+          <p className="text-slate-900 font-black  uppercase tracking-widest text-xl">לא נמצאו סטודנטים</p>
         </div>
       )}
     </div>
