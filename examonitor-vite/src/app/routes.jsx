@@ -4,10 +4,10 @@ import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 import SelectExamPage from "../components/exam/SelectExamPage";
 import SupervisorDashboardPage from "../components/supervisor/SupervisorDashboardPage";
-import FloorSupervisorDashboardPage from "../components/supervisor/FloorSupervisorDashboardPage";
-import ViewClassroomsPage from "../components/lecturer/ViewClassroomsPage";
+import FloorSupervisorDashboardPage from "../components/floorsupervisor/FloorSupervisorDashboardPage";
+import ViewClassroomsPage from "../components/classroom/ViewClassroomsPage";
 import LecturerDashboardPage from "../components/lecturer/LecturerDashboardPage";
-import IncidentReportPage from "../components/exam/IncidentReportPage";
+import IncidentReportPage from "../components/supervisor/IncidentReportPage";
 
 import LoginPage from "../components/auth/authPages/LoginPage"; // Login route page
 import RegisterPage from "../components/auth/authPages/RegisterPage"; // Register route page

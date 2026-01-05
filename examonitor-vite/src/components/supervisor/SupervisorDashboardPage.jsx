@@ -6,7 +6,7 @@ import { timerHandlers } from '../../handlers/timerHandlers';
 import { examHandlers } from '../../handlers/examHandlers';
 import Sidebar from '../layout/Sidebar';
 import SidebarPanel from '../exam/SidebarPanel';
-import StudentGrid from '../exam/StudentGrid';
+import StudentGrid from './StudentGrid';
 import ExamTimer from '../exam/ExamTimer';
 import { useExam } from '../state/ExamContext';
 import StatCard from '../exam/StatCard';

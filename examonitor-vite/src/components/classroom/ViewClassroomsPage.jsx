@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import RoomGrid from '../../components/exam/RoomGrid';
+import RoomGrid from './RoomGrid';
 import { INITIAL_ROOMS, AVAILABLE_SUPERVISORS } from '../../mocks/floorSupervisor_MockData';
 import { useExam } from '../state/ExamContext';
 

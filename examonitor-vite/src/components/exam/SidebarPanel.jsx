@@ -1,7 +1,7 @@
 import React from 'react';
 import MessageManager from './MessageManager';
 import NotificationManager from './NotificationManager';
-import ExamBotPanel from './ExamBotPanel'; // הרכיב שהרגע עדכנו
+import ExamBotPanel from '../supervisor/ExamBotPanel'; // הרכיב שהרגע עדכנו
 
 export default function SidebarPanel({ activeTab, userRole }) {
   
