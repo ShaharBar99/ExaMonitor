@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react"; // React + hooks
 import { useNavigate } from "react-router-dom"; // Router navigation
-import RoleSelector from "../../authComponents/RoleSelector"; // Role selection component
+import RoleSelector from "../authComponents/RoleSelector"; // Role selection component
 import FormField from "../../shared/FormField"; // Input component
 import { DEFAULT_ROLE, loginWithApi, normalizeRole } from "../../../handlers/authHandlers"; // Auth handlers (backend-driven)
 

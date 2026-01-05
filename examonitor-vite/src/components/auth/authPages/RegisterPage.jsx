@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"; // React + hooks
 import { useNavigate } from "react-router-dom"; // Router navigation
-import RoleSelector from "../../authComponents/RoleSelector"; // Role selector
+import RoleSelector from "../authComponents/RoleSelector"; // Role selector
 import FormField from "../../shared/FormField"; // Reusable input
 import { DEFAULT_ROLE, registerWithApi } from "../../../handlers/authHandlers"; // Auth handler
 

@@ -1,7 +1,7 @@
 // src/components/auth/RoleSelector.jsx
 
 import React, { useMemo } from "react"; // Import React and useMemo
-import { normalizeRole, ROLE_OPTIONS } from "../../handlers/authHandlers"; // Import role helpers and options
+import { normalizeRole, ROLE_OPTIONS } from "../../../handlers/authHandlers"; // Import role helpers and options
 
 export default function RoleSelector({ value, onChange, disabled }) { // Role selector component
   const selectedRole = normalizeRole(value); // Normalize current selected role
