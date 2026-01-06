@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import {useAuth} from '../state/AuthContext';
 const NavIcon = ({ icon, active, onClick, label, activeColor }) => (
   <button 
     onClick={onClick}
@@ -30,10 +30,14 @@ export default function Sidebar({
   const navigate = useNavigate();
   // State to control the confirmation modal
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  
+  let {token, user} = useAuth();  
   const currentTab = tabs.find(t => t.id === activeTab) || tabs[0];
 
   const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    token = null;
+    user = null;
     navigate('/login');
   };
 

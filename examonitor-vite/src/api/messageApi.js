@@ -1,51 +1,23 @@
+// 
+import { apiFetch } from "./http"; // Import REST helper
+
+const useMock = String(import.meta.env.VITE_USE_AUTH_MOCK || "").toLowerCase() === "true";
 export const messageApi = {
+  // שליפת היסטוריית הודעות לפי סוג ערוץ (למשל: בוט למשגיח) 
   getMessages: async (examId, type) => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-
-    const allMocks = {
-      // 1. מהמשגיח בכיתה אל משגיח הקומה
-      "supervisor_to_floor": [
-        { id: 1, text: "כאן חדר 302, חסרים לי טפסים", sender: "me", role: "supervisor", timestamp: "09:00" },
-        { id: 2, text: "מביא לך עכשיו", sender: "other", role: "floor_manager", timestamp: "09:02" }
-      ],
-      // 2. ממשגיח הקומה אל המשגיחים (צ'אט צוות/הודעות כלליות)
-      "floor_to_supervisor": [
-        { id: 3, text: "נא לוודא שכל התיקים בקדמת הכיתה", sender: "me", role: "floor_manager", timestamp: "08:50" }
-      ],
-      // 3. ממשגיח הקומה אל המרצה
-      "floor_to_lecturer": [
-        { id: 4, text: "מרצה יקר, יש שאלה בחדר 404 לגבי נספח א'", sender: "me", role: "floor_manager", timestamp: "10:00" }
-      ],
-      // 4. מהמרצה אל משגיח הקומה
-      "lecturer_to_floor": [
-        { id: 5, text: "אני נכנס עכשיו לבניין א' לענות על שאלות", sender: "me", role: "lecturer", timestamp: "10:05" }
-      ]
-    };
-
-    return allMocks[type] || [];
+    if (useMock) {
+      const allMocks = {
+        "bot_to_supervisor": [{ id: 1, text: "האם כל הסטודנטים הגיעו?", sender: "bot", timestamp: "08:55" }],
+        "supervisor_to_floor": [{ id: 2, text: "חסרים טפסים בחדר 302", sender: "me", timestamp: "09:00" }]
+      };
+      return allMocks[type] || [];
+    }
+    return apiFetch(`/chat/${examId}?type=${type}`);
   },
 
-  sendMessage: async (payload) => {
-    return {
-      id: Date.now(),
-      text: payload.text,
-      sender: 'me',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
+  // שליחת הודעה/שאלה לבוט או לצוות 
+  sendMessage: async (examId, payload) => {
+    if (useMock) return { id: Date.now(), text: payload.text, sender: 'me', timestamp: "10:00" };
+    return apiFetch(`/chat/${examId}`, { method: "POST", body: payload });
   }
 };
-
-// // Actual usage:
-// export const messageApi = {
-//   // GET /chat/:examId?type=:type
-//   getMessages: async (examId, type) => {
-//     // שליפת היסטוריית הודעות לפי סוג ערוץ (למשל lecturer_to_floor)
-//     return http.get(`/chat/${examId}?type=${type}`);
-//   },
-
-//   // POST /chat/:examId
-//   sendMessage: async (examId, payload) => {
-//     // שליחת הודעה: payload = { type, text, recipientId? }
-//     return http.post(`/chat/${examId}`, payload);
-//   }
-// };

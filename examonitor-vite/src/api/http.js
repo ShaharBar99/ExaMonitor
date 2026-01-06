@@ -49,7 +49,8 @@ export async function apiFetch(path, options = {}) { // Main REST function
     const message = (data && (data.message || data.error)) || res.statusText || "Request failed"; // Pick best message
     throw new ApiError(message, res.status, data); // Throw typed error with details
   } // End error case
-  localStorage.setItem('token', data?.token); // Store token in local storage
+  if (data?.token!==undefined)
+    localStorage.setItem('token', data?.token); // Store token in local storage
 
   return data; // Return parsed JSON data
 } // End apiFetch
