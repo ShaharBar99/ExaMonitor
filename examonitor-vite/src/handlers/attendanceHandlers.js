@@ -1,0 +1,87 @@
+import { attendanceApi } from '../api/attendanceApi';
+
+export const attendanceHandlers = {
+  /**
+   * אתחול מסך ניהול הכיתה
+   */
+  initConsole: async (roomId, setStudents, setLoading, setExamContext) => {
+    try {
+      if (setLoading) setLoading(true);
+      
+      // משיכת נתוני הסטודנטים מה-API
+      const students = await attendanceApi.getStudentsByRoom(roomId);
+      setStudents(students);
+      
+      // עדכון הקונטקסט בפרטי המבחן והחדר
+      if (setExamContext) {
+        setExamContext(prev => ({
+          ...prev,
+          roomId: roomId,
+          roomName: `חדר ${roomId}`,
+          lastSync: new Date().toLocaleTimeString()
+        }));
+      }
+    } catch (error) {
+      console.error("Initialization failed:", error);
+      alert("נכשל בטעינת נתוני הכיתה");
+    } finally {
+      if (setLoading) setLoading(false);
+    }
+  },
+
+  /**
+   * שינוי סטטוס סטודנט (כולל עדכון UI מקומי)
+   */
+  changeStudentStatus: async (studentId, newStatus, setStudents) => {
+    try {
+      // עדכון השרת בשימוש בשם הפונקציה המדויק: updateStudentStatus
+      await attendanceApi.updateStudentStatus(studentId, newStatus);
+
+      // עדכון ה-State של React בצורה אופטימית
+      setStudents(prevStudents => 
+        prevStudents.map(student => 
+          student.id === studentId 
+            ? { ...student, status: newStatus } 
+            : student
+        )
+      );
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      alert("חלה שגיאה בעדכון הסטטוס בשרת");
+    }
+  },
+
+  /**
+   * טעינת סיכום קומה (עבור מנהל קומה)
+   */
+  loadFloorSummary: async (floorId, setSummary) => {
+    try {
+      const data = await attendanceApi.getFloorSummary(floorId);
+      setSummary(data);
+    } catch (error) {
+      console.error("Failed to load floor summary:", error);
+    }
+  },
+
+  /**
+   * שיבוץ משגיח לחדר (פעולת מנהיגות)
+   */
+  handleAssignSupervisor: async (roomId, supervisorId, callback) => {
+    try {
+      await attendanceApi.assignSupervisor(roomId, supervisorId);
+      if (callback) callback();
+      alert(`משגיח שובץ בהצלחה לחדר ${roomId}`);
+    } catch (error) {
+      console.error("Assignment failed:", error);
+      alert("שיבוץ המשגיח נכשל");
+    }
+  },
+  handleGetExamsOnFloor: async (floorId, setExams) => {
+    try {
+      const data = await attendanceApi.getExamsOnFloor(floorId);
+      setExams(data);
+    } catch (error) {
+      console.error("Failed to load exams on floor:", error);
+    }
+  }
+};
