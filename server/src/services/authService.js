@@ -1,5 +1,24 @@
 import { supabase, supabaseAdmin } from '../lib/supabaseClient.js';
 
+async function fetchUserProfile(column, value) {
+  const { data: profile, error: profileErr } = await supabaseAdmin
+    .from('profiles')
+    .select('id, email, full_name, role, username')
+    .eq(column, value)
+    .single();
+  if (profileErr) {
+    const err = new Error(profileErr.message);
+    err.status = 500;
+    throw err;
+  }
+
+  return profile;
+}
+
+    // Fetch role from profiles (server-side)
+    //  .eq('id', authUser.id)
+
+
 export const AuthService = {
   /**
    * Uses Supabase Auth to sign in.
@@ -9,8 +28,11 @@ export const AuthService = {
   async login(username, password, requestedRole) {
     // "username" in the contract is your login identifier.
     // In your project you use email auth, so treat username as email.
+
+    const user = await fetchUserProfile('username', username);
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: username,
+      email: user.email,
       password,
     });
 
@@ -29,21 +51,8 @@ export const AuthService = {
       throw err;
     }
 
-    // Fetch role from profiles (server-side)
-    const { data: profile, error: profileErr } = await supabaseAdmin
-      .from('profiles')
-      .select('id, email, full_name, role')
-      .eq('id', authUser.id)
-      .single();
+    const profile = await fetchUserProfile('id', authUser.id);
 
-    if (profileErr) {
-      const err = new Error(profileErr.message);
-      err.status = 500;
-      throw err;
-    }
-
-    // console.log('AuthService.login: fetched profile', profile);
-    // console.log('Requested role:', requestedRole);
     const actualRole = profile?.role ?? 'student';
 
     // Enforce role match
