@@ -24,6 +24,7 @@ export default function ManageUsersPage() { // Page component
       setError(""); // Clear error
       try { // Fetch
         const res = await fetchUsers({}, {}); // Mock/REST handled inside
+        console.log('ManageUsersPage: fetchUsers res.data', res?.data); // Debug log
         if (!mounted) return; // Guard
         if (res.ok) setUsers(res.data.users || []); // Store
         else setError("Failed to load users"); // Fallback
@@ -44,7 +45,8 @@ export default function ManageUsersPage() { // Page component
   const roleOptions = useMemo(() => ([
     { value: "", label: "כל התפקידים" },
     { value: "student", label: "סטודנט" },
-    { value: "invigilator", label: "משגיח" },
+    { value: "supervisor", label: "משגיח" },
+    { value: "floor_supervisor", label: "משגיח קומה" },
     { value: "lecturer", label: "מרצה" },
     { value: "admin", label: "מנהל מערכת" },
   ]), []); // Role options
@@ -65,7 +67,8 @@ export default function ManageUsersPage() { // Page component
 
   const roleLabel = (r) => { // Role label helper
     if (r === "student") return "סטודנט";
-    if (r === "invigilator") return "משגיח";
+    if (r === "supervisor") return "משגיח";
+    if (r === "floor_supervisor") return "משגיח קומה";
     if (r === "lecturer") return "מרצה";
     if (r === "admin") return "מנהל מערכת";
     return r;
@@ -163,7 +166,7 @@ export default function ManageUsersPage() { // Page component
           {filtered.length === 0 ? null : (
             filtered.map((u) => (
               <tr key={u.id} className="bg-white">
-                <td className="px-3 py-3 text-slate-900">{u.name}</td>
+                <td className="px-3 py-3 text-slate-900">{u.full_name}</td>
                 <td className="px-3 py-3 text-slate-700">{u.username}</td>
 
                 <td className="px-3 py-3">
@@ -174,7 +177,8 @@ export default function ManageUsersPage() { // Page component
                     onChange={(e) => onChangeRowRole(u.id, e.target.value)}
                   >
                     <option value="student">{roleLabel("student")}</option>
-                    <option value="invigilator">{roleLabel("invigilator")}</option>
+                    <option value="supervisor">{roleLabel("supervisor")}</option>
+                    <option value="floor_supervisor">{roleLabel("floor_supervisor")}</option>
                     <option value="lecturer">{roleLabel("lecturer")}</option>
                     <option value="admin">{roleLabel("admin")}</option>
                   </select>
@@ -182,7 +186,7 @@ export default function ManageUsersPage() { // Page component
 
                 <td className="px-3 py-3">
                   <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                    {statusLabel(u.status)}
+                    {statusLabel(u.is_active ? "פעיל" : "לא פעיל")}
                   </span>
                 </td>
 

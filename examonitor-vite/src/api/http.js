@@ -17,13 +17,14 @@ export class ApiError extends Error { // ApiError extends Error
 export async function apiFetch(path, options = {}) { // Main REST function
   const method = options.method || "GET"; // Default method is GET
   const body = options.body ?? null; // Default body is null
-  const token = options.token ?? null; // Optional token (caller can pass)
+  const token = localStorage.getItem("token") ?? null; // Optional token (caller can pass)
   const signal = options.signal; // Optional AbortController signal
 
   const headers = new Headers(); // Create headers object
   headers.set("Accept", "application/json"); // Expect JSON responses
   if (body !== null) headers.set("Content-Type", "application/json"); // Send JSON when body exists
   if (token) headers.set("Authorization", `Bearer ${token}`); // Attach Bearer token when available
+
 
   const url = `${API_BASE}${path}`; // Build full URL from base + path
 
@@ -41,11 +42,14 @@ export async function apiFetch(path, options = {}) { // Main REST function
   // Try to parse JSON if present. // Avoid crashing on empty body
   const text = await res.text(); // Read raw response text
   const data = text ? safeJsonParse(text) : null; // Parse JSON if possible
+  //console.log('apiFetch:', { url, method, status: res.status, data }); // Debug log
 
   if (!res.ok) { // If HTTP status is not 2xx
+
     const message = (data && (data.message || data.error)) || res.statusText || "Request failed"; // Pick best message
     throw new ApiError(message, res.status, data); // Throw typed error with details
   } // End error case
+  localStorage.setItem('token', data?.token); // Store token in local storage
 
   return data; // Return parsed JSON data
 } // End apiFetch

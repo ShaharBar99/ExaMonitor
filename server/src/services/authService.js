@@ -42,6 +42,8 @@ export const AuthService = {
       throw err;
     }
 
+    // console.log('AuthService.login: fetched profile', profile);
+    // console.log('Requested role:', requestedRole);
     const actualRole = profile?.role ?? 'student';
 
     // Enforce role match
@@ -50,7 +52,7 @@ export const AuthService = {
       err.status = 403;
       throw err;
     }
-
+  
     return {
       token,
       user: {

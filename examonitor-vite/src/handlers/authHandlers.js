@@ -4,7 +4,7 @@ import * as authApiDefault from "../api/authApi";
 import { findMockUser,addMockUser  } from "../mocks/authMock"; // Import mock lookup helper
 
 // Supported roles in the UI. // Keep this in one place
-export const AUTH_ROLES = ["student", "invigilator", "lecturer", "admin", "floorsupervisor"]; // Added student
+export const AUTH_ROLES = ["student", "supervisor", "lecturer", "admin", "floor_supervisor"]; // Added student
 
 // Default role for initial state. // Used by LoginPage
 export const DEFAULT_ROLE = "student"; // Pick student as default (change if you want)
@@ -22,8 +22,8 @@ export function normalizeRole(role) { // Convert any input role to a supported r
 // Define role options in one place (value + Hebrew label). // Used by UI components
 export const ROLE_OPTIONS = [ // Role options array
   { value: "student", label: "סטודנט" }, // Student
-  { value: "invigilator", label: "משגיח" }, // Invigilator
-  { value: "floorsupervisor", label: "משגיח קומה" },
+  { value: "supervisor", label: "משגיח" }, // Supervisor
+  { value: "floor_supervisor", label: "משגיח קומה" },
   { value: "lecturer", label: "מרצה" }, // Lecturer
   { value: "admin", label: "מנהל מערכת" }, // Admin
 ]; // End role options
@@ -65,7 +65,7 @@ export async function loginWithApi({ username, password, role, rememberMe }, dep
   } // End mock path
 
   const result = await authApi.login({ username: value.username, password: value.password, role: value.role }); // Call REST login
-  persistAuthToken(result?.token, Boolean(rememberMe)); // Persist token if present
+  //persistAuthToken(result?.token, Boolean(rememberMe)); // Persist token if present
   return { ok: true, data: result }; // Return success
 } // End loginWithApi
 export async function registerWithApi({ name, username, password, role }, deps) { // Register handler

@@ -27,9 +27,10 @@ export function filterUsers(users, filters = {}) { // Filter users by search/rol
 // Fetch users (REST or mock) via usersApi. // Thin handler
 export async function fetchUsers(filters = {}, deps = {}) { // Get users list
   const usersApi = deps.usersApi || usersApiDefault; // Use injected or default
-  const token = deps.token; // Optional token
+  const token = localStorage.getItem("token") ?? null; // Get token from local storage
   const data = await usersApi.listUsers({ ...filters, token }); // Call api
   const users = data?.users || []; // Extract users array
+  console.log('fetchUsers: retrieved', users, 'users'); // Debug log
   return { ok: true, data: { users } }; // Return standard shape
 } // End fetchUsers
 

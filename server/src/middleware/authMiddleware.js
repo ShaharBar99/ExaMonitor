@@ -34,9 +34,14 @@ export async function requireAdmin(req, res, next) {
   try {
     // Best effort: look up role in profiles
     // If it fails, we fall back to allowing only "admin@test.com" for development.
-    const email = req.user?.email || '';
 
-    if (email === 'test@exam.local') {
+    const userId = req.user.id;
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    if (!error && profile?.role === 'admin') {
       return next();
     }
 

@@ -63,10 +63,10 @@ export default function LoginPage() { // Login page component
 
       // Route decision (assumption): no dedicated student page yet, so student goes to exam console. // Adjust later
       if (safeRole === "admin") navigate("/admin/users"); // Admin -> manage users
-      else if(safeRole === "invigilator") navigate("/select-exam"); // Student / invigilator / lecturer -> active exam (for now)
+      else if(safeRole === "supervisor") navigate("/select-exam"); // Student / supervisor / lecturer -> active exam (for now)
       else if(safeRole === "lecturer") navigate("/Lecturer/lecturerDashboardPage");
-      else if(safeRole === "student") navigate("/login"); // No student page yet
-      else if(safeRole === "floorsupervisor") navigate("/supervisor/floorsupervisorDashboardPage");
+      else if(safeRole === "student") navigate("/select-exam"); // No student page yet
+      else if(safeRole === "floor_supervisor") navigate("/supervisor/floorsupervisorDashboardPage");
     } catch (err) { // Handle unexpected errors
       setFormError(err?.message || "Login failed"); // Set a readable message
     } finally { // Always run cleanup

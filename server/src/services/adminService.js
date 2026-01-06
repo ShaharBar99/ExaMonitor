@@ -8,7 +8,8 @@ export const AdminService = {
   async listUsers() {
     const { data, error } = await supabaseAdmin
       .from('profiles')
-      .select('id, full_name, email, role, created_at');
+      .select('id, full_name, email, role, created_at, username');
+      console.log('AdminService.listUsers: fetched', data); // Debug log
 
     if (error) {
       const err = new Error(error.message);
@@ -22,6 +23,7 @@ export const AdminService = {
       full_name: u.full_name ?? '',
       email: u.email ?? '',
       role: u.role ?? 'student',
+      username: u.username ?? '',
       is_active: true,          // placeholder (no column yet)
       created_at: u.created_at, // real if exists
       permissions: [],          // placeholder (no column yet)
