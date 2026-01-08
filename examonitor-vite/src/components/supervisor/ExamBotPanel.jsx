@@ -6,8 +6,9 @@ export default function ExamBotPanel({ userRole = "lecturer" }) {
   const { examId } = useParams();
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false); // סטייט לטעינה
+  const [botStatus, setBotStatus] = useState({ ai_available: false });
   const [chat, setChat] = useState([
-    { role: "bot", text: "שלום, אני העוזר האישי שלך. איך אני יכול לעזור בניהול המבחן?", time: "09:00" }
+    { role: "bot", text: userRole === 'supervisor' ? "שלום משגיח! אני כאן כדי לעזור לך בניהול המבחן. אני יכול לספק מידע על זמן נותר, סטטיסטיקות סטודנטים והתראות." : "שלום, אני העוזר האישי שלך. איך אני יכול לעזור בניהול המבחן?", time: "09:00" }
   ]);
   const scrollRef = useRef(null);
 
@@ -48,7 +49,9 @@ export default function ExamBotPanel({ userRole = "lecturer" }) {
       <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-white/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className={`w-2.5 h-2.5 rounded-full ${isTyping ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></div>
-          <h2 className="font-black text-slate-800 text-lg italic uppercase tracking-tight">ExamBot AI</h2>
+          <h2 className="font-black text-slate-800 text-lg italic uppercase tracking-tight">
+            {userRole === 'supervisor' ? 'ExamBot - עוזר משגיח' : 'ExamBot AI'}
+          </h2>
         </div>
         <div className={`px-2 py-1 rounded text-[10px] font-black ${isTyping ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
           {isTyping ? 'מעבד נתונים...' : 'ONLINE'}
@@ -95,7 +98,7 @@ export default function ExamBotPanel({ userRole = "lecturer" }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isTyping}
-            placeholder={isTyping ? "הבוט מנתח את הבקשה..." : "שאל על נתוני המבחן..."}
+            placeholder={isTyping ? "הבוט מנתח את הבקשה..." : userRole === 'supervisor' ? "שאל על סטטיסטיקות, זמן נותר או התראות..." : "שאל על נתוני המבחן..."}
             className="w-full pl-4 pr-4 py-3.5 bg-slate-100 border-2 border-transparent focus:border-blue-500/20 focus:bg-white rounded-2xl text-sm transition-all outline-none font-bold text-slate-700 disabled:opacity-50"
           />
           <button 
