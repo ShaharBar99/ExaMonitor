@@ -25,4 +25,12 @@ export async function logout(token) { // Logout request
     body: {}, // Empty JSON body (safe default)
     token, // Attach token if required by backend
   }); // Return backend response
-} // End logou
+} // End logout
+
+// POST /auth/register. // Registers a new user
+export async function register(payload) { // Register request
+    return apiFetch("/auth/register", { // Call REST endpoint
+        method: "POST", // POST
+        body: payload, // JSON body: { name, username, password, role }
+    }); // Return backend response
+} // End register

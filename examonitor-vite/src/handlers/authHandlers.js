@@ -1,5 +1,3 @@
-
-
 import * as authApiDefault from "../api/authApi";
 import { findMockUser,addMockUser  } from "../mocks/authMock"; // Import mock lookup helper
 
@@ -27,6 +25,14 @@ export const ROLE_OPTIONS = [ // Role options array
   { value: "lecturer", label: "מרצה" }, // Lecturer
   { value: "admin", label: "מנהל מערכת" }, // Admin
 ]; // End role options
+
+export function persistAuthToken(token, rememberMe) {
+  if (rememberMe) {
+    localStorage.setItem("token", token);
+  } else {
+    sessionStorage.setItem("token", token);
+  }
+}
 
 // Single validator for login/register. // Avoid duplicate validation functions
 export function validateAuthPayload(payload, requireName) { // Validate inputs with optional name requirement
@@ -65,7 +71,7 @@ export async function loginWithApi({ username, password, role, rememberMe }, dep
   } // End mock path
 
   const result = await authApi.login({ username: value.username, password: value.password, role: value.role }); // Call REST login
-  //persistAuthToken(result?.token, Boolean(rememberMe)); // Persist token if present
+  persistAuthToken(result?.token, Boolean(rememberMe)); // Persist token if present
   return { ok: true, data: result }; // Return success
 } // End loginWithApi
 export async function registerWithApi({ name, username, password, role }, deps) { // Register handler

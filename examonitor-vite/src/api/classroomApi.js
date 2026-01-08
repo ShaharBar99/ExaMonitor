@@ -20,7 +20,7 @@ export const classroomApi = {
     if (useMock) return { success: true };
     return apiFetch(`/classrooms/${classroomId}/assign`, {
       method: "PATCH",
-      body: { supervisorId }
+      body: { supervisor_id: supervisorId }
     });
   }
 };

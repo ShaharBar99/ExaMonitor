@@ -62,6 +62,16 @@ import { apiFetch } from './http';
 
 const useMock = String(import.meta.env.VITE_USE_AUTH_MOCK || "").toLowerCase() === "true";
 export const examsApi = {
+  getExams: async () => {
+    if (useMock) {
+      return [
+        { id: '101', name: 'מבוא למחשבים', room: '1' },
+        { id: '202', name: 'מבני נתונים', room: '3' }
+      ];
+    }
+    return apiFetch('/exams');
+  },
+  
   // קבלת פרטי בחינה (קורס, תאריך, שעה, אולם) [cite: 26]
   getExamById: async (examId) => {
     if (useMock) {

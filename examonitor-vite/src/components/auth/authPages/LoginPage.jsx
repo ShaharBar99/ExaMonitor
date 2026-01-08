@@ -4,10 +4,12 @@ import React, { useMemo, useState } from "react"; // React + hooks
 import { useNavigate } from "react-router-dom"; // Router navigation
 import RoleSelector from "../authComponents/RoleSelector"; // Role selection component
 import FormField from "../../shared/FormField"; // Input component
+import { useAuth } from "../../../components/state/AuthContext"; // Auth context
 import { DEFAULT_ROLE, loginWithApi, normalizeRole } from "../../../handlers/authHandlers"; // Auth handlers (backend-driven)
 
 export default function LoginPage() { // Login page component
   const navigate = useNavigate(); // Create navigation function
+  const auth = useAuth(); // Auth context hook
 
   const [role, setRole] = useState(DEFAULT_ROLE); // Selected role (from handlers)
   const [username, setUsername] = useState(""); // Username input state
@@ -17,15 +19,6 @@ export default function LoginPage() { // Login page component
   const [isSubmitting, setIsSubmitting] = useState(false); // Track submit loading state
   const [formError, setFormError] = useState(""); // Track top-level form error
   const [fieldErrors, setFieldErrors] = useState({}); // Track per-field errors
-
-  // Temporary API mock (until you connect a real backend API module). // This simulates deps.authApi.login(...)
-  const authApiMock = useMemo(() => { // Memoize mock api so it does not recreate every render
-    return { // Return api object
-      login: async ({ username: u, role: r }) => { // Mock login endpoint function
-        return { token: "mock-token", user: { username: u, role: r } }; // Mock response shape
-      }, // End login
-    }; // End api object
-  }, []); // No dependencies
 
   const roleButtonBaseClass = useMemo(() => { // Memoize shared role button classes
     return "role-btn px-3 py-2 rounded-xl border text-xs font-medium transition"; // Same size/shape as HTML
@@ -49,16 +42,18 @@ export default function LoginPage() { // Login page component
     try { // Start try/catch for async call
       const result = await loginWithApi( // Call handler (which calls the API)
         { username, password, role, rememberMe }, // Payload from UI state
-        {} // Use mock for now
+        { navigate, auth } // Dependencies
       ); // End handler call
 
       if (!result.ok) { // If validation failed (handler returns errors)
         setFieldErrors(result.errors || {}); // Show field errors in UI
+        if (result.apiError?.message) setFormError(result.apiError.message); // API error
         setIsSubmitting(false); // Stop loading
         return; // Exit early
       } // End error case
 
-      // Success case: handler returned backend data. // You can store token/user later in AuthContext
+      // Success case: handler returned backend data.
+      auth.login(result.user, result.token); // Update auth context
       const safeRole = normalizeRole(role); // Normalize role for routing
 
       // Route decision (assumption): no dedicated student page yet, so student goes to exam console. // Adjust later

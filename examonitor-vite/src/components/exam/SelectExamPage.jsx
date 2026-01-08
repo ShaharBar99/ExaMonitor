@@ -1,16 +1,41 @@
-import React, { useState } from 'react';
-import { exams_mock } from '../../mocks/examsMock';
+import React, { useState, useEffect } from 'react';
+import { examsApi } from '../../api/examsApi';
 
 const SelectExamPage = ({ navigate }) => {
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
 
+  useEffect(() => {
+    const fetchExams = async () => {
+      try {
+        setLoading(true);
+        const fetchedExams = await examsApi.getExams();
+        setExams(fetchedExams);
+      } catch (error) {
+        console.error("Failed to fetch exams", error);
+        // here you might want to set an error state to show in the UI
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExams();
+  }, []);
+
   // לוגיקת סינון המבחנים
-  const filteredExams = exams_mock.filter(exam => {
-    const matchesSearch = exam.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          exam.room.toString().includes(searchTerm);
+  const filteredExams = exams.filter(exam => {
+    const name = exam.name || '';
+    const room = exam.room || '';
+    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          room.toString().includes(searchTerm);
     return matchesSearch;
   });
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#0f172a] p-12 text-center text-white">טוען מבחנים...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#0f172a] p-12 text-right font-sans" dir="rtl">

@@ -17,7 +17,7 @@ export class ApiError extends Error { // ApiError extends Error
 export async function apiFetch(path, options = {}) { // Main REST function
   const method = options.method || "GET"; // Default method is GET
   const body = options.body ?? null; // Default body is null
-  const token = localStorage.getItem("token") ?? null; // Optional token (caller can pass)
+  const token = options.token ?? localStorage.getItem("token") ?? null;
   const signal = options.signal; // Optional AbortController signal
 
   const headers = new Headers(); // Create headers object

@@ -27,7 +27,7 @@ export function filterUsers(users, filters = {}) { // Filter users by search/rol
 // Fetch users (REST or mock) via usersApi. // Thin handler
 export async function fetchUsers(filters = {}, deps = {}) { // Get users list
   const usersApi = deps.usersApi || usersApiDefault; // Use injected or default
-  const token = localStorage.getItem("token") ?? null; // Get token from local storage
+  const token = (localStorage.getItem("token") || sessionStorage.getItem("token")) ?? null; // Get token from local storage
   const data = await usersApi.listUsers({ ...filters, token }); // Call api
   const users = data?.users || []; // Extract users array
   console.log('fetchUsers: retrieved', users, 'users'); // Debug log
@@ -37,7 +37,7 @@ export async function fetchUsers(filters = {}, deps = {}) { // Get users list
 // Update user status via API. // Thin handler
 export async function changeUserStatus(userId, status, deps = {}) { // Change status
   const usersApi = deps.usersApi || usersApiDefault; // API module
-  const token = deps.token; // Optional token
+  const token = deps.token ?? (localStorage.getItem('token') || sessionStorage.getItem('token')); // Optional token
   const safeStatus = normalizeStatus(status); // Normalize
   const data = await usersApi.setUserStatus(String(userId), safeStatus, token); // Call api
   return { ok: true, data }; // Return updated user
@@ -46,7 +46,7 @@ export async function changeUserStatus(userId, status, deps = {}) { // Change st
 // Update user role via API. // Thin handler
 export async function changeUserRole(userId, role, deps = {}) { // Change role
   const usersApi = deps.usersApi || usersApiDefault; // API module
-  const token = deps.token; // Optional token
+  const token = deps.token ?? (localStorage.getItem('token') || sessionStorage.getItem('token')); // Optional token
   const safeRole = normalizeRole(role); // Normalize
   const data = await usersApi.setUserRole(String(userId), safeRole, token); // Call api
   return { ok: true, data }; // Return updated user
@@ -55,7 +55,7 @@ export async function changeUserRole(userId, role, deps = {}) { // Change role
 // Update user permissions via API. // Thin handler
 export async function changeUserPermissions(userId, permissions, deps = {}) { // Change permissions
   const usersApi = deps.usersApi || usersApiDefault; // API module
-  const token = deps.token; // Optional token
+  const token = deps.token ?? (localStorage.getItem('token') || sessionStorage.getItem('token')); // Optional token
   const perms = Array.isArray(permissions) ? permissions : []; // Normalize perms
   const data = await usersApi.updateUserPermissions(String(userId), perms, token); // Call api
   return { ok: true, data }; // Return updated user
