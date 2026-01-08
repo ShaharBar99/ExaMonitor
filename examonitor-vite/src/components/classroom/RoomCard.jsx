@@ -17,7 +17,7 @@ export default function RoomCard({ room, supervisors, onSupervisorChange, readOn
       <div className="flex justify-between items-start mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-2xl font-black text-slate-800 tabular-nums">חדר {room.id}</h3>
+            <h3 className="text-2xl font-black text-slate-800 tabular-nums">חדר {room.room_number}</h3>
             {room.status === 'warning' && <span className="text-xl">⚠️</span>}
           </div>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">

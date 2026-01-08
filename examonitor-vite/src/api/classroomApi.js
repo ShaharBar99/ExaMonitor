@@ -22,5 +22,17 @@ export const classroomApi = {
       method: "PATCH",
       body: { supervisor_id: supervisorId }
     });
+  },
+
+  // GET /classrooms/supervisors/list - משיכת רשימת משגיחים זמינים
+  getSupervisors: async () => {
+    if (useMock) {
+      return [
+        { id: "u3", name: "Invigilator One" },
+        { id: "u4", name: "Invigilator Two" },
+      ];
+    }
+    const response = await apiFetch('/classrooms/supervisors/list');
+    return response.supervisors || [];
   }
 };

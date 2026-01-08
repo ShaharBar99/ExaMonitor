@@ -26,16 +26,16 @@ export const ExamController = {
 
   async create(req, res, next) {
     try {
-      const { course_id, original_start_time, original_duration } = req.body;
+      const { course_code, original_start_time, original_duration } = req.body;
 
-      if (!course_id || !original_start_time || typeof original_duration !== 'number') {
+      if (!course_code || !original_start_time || typeof original_duration !== 'number') {
         return res.status(400).json({
-          error: 'course_id, original_start_time, original_duration (number) are required',
+          error: 'course_code, original_start_time, original_duration (number) are required',
         });
       }
 
       const exam = await ExamService.createExam({
-        course_id,
+        course_code,
         original_start_time,
         original_duration,
       });
@@ -112,6 +112,20 @@ export const ExamController = {
       await ExamService.broadcastAnnouncement(examId, message, userId);
 
       res.status(200).json({ success: true, message: 'Announcement sent' });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getTiming(req, res, next) {
+    try {
+      const exam = await ExamService.getExamById(req.params.id);
+      res.json({
+        startTime: exam.original_start_time,
+        originalDuration: exam.original_duration,
+        extraTime: exam.extra_time || 0,
+        isPaused: false // For now, assume not paused
+      });
     } catch (err) {
       next(err);
     }

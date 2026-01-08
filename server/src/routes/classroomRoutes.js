@@ -10,5 +10,6 @@ router.get('/', ClassroomController.list);
 router.get('/:id', ClassroomController.getOne);
 router.post('/', ClassroomController.create);
 router.patch('/:id/assign', ClassroomController.assign);
+router.get('/supervisors/list', ClassroomController.getSupervisors);
 
 export default router;

@@ -26,10 +26,11 @@ const SelectExamPage = ({ navigate }) => {
 
   // לוגיקת סינון המבחנים
   const filteredExams = exams.filter(exam => {
-    const name = exam.name || '';
-    const room = exam.room || '';
-    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          room.toString().includes(searchTerm);
+    const courseName = exam.courses?.course_name || exam.course_id || '';
+    const courseCode = exam.courses?.course_code || '';
+    const matchesSearch = courseName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          courseCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          exam.id.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
@@ -105,10 +106,10 @@ const SelectExamPage = ({ navigate }) => {
               {/* Exam Name & ID */}
               <div className="col-span-2">
                 <div className="text-xl font-black text-slate-800  uppercase leading-tight group-hover:text-emerald-600 transition-colors">
-                  {exam.name}
+                  {exam.courses?.course_name || exam.course_id}
                 </div>
                 <div className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">
-                  Course ID: {exam.courseId || 'N/A'} • Exam ID: {exam.id}
+                  Course Code: {exam.courses?.course_code || 'N/A'} • Exam ID: {exam.id}
                 </div>
               </div>
 
@@ -117,8 +118,8 @@ const SelectExamPage = ({ navigate }) => {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-lg">🏠</div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">חדר</p>
-                    <p className="text-sm font-black text-slate-700">{exam.room}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">חדרים</p>
+                    <p className="text-sm font-black text-slate-700">מוקצים בנפרד</p>
                   </div>
                 </div>
               </div>
@@ -134,7 +135,7 @@ const SelectExamPage = ({ navigate }) => {
               {/* Action Button */}
               <div className="text-left">
                 <button 
-                  onClick={() => navigate(`/exam/active/${exam.room}`)}
+                  onClick={() => navigate(`/exam/active/${exam.id}`)}
                   className="bg-[#0f172a] hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center gap-3 mr-auto"
                 >
                   כניסה למערכת

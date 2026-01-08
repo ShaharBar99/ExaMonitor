@@ -1,22 +1,23 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import RoomGrid from './RoomGrid';
-import { classroomHandler } from '../../handlers/classroomHandler'; // שימוש ב-Handler החדש
+import { classroomHandler } from '../../handlers/classroomHandlers'; // שימוש ב-Handler החדש
 import { useExam } from '../state/ExamContext';
 import {useAuth} from '../state/AuthContext';
 export default function ViewClassroomsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { examData } = useExam();
-  const { user } = useAuth();
+  const { user} = useAuth();
   const token = localStorage.getItem('token');
   // זיהוי תפקיד המשתמש
-  const userRole = user?.role || 'floor_manager'; 
+  const userRole = user?.role || 'floor_supervisor'; 
   const isLecturer = userRole === 'lecturer';
   
   const [classrooms, setClassrooms] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [supervisors, setSupervisors] = useState([]);
 
   // טעינת נתונים באמצעות ה-Handler של ה-Classrooms
   useEffect(() => {
@@ -28,6 +29,17 @@ export default function ViewClassroomsPage() {
       setClassrooms, 
       setLoading
     );
+
+    // טעינת רשימת משגיחים זמינים (רק למנהל קומה)
+    if (!isLecturer) {
+      classroomHandler.loadSupervisors()
+        .then(supervisors => {
+          setSupervisors(supervisors);
+        })
+        .catch(error => {
+          console.error('Failed to load supervisors:', error);
+        });
+    }
   }, [userRole, examData]);
 
   // סינון מקומי לצורך שורת החיפוש (UI בלבד)
@@ -35,6 +47,7 @@ export default function ViewClassroomsPage() {
     return classrooms.filter(room => {
       const matchesSearch = 
         room.examName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        room.room_number?.toString().includes(searchQuery) ||
         room.id.toString().includes(searchQuery);
         
       return matchesSearch;
@@ -108,6 +121,7 @@ export default function ViewClassroomsPage() {
 
         <RoomGrid 
           rooms={filteredClassrooms} 
+          supervisors={supervisors}
           onSupervisorChange={!isLecturer ? onSupervisorChange : null} 
           readOnly={isLecturer} 
         />

@@ -14,6 +14,7 @@ router.post('/', ExamController.create);
 
 router.patch('/:id/status', ExamController.updateStatus);
 router.patch('/:id/extra-time', ExamController.addExtraTime);
+router.get('/:id/timing', ExamController.getTiming);
 router.post('/:id/broadcast', ExamController.broadcastAnnouncement);
 
 export default router;

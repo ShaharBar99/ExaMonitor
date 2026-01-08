@@ -62,4 +62,13 @@ export const ClassroomController = {
       next(err);
     }
   },
+
+  async getSupervisors(req, res, next) {
+    try {
+      const supervisors = await ClassroomService.getSupervisors();
+      res.json({ supervisors });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

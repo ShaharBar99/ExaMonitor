@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../lib/supabaseClient.js';
+import { AuditTrailService } from './auditTrailService.js';
 
 export const ExamService = {
   // GET /exams?status=active
@@ -11,7 +12,12 @@ export const ExamService = {
         original_start_time,
         original_duration,
         extra_time,
-        status
+        status,
+        courses:course_id (
+          id,
+          course_name,
+          course_code
+        )
       `)
       .order('original_start_time', { ascending: false });
 
@@ -40,7 +46,11 @@ export const ExamService = {
         original_start_time,
         original_duration,
         extra_time,
-        status
+        status,
+        courses:course_id (
+          id,
+          name
+        )
       `)
       .eq('id', examId)
       .single();
@@ -55,12 +65,25 @@ export const ExamService = {
   },
 
   // POST /exams
-  async createExam({ course_id, original_start_time, original_duration }) {
+  async createExam({ course_code, original_start_time, original_duration }) {
+    // First, look up the course by course_code to get the course_id (uuid)
+    const { data: course, error: courseError } = await supabaseAdmin
+      .from('courses')
+      .select('id')
+      .eq('course_code', course_code)
+      .single();
+
+    if (courseError || !course) {
+      const err = new Error(`Course with code '${course_code}' not found`);
+      err.status = 400;
+      throw err;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('exams')
       .insert([
         {
-          course_id,
+          course_id: course.id, // Use the course uuid
           original_start_time,
           original_duration,
           extra_time: 0,
@@ -73,7 +96,12 @@ export const ExamService = {
         original_start_time,
         original_duration,
         extra_time,
-        status
+        status,
+        courses:course_id (
+          id,
+          course_name,
+          course_code
+        )
       `)
       .single();
 
@@ -98,7 +126,12 @@ export const ExamService = {
         original_start_time,
         original_duration,
         extra_time,
-        status
+        status,
+        courses:course_id (
+          id,
+          course_name,
+          course_code
+        )
       `)
       .single();
 
@@ -138,7 +171,12 @@ export const ExamService = {
         original_start_time,
         original_duration,
         extra_time,
-        status
+        status,
+        courses:course_id (
+          id,
+          course_name,
+          course_code
+        )
       `)
       .single();
 
