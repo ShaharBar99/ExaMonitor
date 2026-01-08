@@ -71,7 +71,7 @@ export async function loginWithApi({ username, password, role, rememberMe }, dep
   } // End mock path
 
   const result = await authApi.login({ username: value.username, password: value.password, role: value.role }); // Call REST login
-  //persistAuthToken(result?.token, Boolean(rememberMe)); // Persist token if present
+  persistAuthToken(result?.token, Boolean(rememberMe)); // Persist token if present
   return { ok: true, data: result }; // Return success
 } // End loginWithApi
 export async function registerWithApi({ name, username, password, role }, deps) { // Register handler

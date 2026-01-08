@@ -53,7 +53,7 @@ export default function LoginPage() { // Login page component
       } // End error case
 
       // Success case: handler returned backend data.
-      auth.login(result.user, result.token); // Update auth context
+      auth.login(result.data.user, result.data.token); // Update auth context
       const safeRole = normalizeRole(role); // Normalize role for routing
 
       // Route decision (assumption): no dedicated student page yet, so student goes to exam console. // Adjust later
