@@ -42,4 +42,19 @@ export const AuthController = {
       next(err);
     }
   },
+
+  async register(req, res, next) {
+    try {
+      const { name, username, password, role } = req.body;
+
+      if (!name || !username || !password || !role) {
+        return res.status(400).json({ error: 'name, username, password, role are required' });
+      }
+
+      const result = await AuthService.register(name, username, password, role);
+      return res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
 };

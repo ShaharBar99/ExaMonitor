@@ -63,7 +63,7 @@ export function createChatMessage(msg) {
     return `
         <div class="flex flex-col ${alignClass}">
             <div class="max-w-[85%] p-3 rounded-lg shadow-sm text-sm ${bubbleClass}">
-                ${msg.alert ? '<strong class="block mb-1 text-red-600 flex items-center gap-1">⚠️ התראה</strong>' : ''}
+                ${msg.alert ? '<div class="mb-1 text-red-600 flex items-center gap-1">⚠️ התראה</div>' : ''}
                 ${msg.text}
             </div>
             <span class="text-[10px] text-gray-400 mt-1 px-1">${msg.time}</span>

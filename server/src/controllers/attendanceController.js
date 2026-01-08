@@ -65,4 +65,56 @@ export const AttendanceController = {
       next(err);
     }
   },
+
+  async getStudentsByRoom(req, res, next) {
+    try {
+      const { roomId } = req.params;
+      const students = await AttendanceService.getStudentsByRoom(roomId);
+      res.json(students);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async updateStudentStatus(req, res, next) {
+    try {
+      const { studentId } = req.params;
+      const { status } = req.body;
+      const result = await AttendanceService.updateStudentStatus(studentId, status);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getExamsOnFloor(req, res, next) {
+    try {
+      const { floorId } = req.params;
+      const exams = await AttendanceService.getExamsOnFloor(floorId);
+      res.json(exams);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async assignSupervisor(req, res, next) {
+    try {
+      const { roomId } = req.params;
+      const { supervisorId } = req.body;
+      const result = await AttendanceService.assignSupervisor(roomId, supervisorId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getFloorSummary(req, res, next) {
+    try {
+      const { floorId } = req.query;
+      const summary = await AttendanceService.getFloorSummary(floorId);
+      res.json(summary);
+    } catch (err) {
+      next(err);
+    }
+  },
 };

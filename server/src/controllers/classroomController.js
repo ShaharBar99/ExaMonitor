@@ -5,7 +5,7 @@ export const ClassroomController = {
     try {
       const examId = req.query.exam_id || null;
       const classrooms = await ClassroomService.listClassrooms(examId);
-      res.json({ classrooms });
+      res.json(classrooms);
     } catch (err) {
       next(err);
     }

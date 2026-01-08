@@ -142,4 +142,42 @@ export const AttendanceService = {
 
     return { break: brk, attendance: att };
   },
+
+  async getStudentsByRoom(roomId) {
+    console.log(`Getting students for room: ${roomId}`);
+    return [
+      { id: '123456789', name: 'ישראל ישראלי', status: 'במבחן', desk: 1 },
+      { id: '987654321', name: 'שרה כהן', status: 'סיים', desk: 2 },
+    ];
+  },
+
+  async updateStudentStatus(studentId, status) {
+    console.log(`Updating status for student ${studentId} to ${status}`);
+    return { success: true };
+  },
+
+  async getExamsOnFloor(floorId) {
+    console.log(`Getting exams for floor: ${floorId}`);
+    return [
+      { id: 'EX-101', name: 'מבוא למדעי המחשב', rooms: ['301', '302'], status: 'active' },
+      { id: 'EX-202', name: 'אלגוריתמים', rooms: ['304', '305'], status: 'active' },
+    ];
+  },
+
+  async assignSupervisor(roomId, supervisorId) {
+    console.log(`Assigning supervisor ${supervisorId} to room ${roomId}`);
+    return { success: true };
+  },
+
+  async getFloorSummary(floorId) {
+    console.log(`Getting summary for floor: ${floorId}`);
+    return {
+      totalStudents: 120,
+      active: 85,
+      submitted: 30,
+      inRestroom: 5,
+      urgentIncidents: 2,
+    };
+  },
 };
+

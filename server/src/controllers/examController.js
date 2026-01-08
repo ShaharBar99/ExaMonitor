@@ -9,7 +9,7 @@ export const ExamController = {
     try {
       const status = req.query.status || null; // e.g. "active"
       const exams = await ExamService.listExams(status);
-      res.json({ exams });
+      res.json(exams);
     } catch (err) {
       next(err);
     }
@@ -94,6 +94,24 @@ export const ExamController = {
       });
 
       res.json({ exam });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async broadcastAnnouncement(req, res, next) {
+    try {
+      const { message } = req.body;
+      const { id: examId } = req.params;
+      const userId = req.user?.id ?? null;
+
+      if (!message) {
+        return res.status(400).json({ error: 'message is required' });
+      }
+
+      await ExamService.broadcastAnnouncement(examId, message, userId);
+
+      res.status(200).json({ success: true, message: 'Announcement sent' });
     } catch (err) {
       next(err);
     }

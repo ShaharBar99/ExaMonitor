@@ -6,6 +6,9 @@ import adminRoutes from './routes/adminRoutes.js';
 import examRoutes from './routes/examRoutes.js';
 import classroomRoutes from './routes/classroomRoutes.js';
 import attendanceRoutes from './routes/attendanceRoutes.js';
+import botRoutes from './routes/botRoutes.js';
+import incidentRoutes from './routes/incidentRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 
 const app = express();
@@ -29,6 +32,9 @@ app.use('/admin', adminRoutes);
 app.use('/exams', examRoutes);
 app.use('/classrooms', classroomRoutes);
 app.use('/attendance', attendanceRoutes);
+app.use('/bot', botRoutes);
+app.use('/incidents', incidentRoutes);
+app.use('/notifications', notificationRoutes);
 
 
 /** Error handling middleware */

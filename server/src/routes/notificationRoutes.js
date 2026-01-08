@@ -1,12 +1,11 @@
 import { Router } from 'express';
-import { BotController } from '../controllers/botController.js';
+import { NotificationController } from '../controllers/notificationController.js';
 import { requireAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
 router.use(requireAuth);
 
-router.post('/chat', BotController.chat);
-router.get('/status', BotController.status);
+router.get('/', NotificationController.get);
 
 export default router;

@@ -150,4 +150,19 @@ export const ExamService = {
 
     return data;
   },
+
+  async broadcastAnnouncement(examId, message, userId) {
+    console.log(`Broadcasting announcement for exam ${examId}: ${message}`);
+    
+    await AuditTrailService.log({
+      userId: userId,
+      action: 'exam.broadcast',
+      metadata: {
+        examId: examId,
+        message: message,
+      },
+    });
+
+    return { success: true };
+  },
 };
