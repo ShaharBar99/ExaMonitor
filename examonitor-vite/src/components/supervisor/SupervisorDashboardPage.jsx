@@ -9,12 +9,14 @@ import SidebarPanel from '../exam/SidebarPanel';
 import StudentGrid from './StudentGrid';
 import ExamTimer from '../exam/ExamTimer';
 import { useExam } from '../state/ExamContext';
+import { useAuth } from '../state/AuthContext';
 import StatCard from '../exam/StatCard';
 import {HeaderButton} from '../shared/Button';
 import ExamChecklist from '../exam/ExamChecklist';
 
 export default function SupervisorDashboard() {
   const { examId } = useParams();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -31,11 +33,12 @@ export default function SupervisorDashboard() {
   const [removeSearchQuery, setRemoveSearchQuery] = useState('');
 
   useEffect(() => {
-    attendanceHandlers.initConsole(examId, setStudents, setLoading, setExamData);
-  }, [examId, setExamData]);
+    attendanceHandlers.initSupervisorConsole(examId, user.id, setStudents, setLoading, setExamData);
+  }, [examId, user.id, setExamData]);
 
   useEffect(() => {
     if (location.state?.classrooms) {
+      console.log("Using classrooms from navigation state:", location.state.classrooms); 
       setClassrooms(location.state.classrooms);
     }
   }, [location.state]);

@@ -2,27 +2,26 @@ import { attendanceApi } from '../api/attendanceApi';
 
 export const attendanceHandlers = {
   /**
-   * אתחול מסך ניהול הכיתה
+   * אתחול מסך ניהול הכיתה עבור משגיח
    */
-  initConsole: async (roomId, setStudents, setLoading, setExamContext) => {
+  initSupervisorConsole: async (examId, supervisorId, setStudents, setLoading, setExamContext) => {
     try {
       if (setLoading) setLoading(true);
       
       // משיכת נתוני הסטודנטים מה-API
-      const students = await attendanceApi.getStudentsByRoom(roomId);
+      const students = await attendanceApi.getStudentsForSupervisor(examId, supervisorId);
       setStudents(students);
       
-      // עדכון הקונטקסט בפרטי המבחן והחדר
+      // עדכון הקונטקסט בפרטי המבחן
       if (setExamContext) {
         setExamContext(prev => ({
           ...prev,
-          roomId: roomId,
-          roomName: `חדר ${roomId}`,
+          examId: examId,
           lastSync: new Date().toLocaleTimeString()
         }));
       }
     } catch (error) {
-      console.error("Initialization failed:", error);
+      console.error("Supervisor initialization failed:", error);
       alert("נכשל בטעינת נתוני הכיתה");
     } finally {
       if (setLoading) setLoading(false);

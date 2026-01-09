@@ -1,183 +1,173 @@
 import { supabaseAdmin } from '../lib/supabaseClient.js';
 
-const ALLOWED_STATUS = new Set(['present', 'absent', 'exited_temporarily']);
+const ALLOWED_STATUS = new Set(['present', 'absent', 'exited_temporarily', 'submitted']);
 
 export const AttendanceService = {
-  // GET /attendance?classroom_id=...
-  // GET /attendance?exam_id=...   (via join classrooms -> exam_id)
-  async list({ classroomId, examId }) {
-    let query = supabaseAdmin
+  
+  async getStudentsForSupervisor(examId, supervisorId) {
+    // 1. מציאת החדר הספציפי שהמשגיח הזה משובץ אליו עבור המבחן הזה
+    const { data: classrooms, error: roomErr } = await supabaseAdmin
+      .from('classrooms')
+      .select('id')
+      .eq('exam_id', examId)
+      .eq('supervisor_id', supervisorId);
+
+    if (roomErr || !classrooms || classrooms.length === 0) {
+      console.error("No classroom found for this supervisor in this exam");
+      return [];
+    }
+
+    // Take the first classroom (assuming supervisor manages one classroom per exam)
+    const classroom = classrooms[0];
+
+    // 2. שליפת הסטודנטים רק עבור החדר הזה
+    const { data: students, error: attErr } = await supabaseAdmin
       .from('attendance')
       .select(`
-        id,
-        student_id,
-        classroom_id,
-        status,
-        check_in_time,
-        check_out_time,
-        classrooms:classroom_id ( exam_id, room_number )
+        id, status,
+        profiles:student_id (full_name, student_id)
       `)
-      .order('check_in_time', { ascending: true });
+      .eq('classroom_id', classroom.id);
 
-    if (classroomId) {
-      query = query.eq('classroom_id', classroomId);
-    }
+    if (attErr) throw attErr;
 
-    if (examId) {
-      // filter via the joined classrooms
-      query = query.eq('classrooms.exam_id', examId);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      const err = new Error(error.message);
-      err.status = 400;
-      throw err;
-    }
-
-    return data || [];
+    return students.map(s => ({
+      attendanceId: s.id,
+      id: s.profiles?.student_id,
+      name: s.profiles?.full_name,
+      status: s.status,
+      classroomId: classroom.id // עכשיו אנחנו יודעים בוודאות באיזה חדר אנחנו
+    }));
   },
 
-  // POST /attendance/mark
-  // Upsert attendance row and set status + times
-  async mark({ student_id, classroom_id, status }) {
+  /**
+   * עדכון סטטוס סטודנט בטבלת attendance
+   */
+  async updateStudentStatus(attendanceId, status) {
     if (!ALLOWED_STATUS.has(status)) {
-      const err = new Error('Invalid status');
-      err.status = 400;
-      throw err;
+      throw new Error('Invalid status value');
     }
 
-    const now = new Date().toISOString();
-
-    // When present: set check_in_time if missing
-    // When absent: do not force check_in_time
-    // When exited_temporarily: we mark status, but break table will store the details
-    const update = { status };
-    if (status === 'present') update.check_in_time = now;
+    const updateData = { status };
+    if (status === 'submitted') {
+      updateData.check_out_time = new Date().toISOString();
+    }
 
     const { data, error } = await supabaseAdmin
       .from('attendance')
-      .upsert(
-        [{ student_id, classroom_id, ...update }],
-        { onConflict: 'student_id,classroom_id' }
-      )
-      .select('id, student_id, classroom_id, status, check_in_time, check_out_time')
+      .update(updateData)
+      .eq('id', attendanceId)
+      .select()
       .single();
 
-    if (error) {
-      const err = new Error(error.message);
-      err.status = 400;
-      throw err;
-    }
-
-    return data;
+    if (error) throw error;
+    return { success: true, data };
   },
 
-  // POST /attendance/breaks/start
-  async startBreak({ attendance_id, reason = 'toilet' }) {
+  /**
+   * יציאה לשירותים - יצירת שורה ב-student_breaks ועדכון סטטוס ב-attendance
+   */
+  async startBreak({ attendanceId, reason = 'toilet' }) {
     const now = new Date().toISOString();
 
-    // Insert break
+    // 1. יצירת רשומת הפסקה
     const { data: brk, error: breakErr } = await supabaseAdmin
       .from('student_breaks')
-      .insert([{ attendance_id, exit_time: now, reason }])
-      .select('id, attendance_id, exit_time, return_time, reason')
+      .insert([{ 
+        attendance_id: attendanceId, 
+        exit_time: now, 
+        reason 
+      }])
+      .select()
       .single();
 
-    if (breakErr) {
-      const err = new Error(breakErr.message);
-      err.status = 400;
-      throw err;
-    }
+    if (breakErr) throw breakErr;
 
-    // Update attendance status to exited_temporarily
+    // 2. עדכון סטטוס נוכחות ל"יצא זמנית"
     const { data: att, error: attErr } = await supabaseAdmin
       .from('attendance')
       .update({ status: 'exited_temporarily' })
-      .eq('id', attendance_id)
-      .select('id, student_id, classroom_id, status, check_in_time, check_out_time')
+      .eq('id', attendanceId)
+      .select()
       .single();
 
-    if (attErr) {
-      const err = new Error(attErr.message);
-      err.status = 400;
-      throw err;
-    }
+    if (attErr) throw attErr;
 
-    return { break: brk, attendance: att };
+    return { success: true, break: brk, attendance: att };
   },
 
-  // POST /attendance/breaks/end
-  async endBreak({ break_id }) {
+  /**
+   * חזרה מהפסקה - סגירת רשומת ה-break והחזרת הסטטוס ל-present
+   */
+  async endBreak({ attendanceId }) {
     const now = new Date().toISOString();
 
-    // Set return_time
+    // 1. עדכון זמן חזרה ברשומה הפתוחה האחרונה
     const { data: brk, error: breakErr } = await supabaseAdmin
       .from('student_breaks')
       .update({ return_time: now })
-      .eq('id', break_id)
-      .select('id, attendance_id, exit_time, return_time, reason')
+      .eq('attendance_id', attendanceId)
+      .is('return_time', null)
+      .select()
       .single();
 
-    if (breakErr) {
-      const err = new Error(breakErr.message);
-      err.status = 400;
-      throw err;
-    }
+    if (breakErr) throw breakErr;
 
-    // Mark attendance back to present
+    // 2. החזרת סטטוס הנוכחות ל"נוכח"
     const { data: att, error: attErr } = await supabaseAdmin
       .from('attendance')
       .update({ status: 'present' })
-      .eq('id', brk.attendance_id)
-      .select('id, student_id, classroom_id, status, check_in_time, check_out_time')
+      .eq('id', attendanceId)
+      .select()
       .single();
 
-    if (attErr) {
-      const err = new Error(attErr.message);
-      err.status = 400;
-      throw err;
-    }
+    if (attErr) throw attErr;
 
-    return { break: brk, attendance: att };
+    return { success: true, break: brk, attendance: att };
   },
 
-  async getStudentsByRoom(roomId) {
-    console.log(`Getting students for room: ${roomId}`);
-    return [
-      { id: '123456789', name: 'ישראל ישראלי', status: 'במבחן', desk: 1 },
-      { id: '987654321', name: 'שרה כהן', status: 'סיים', desk: 2 },
-    ];
-  },
-
-  async updateStudentStatus(studentId, status) {
-    console.log(`Updating status for student ${studentId} to ${status}`);
-    return { success: true };
-  },
-
-  async getExamsOnFloor(floorId) {
-    console.log(`Getting exams for floor: ${floorId}`);
-    return [
-      { id: 'EX-101', name: 'מבוא למדעי המחשב', rooms: ['301', '302'], status: 'active' },
-      { id: 'EX-202', name: 'אלגוריתמים', rooms: ['304', '305'], status: 'active' },
-    ];
-  },
-
-  async assignSupervisor(roomId, supervisorId) {
-    console.log(`Assigning supervisor ${supervisorId} to room ${roomId}`);
-    return { success: true };
-  },
-
+  /**
+   * סיכום סטטיסטי לקומה (עבור מנהל קומה)
+   */
   async getFloorSummary(floorId) {
-    console.log(`Getting summary for floor: ${floorId}`);
+    // שלב א': משיכת כל החדרים בקומה
+    const { data: rooms, error: roomErr } = await supabaseAdmin
+      .from('classrooms')
+      .select('id')
+      .eq('floor_supervisor_id', floorId); // או סינון לפי קומה אם יש שדה floor
+
+    if (roomErr) throw roomErr;
+    const roomIds = rooms.map(r => r.id);
+
+    // שלב ב': משיכת נתוני נוכחות לחדרים אלו
+    const { data: attendance, error: attErr } = await supabaseAdmin
+      .from('attendance')
+      .select('status')
+      .in('classroom_id', roomIds);
+
+    if (attErr) throw attErr;
+
     return {
-      totalStudents: 120,
-      active: 85,
-      submitted: 30,
-      inRestroom: 5,
-      urgentIncidents: 2,
+      totalStudents: attendance.length,
+      active: attendance.filter(s => s.status === 'present').length,
+      submitted: attendance.filter(s => s.status === 'submitted').length,
+      inRestroom: attendance.filter(s => s.status === 'exited_temporarily').length,
+      urgentIncidents: 0 // ניתן להוסיף שאילתה לטבלת incidents כאן
     };
   },
-};
 
+  /**
+   * שיבוץ משגיח לחדר
+   */
+  async assignSupervisor(classroomId, supervisorId) {
+    const { data, error } = await supabaseAdmin
+      .from('classrooms')
+      .update({ supervisor_id: supervisorId })
+      .eq('id', classroomId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { success: true, data };
+  }
+};

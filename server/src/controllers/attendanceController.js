@@ -68,8 +68,9 @@ export const AttendanceController = {
 
   async getStudentsByRoom(req, res, next) {
     try {
-      const { roomId } = req.params;
-      const students = await AttendanceService.getStudentsByRoom(roomId);
+      const { examId, supervisorId } = req.params;
+      const students = await AttendanceService.getStudentsByRoom(examId, supervisorId);
+      console.log("Fetched students for room:", students);
       res.json(students);
     } catch (err) {
       next(err);
@@ -113,6 +114,16 @@ export const AttendanceController = {
       const { floorId } = req.query;
       const summary = await AttendanceService.getFloorSummary(floorId);
       res.json(summary);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getStudentsForSupervisor(req, res, next) {
+    try {
+      const { supervisorId, examId } = req.params;
+      const students = await AttendanceService.getStudentsForSupervisor(examId, supervisorId);
+      res.json(students);
     } catch (err) {
       next(err);
     }

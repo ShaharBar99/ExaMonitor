@@ -44,4 +44,8 @@ export const attendanceApi = {
   getFloorSummary: async (floorId) => {
     return apiFetch(`/attendance/rooms/summary?floorId=${floorId}`);
   },
+
+  getStudentsForSupervisor: async (examId, supervisorId) => {
+    return apiFetch(`/attendance/supervisor/${supervisorId}/exam/${examId}/students`);
+  },
 };

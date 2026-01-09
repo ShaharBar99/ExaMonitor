@@ -17,5 +17,6 @@ router.patch('/students/:studentId/status', AttendanceController.updateStudentSt
 router.get('/exams/floor/:floorId', AttendanceController.getExamsOnFloor);
 router.patch('/rooms/:roomId/supervisor', AttendanceController.assignSupervisor);
 router.get('/rooms/summary', AttendanceController.getFloorSummary);
+router.get('/supervisor/:supervisorId/exam/:examId/students', AttendanceController.getStudentsForSupervisor);
 
 export default router;
