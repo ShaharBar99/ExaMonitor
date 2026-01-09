@@ -49,7 +49,8 @@ export const ExamService = {
         status,
         courses:course_id (
           id,
-          name
+          course_name,
+          course_code
         )
       `)
       .eq('id', examId)
@@ -203,4 +204,23 @@ export const ExamService = {
 
     return { success: true };
   },
+  async getExamTiming(examId) {
+    const { data, error } = await supabaseAdmin
+      .from('exams')
+      .select('original_start_time, original_duration, extra_time') // הוספנו גם זמן הארכה
+      .eq('id', examId)
+      .single();
+
+    if (error) {
+        console.error("Error fetching timing:", error);
+        throw error;
+    }
+
+    // חשוב: ה-Frontend מצפה לשמות שדות ב-camelCase
+    return {
+        startTime: data.original_start_time,
+        originalDuration: data.original_duration,
+        extraTime: data.extra_time || 0
+    };
+  }
 };
