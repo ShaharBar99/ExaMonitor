@@ -39,6 +39,7 @@ export function validateAuthPayload(payload, requireName) { // Validate inputs w
   const errors = {}; // Create errors object
   const username = String(payload?.username || "").trim(); // Normalize username
   const password = String(payload?.password || "").trim(); // Normalize password
+  const email = String(payload?.email || "").trim(); // Normalize email
   const role = normalizeRole(payload?.role); // Normalize role
   const name = String(payload?.name || "").trim(); // Normalize name
 
@@ -49,7 +50,7 @@ export function validateAuthPayload(payload, requireName) { // Validate inputs w
   return { // Return normalized result
     ok: Object.keys(errors).length === 0, // True if no errors
     errors, // Field errors
-    value: { username, password, role, name }, // Normalized payload
+    value: { username, email, password, role, name }, // Normalized payload
   }; // End return
 } // End validateAuthPayload
 
@@ -74,9 +75,9 @@ export async function loginWithApi({ username, password, role, rememberMe }, dep
   persistAuthToken(result?.token, Boolean(rememberMe)); // Persist token if present
   return { ok: true, data: result }; // Return success
 } // End loginWithApi
-export async function registerWithApi({ name, username, password, role }, deps) { // Register handler
+export async function registerWithApi({ name, username, email, password, role }, deps) { // Register handler
   const { ok, errors, value } = validateAuthPayload( // Use the shared validator
-    { name, username, password, role }, // Payload
+    { name, username, email, password, role }, // Payload
     true // requireName = true for register
   ); // End validate
   if (!ok) return { ok: false, errors }; // Return validation errors

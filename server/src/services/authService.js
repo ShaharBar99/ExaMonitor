@@ -89,7 +89,7 @@ export const AuthService = {
     return { ok: true };
   },
 
-  async register(name, username, password, role) {
+  async register(name, username, email, password, role) {
     // "username" in the contract is your login identifier.
     // In your project you use email auth, so treat username as email.
     
@@ -106,7 +106,7 @@ export const AuthService = {
     }
 
     const { data, error } = await supabase.auth.signUp({
-      email: username,
+      email: email,
       password: password,
       options: {
         data: {
@@ -125,7 +125,7 @@ export const AuthService = {
 
     const user = data.user;
 
-    const { error: profileError } = await supabaseAdmin.from('profiles').insert([
+    const { error: profileError } = await supabaseAdmin.from('profiles').upsert([
         { id: user.id, email: user.email, full_name: name, role, username },
     ]);
 
@@ -142,6 +142,7 @@ export const AuthService = {
         id: user.id,
         email: user.email,
         full_name: name,
+
         role: role,
       },
     };
