@@ -135,7 +135,6 @@ export const ExamService = {
         )
       `)
       .single();
-
     if (error) {
       const err = new Error(error.message);
       err.status = 400;

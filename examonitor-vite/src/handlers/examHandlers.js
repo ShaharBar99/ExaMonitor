@@ -93,20 +93,41 @@ export const examHandlers = {
     // ניהול שינוי סטטוס המבחן (עצירה/חידוש/סיום)
     handleChangeStatus: async (examId, newStatus, setExamData) => {
         try {
-            const confirmMsg = newStatus === 'ended' ? "האם אתה בטוח שברצונך לסיים את המבחן? לא ניתן לבטל פעולה זו." : `האם לשנות את סטטוס המבחן ל-${newStatus}?`;
-            if (!window.confirm(confirmMsg)) return;
+            // 1. הודעת אישור מותאמת אישית יותר
+            const statusNames = {
+                'active': 'פעיל',
+                'paused': 'מוקפא',
+                'finished': 'סיום'
+            };
+            
+            const confirmMsg = newStatus === 'finished' 
+                ? "האם אתה בטוח שברצונך לסיים את המבחן? לא ניתן לבטל פעולה זו." 
+                : `האם לשנות את סטטוס המבחן ל-${statusNames[newStatus] || newStatus}?`;
 
+            if (!window.confirm(confirmMsg)) return false;
             const response = await examsApi.updateExamStatus(examId, newStatus);
-            if (response.success) {
-                // עדכון ה-State המקומי אם פונקציית העדכון סופקה
-                if (setExamData) {
-                    setExamData(prev => ({ ...prev, status: newStatus }));
+            console.log("Status update response:", response);
+            if (response) {
+                // עדכון ה-State המקומי רק אם הפונקציה קיימת
+                if (typeof setExamData === 'function') {
+                    setExamData(prev => ({ 
+                        ...prev, 
+                        status: newStatus,
+                        startTime: (newStatus === 'active' && !prev.startTime) ? new Date().toISOString() : prev.startTime
+                    }));
                 }
-                alert(`סטטוס המבחן עודכן ל-${newStatus}`);
+                
+                console.log(`Status updated to: ${newStatus}`);
+                return true;
+            } else {
+                throw new Error(response?.message || "השרת החזיר תשובה שלילית");
             }
+
         } catch (error) {
             console.error("Status update failed:", error);
-            alert("עדכון הסטטוס נכשל.");
+            alert("עדכון הסטטוס נכשל: " + (error.message || "שגיאת תקשורת"));
+            return false;
         }
+
     }
 };
