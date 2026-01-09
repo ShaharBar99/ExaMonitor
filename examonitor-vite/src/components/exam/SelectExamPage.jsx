@@ -1,28 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { examsApi } from '../../api/examsApi';
+import { examHandlers } from '../../handlers/examHandlers';
+import { useAuth } from '../state/AuthContext';
 
 const SelectExamPage = ({ navigate }) => {
+  const { user } = useAuth();
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchExams = async () => {
+    const loadExams = async () => {
       try {
         setLoading(true);
-        const fetchedExams = await examsApi.getExams();
+        setError(null);
+        const fetchedExams = await examHandlers.fetchExamsWithClassrooms(filterStatus, user?.id);
         setExams(fetchedExams);
       } catch (error) {
         console.error("Failed to fetch exams", error);
-        // here you might want to set an error state to show in the UI
+        setError("Failed to load exams. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchExams();
-  }, []);
+    loadExams();
+  }, [filterStatus, user?.id]);
 
   // לוגיקת סינון המבחנים
   const filteredExams = exams.filter(exam => {
@@ -36,6 +40,10 @@ const SelectExamPage = ({ navigate }) => {
 
   if (loading) {
     return <div className="min-h-screen bg-[#0f172a] p-12 text-center text-white">טוען מבחנים...</div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen bg-[#0f172a] p-12 text-center text-red-400 font-bold">{error}</div>;
   }
 
   return (
@@ -119,7 +127,11 @@ const SelectExamPage = ({ navigate }) => {
                   <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-lg">🏠</div>
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase">חדרים</p>
-                    <p className="text-sm font-black text-slate-700">מוקצים בנפרד</p>
+                    <p className="text-sm font-black text-slate-700">
+                      {exam.classrooms && exam.classrooms.length > 0 
+                        ? exam.classrooms.map(c => c.room_number || c.id).join(', ')
+                        : 'אין חדרים שהוקצו'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -135,7 +147,7 @@ const SelectExamPage = ({ navigate }) => {
               {/* Action Button */}
               <div className="text-left">
                 <button 
-                  onClick={() => navigate(`/exam/active/${exam.id}`)}
+                  onClick={() => navigate(`/exam/active/${exam.id}`, { state: { exam, classrooms: exam.classrooms } })}
                   className="bg-[#0f172a] hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center gap-3 mr-auto"
                 >
                   כניסה למערכת

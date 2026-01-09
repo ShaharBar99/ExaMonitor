@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { attendanceHandlers } from '../../handlers/attendanceHandlers';
 import { incidentHandlers } from '../../handlers/incidentHandlers';
 import { timerHandlers } from '../../handlers/timerHandlers';
@@ -15,6 +15,7 @@ import {HeaderButton} from '../shared/Button';
 export default function SupervisorDashboard() {
   const { examId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const { examData, setExamData } = useExam();
   const [students, setStudents] = useState([]);
@@ -22,6 +23,7 @@ export default function SupervisorDashboard() {
   const [activeTab, setActiveTab] = useState('bot');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [remainingTime, setRemainingTime] = useState(null);
+  const [classrooms, setClassrooms] = useState([]);
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isRemoveBarOpen, setIsRemoveBarOpen] = useState(false);
@@ -34,6 +36,13 @@ export default function SupervisorDashboard() {
   }, [examId, setExamData]);
 
   useEffect(() => {
+    // Extract classrooms from navigation state
+    if (location.state?.classrooms) {
+      setClassrooms(location.state.classrooms);
+    }
+  }, [location.state]);
+
+  useEffect(() =>{
     const syncTime = async () => {
       const seconds = await timerHandlers.getRemainingSeconds(examId);
       setRemainingTime(seconds);
