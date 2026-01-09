@@ -4,7 +4,9 @@ const useMock = String(import.meta.env.VITE_USE_AUTH_MOCK || "").toLowerCase() =
 
 export const classroomApi = {
   // GET /classrooms - משיכת כל הכיתות שהמשתמש מורשה לראות
-  getClassrooms: async () => {
+  // examId: filter classrooms for a specific exam
+  // lecturerId: filter classrooms for exams whose course.lecturer_id == lecturerId
+  getClassrooms: async (examId = null, lecturerId = null) => {
     if (useMock) {
       return [
         { id: "301", examName: "מבוא למדעי המחשב", status: "active", supervisor: "ישראל ישראלי", floor: 3 },
@@ -12,7 +14,11 @@ export const classroomApi = {
         { id: "404", examName: "מבוא למדעי המחשב", status: "active", supervisor: "שרה כהן", floor: 4 },
       ];
     }
-    return apiFetch('/classrooms');
+    const params = new URLSearchParams();
+    if (examId) params.set('exam_id', examId);
+    if (lecturerId) params.set('lecturer_id', lecturerId);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return apiFetch(`/classrooms${qs}`);
   },
 
   // PATCH /classrooms/:id/assign - הקצאת משגיח

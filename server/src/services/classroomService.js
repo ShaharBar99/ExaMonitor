@@ -1,8 +1,90 @@
 import { supabaseAdmin } from '../lib/supabaseClient.js';
 
 export const ClassroomService = {
-  // GET /classrooms?exam_id=...
-  async listClassrooms(examId) {
+  // GET /classrooms?exam_id=... or ?lecturer_id=...
+  async listClassrooms(examId, lecturerId = null) {
+    // If lecturerId provided, compute exam ids taught by that lecturer and filter classrooms
+    if (lecturerId) {
+      // 1) find courses for lecturer
+      const { data: courses, error: coursesErr } = await supabaseAdmin
+        .from('courses')
+        .select('id')
+        .eq('lecturer_id', lecturerId);
+
+      if (coursesErr) {
+        const err = new Error(coursesErr.message);
+        err.status = 400;
+        throw err;
+      }
+
+      const courseIds = (courses || []).map(c => c.id);
+      if (courseIds.length === 0) return [];
+
+      // 2) find exams for those courses
+      const { data: exams, error: examsErr } = await supabaseAdmin
+        .from('exams')
+        .select('id')
+        .in('course_id', courseIds);
+
+      if (examsErr) {
+        const err = new Error(examsErr.message);
+        err.status = 400;
+        throw err;
+      }
+
+      const examIds = (exams || []).map(e => e.id);
+      if (examIds.length === 0) return [];
+
+      // 3) fetch classrooms for those exam ids
+      const { data, error } = await supabaseAdmin
+        .from('classrooms')
+        .select(`
+          id,
+          exam_id,
+          room_number,
+          supervisor_id,
+          floor_supervisor_id,
+          exams:exam_id (
+            id,
+            status,
+            courses:course_id (
+              id,
+              course_name,
+              course_code
+            )
+          ),
+          supervisor:supervisor_id (
+            id,
+            full_name
+          ),
+          floor_supervisor:floor_supervisor_id (
+            id,
+            full_name
+          )
+        `)
+        .in('exam_id', examIds)
+        .order('room_number', { ascending: true });
+
+      if (error) {
+        const err = new Error(error.message);
+        err.status = 400;
+        throw err;
+      }
+
+      return (data || []).map(classroom => ({
+        id: classroom.id,
+        examName: classroom.exams?.courses?.course_name || classroom.exam_id,
+        status: classroom.exams?.status || 'unknown',
+        supervisor: classroom.supervisor?.full_name || null,
+        floor: Math.floor(classroom.room_number / 100),
+        room_number: classroom.room_number,
+        exam_id: classroom.exam_id,
+        supervisor_id: classroom.supervisor_id,
+        floor_supervisor_id: classroom.floor_supervisor_id
+      }));
+    }
+
+    // Default path: filter by examId if provided, otherwise return all
     let query = supabaseAdmin
       .from('classrooms')
       .select(`

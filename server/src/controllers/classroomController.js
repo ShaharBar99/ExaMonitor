@@ -4,7 +4,8 @@ export const ClassroomController = {
   async list(req, res, next) {
     try {
       const examId = req.query.exam_id || null;
-      const classrooms = await ClassroomService.listClassrooms(examId);
+      const lecturerId = req.query.lecturer_id || null;
+      const classrooms = await ClassroomService.listClassrooms(examId, lecturerId);
       res.json(classrooms);
     } catch (err) {
       next(err);

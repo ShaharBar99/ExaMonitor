@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import RoomGrid from './RoomGrid';
 import { classroomHandler } from '../../handlers/classroomHandlers'; // שימוש ב-Handler החדש
+import { classroomApi } from '../../api/classroomApi';
 import { useExam } from '../state/ExamContext';
 import {useAuth} from '../state/AuthContext';
 export default function ViewClassroomsPage() {
@@ -21,26 +22,43 @@ export default function ViewClassroomsPage() {
 
   // טעינת נתונים באמצעות ה-Handler של ה-Classrooms
   useEffect(() => {
-    // ה-Handler יבצע את הסינון הפנימי: 
-    // למרצה הוא יביא רק את כיתות המבחן שלו, למשגיח את כל מה שהוא מורשה
-    classroomHandler.loadDisplayData(
-      userRole, 
-      examData?.courseName, 
-      setClassrooms, 
-      setLoading
-    );
+    // For lecturers: prefer server-side filtered by exam id when available,
+    // otherwise fetch classrooms for the lecturer's id (their courses' exams).
+    if (isLecturer) {
+      if (examData?.id) {
+        classroomHandler.loadDisplayData(userRole, examData.id, examData?.courseName || null, setClassrooms, setLoading);
+      } else if (user?.id) {
+        setLoading(true);
+        classroomApi.getClassrooms(null, user.id)
+          .then(data => setClassrooms(data))
+          .catch(err => { console.error('Failed to load lecturer classrooms:', err); setClassrooms([]); })
+          .finally(() => setLoading(false));
+      } else {
+        setClassrooms([]);
+        setLoading(false);
+      }
+    } else {
+      // supervisors and floor supervisors
+      classroomHandler.loadDisplayData(
+        userRole,
+        examData?.id || null,
+        examData?.courseName || null,
+        setClassrooms,
+        setLoading
+      );
 
-    // טעינת רשימת משגיחים זמינים (רק למנהל קומה)
-    if (!isLecturer) {
-      classroomHandler.loadSupervisors()
-        .then(supervisors => {
-          setSupervisors(supervisors);
-        })
-        .catch(error => {
-          console.error('Failed to load supervisors:', error);
-        });
+      // טעינת רשימת משגיחים זמינים (רק למנהל קומה)
+      if (!isLecturer) {
+        classroomHandler.loadSupervisors()
+          .then(supervisors => {
+            setSupervisors(supervisors);
+          })
+          .catch(error => {
+            console.error('Failed to load supervisors:', error);
+          });
+      }
     }
-  }, [userRole, examData]);
+  }, [userRole, examData, user]);
 
   // סינון מקומי לצורך שורת החיפוש (UI בלבד)
   const filteredClassrooms = useMemo(() => {
@@ -60,7 +78,7 @@ export default function ViewClassroomsPage() {
 
     classroomHandler.handleAssign(classroomId, supervisorId, () => {
       // רענון הנתונים מהשרת לאחר עדכון מוצלח
-      classroomHandler.loadDisplayData(userRole, examData?.courseName, setClassrooms);
+      classroomHandler.loadDisplayData(userRole, examData?.id || null, examData?.courseName || null, setClassrooms);
     });
   };
 
