@@ -11,7 +11,6 @@ export const attendanceHandlers = {
       // משיכת נתוני הסטודנטים מה-API
       const students = await attendanceApi.getStudentsForSupervisor(examId, supervisorId);
       setStudents(students);
-      
       // עדכון הקונטקסט בפרטי המבחן
       if (setExamContext) {
         setExamContext(prev => ({
@@ -31,10 +30,10 @@ export const attendanceHandlers = {
   /**
    * שינוי סטטוס סטודנט (כולל עדכון UI מקומי)
    */
-  changeStudentStatus: async (studentId, newStatus, setStudents) => {
+  changeStudentStatus: async (attendanceId, newStatus, setStudents, studentId) => {
     try {
       // עדכון השרת בשימוש בשם הפונקציה המדויק: updateStudentStatus
-      await attendanceApi.updateStudentStatus(studentId, newStatus);
+      await attendanceApi.updateStudentStatus(attendanceId, newStatus);
 
       // עדכון ה-State של React בצורה אופטימית
       setStudents(prevStudents => 
@@ -81,6 +80,32 @@ export const attendanceHandlers = {
       setExams(data);
     } catch (error) {
       console.error("Failed to load exams on floor:", error);
+    }
+  },
+
+  /**
+   * התחלת הפסקה לסטודנט
+   */
+  startBreak: async (studentId, reason, setStudents) => {
+    try {
+      await attendanceApi.startBreak(studentId, reason);
+      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, status: 'exited_temporarily' } : s));
+    } catch (error) {
+      console.error("Failed to start break:", error);
+      alert("נכשל בהתחלת הפסקה");
+    }
+  },
+
+  /**
+   * סיום הפסקה לסטודנט
+   */
+  endBreak: async (studentId, setStudents) => {
+    try {
+      await attendanceApi.endBreak(studentId);
+      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, status: 'present' } : s));
+    } catch (error) {
+      console.error("Failed to end break:", error);
+      alert("נכשל בסיום הפסקה");
     }
   }
 };

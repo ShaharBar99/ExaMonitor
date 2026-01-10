@@ -5,7 +5,7 @@ const StudentGrid = ({ students, onStatusChange }) => {
   const [search, setSearch] = useState('');
 
   const filteredStudents = students.filter(s => 
-    s.name.includes(search) || s.id.includes(search)
+    s.name.includes(search) || s.studentId?.includes(search)
   );
 
   return (

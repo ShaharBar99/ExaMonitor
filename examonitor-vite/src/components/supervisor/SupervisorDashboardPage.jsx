@@ -39,7 +39,7 @@ export default function SupervisorDashboard() {
   useEffect(() => {
     if (location.state?.classrooms) {
       console.log("Using classrooms from navigation state:", location.state.classrooms); 
-      setClassrooms(location.state.classrooms);
+      setClassrooms(location.state.classrooms[0].room_number);
     }
   }, [location.state]);
 
@@ -56,13 +56,23 @@ export default function SupervisorDashboard() {
   const filteredForRemoval = useMemo(() => {
     if (!removeSearchQuery || removeSearchQuery.length < 2) return [];
     return students.filter(s => 
-      s.id.includes(removeSearchQuery) || 
+      s.id?.includes(removeSearchQuery) || 
       s.name.toLowerCase().includes(removeSearchQuery.toLowerCase())
     ).slice(0, 3);
   }, [students, removeSearchQuery]);
 
   const handleStatusChange = async (id, status) => {
-    await attendanceHandlers.changeStudentStatus(id, status, setStudents);
+    const student = students.find(s => s.id === id);
+    if (!student) return;
+
+    if (status === 'שירותים') {
+      await attendanceHandlers.startBreak(student.id, 'toilet', setStudents);
+    } else if (status === 'במבחן' && student.status === 'exited_temporarily') {
+      await attendanceHandlers.endBreak(student.id, setStudents);
+    } else {
+      const mappedStatus = status === 'במבחן' ? 'present' : status === 'סיים' ? 'finished' : status;
+      await attendanceHandlers.changeStudentStatus(student.id, mappedStatus, setStudents, student.studentId);
+    }
   };
 
   const handleStartExam = async () => {
@@ -95,9 +105,9 @@ export default function SupervisorDashboard() {
 
   const stats = {
     total: students.length,
-    submitted: students.filter(s => s.status === 'סיים').length,
-    inRoom: students.filter(s => s.status === 'במבחן').length,
-    out: students.filter(s => s.status === 'שירותים').length
+    submitted: students.filter(s => s.status === 'submitted').length,
+    inRoom: students.filter(s => s.status === 'present').length,
+    out: students.filter(s => s.status === 'exited_temporarily').length
   };
   const handleChecklistComplete = async () => {
     try {

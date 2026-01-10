@@ -32,8 +32,8 @@ export const AttendanceService = {
     if (attErr) throw attErr;
 
     return students.map(s => ({
-      attendanceId: s.id,
-      id: s.profiles?.student_id,
+      id: s.id, // attendanceId as id
+      studentId: s.profiles?.student_id,
       name: s.profiles?.full_name,
       status: s.status,
       classroomId: classroom.id // עכשיו אנחנו יודעים בוודאות באיזה חדר אנחנו
@@ -69,18 +69,17 @@ export const AttendanceService = {
    */
   async startBreak({ attendanceId, reason = 'toilet' }) {
     const now = new Date().toISOString();
-
+    console.log("Starting break for attendance ID:", attendanceId, "with reason:", reason);
     // 1. יצירת רשומת הפסקה
     const { data: brk, error: breakErr } = await supabaseAdmin
       .from('student_breaks')
       .insert([{ 
         attendance_id: attendanceId, 
         exit_time: now, 
-        reason 
+        reason: reason 
       }])
       .select()
       .single();
-
     if (breakErr) throw breakErr;
 
     // 2. עדכון סטטוס נוכחות ל"יצא זמנית"
@@ -90,7 +89,6 @@ export const AttendanceService = {
       .eq('id', attendanceId)
       .select()
       .single();
-
     if (attErr) throw attErr;
 
     return { success: true, break: brk, attendance: att };

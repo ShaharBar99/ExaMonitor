@@ -1,4 +1,5 @@
 import { AttendanceService } from '../services/attendanceService.js';
+import { supabaseAdmin } from '../lib/supabaseClient.js';
 
 export const AttendanceController = {
   async list(req, res, next) {
@@ -38,13 +39,17 @@ export const AttendanceController = {
 
   async startBreak(req, res, next) {
     try {
-      const { attendance_id, reason } = req.body;
+      const { student_id, reason = 'toilet' } = req.body;
 
-      if (!attendance_id) {
-        return res.status(400).json({ error: 'attendance_id is required' });
+      if (!student_id) {
+        return res.status(400).json({ error: 'student_id and classroom_id are required' });
+      }
+      const attendance = student_id;
+      if (!attendance) {
+        return res.status(404).json({ error: 'Attendance record not found' });
       }
 
-      const result = await AttendanceService.startBreak({ attendance_id, reason });
+      const result = await AttendanceService.startBreak({ attendanceId: attendance, reason });
       res.json(result);
     } catch (err) {
       next(err);
@@ -53,29 +58,23 @@ export const AttendanceController = {
 
   async endBreak(req, res, next) {
     try {
-      const { break_id } = req.body;
-
-      if (!break_id) {
-        return res.status(400).json({ error: 'break_id is required' });
+      const { student_id} = req.body;
+      
+      if (!student_id) {
+        return res.status(400).json({ error: 'student_id and exam_id are required' });
       }
-
-      const result = await AttendanceService.endBreak({ break_id });
+      const attendance = student_id;
+      if (!attendance) {
+        return res.status(404).json({ error: 'Attendance record not found' });
+      }
+      console.log("Ending break for attendance ID:", attendance);
+      const result = await AttendanceService.endBreak({ attendanceId: attendance });
       res.json(result);
     } catch (err) {
       next(err);
     }
   },
 
-  async getStudentsByRoom(req, res, next) {
-    try {
-      const { examId, supervisorId } = req.params;
-      const students = await AttendanceService.getStudentsByRoom(examId, supervisorId);
-      console.log("Fetched students for room:", students);
-      res.json(students);
-    } catch (err) {
-      next(err);
-    }
-  },
 
   async updateStudentStatus(req, res, next) {
     try {
@@ -123,6 +122,7 @@ export const AttendanceController = {
     try {
       const { supervisorId, examId } = req.params;
       const students = await AttendanceService.getStudentsForSupervisor(examId, supervisorId);
+      console.log("Fetched students for supervisor:", students);
       res.json(students);
     } catch (err) {
       next(err);

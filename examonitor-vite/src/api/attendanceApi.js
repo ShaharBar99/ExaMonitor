@@ -19,9 +19,6 @@ export const attendanceApi = {
     });
   },
 
-  getStudentsByRoom: async (roomId) => {
-    return apiFetch(`/attendance/rooms/${roomId}/students`);
-  },
 
   updateStudentStatus: async (studentId, status) => {
     return apiFetch(`/attendance/students/${studentId}/status`, {
@@ -47,5 +44,19 @@ export const attendanceApi = {
 
   getStudentsForSupervisor: async (examId, supervisorId) => {
     return apiFetch(`/attendance/supervisor/${supervisorId}/exam/${examId}/students`);
+  },
+
+  startBreak: async (studentId, reason) => {
+    return apiFetch('/attendance/breaks/start', {
+      method: 'POST',
+      body: { student_id: studentId, reason },
+    });
+  },
+
+  endBreak: async (studentId) => {
+    return apiFetch('/attendance/breaks/end', {
+      method: 'POST',
+      body: { student_id: studentId},
+    });
   },
 };
