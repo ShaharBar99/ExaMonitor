@@ -7,6 +7,7 @@ import SupervisorDashboardPage from "../components/supervisor/SupervisorDashboar
 import FloorSupervisorDashboardPage from "../components/floorsupervisor/FloorSupervisorDashboardPage";
 import ViewClassroomsPage from "../components/classroom/ViewClassroomsPage";
 import LecturerDashboardPage from "../components/lecturer/LecturerDashboardPage";
+import StudentPage from "../components/student/StudentPage";
 import IncidentReportPage from "../components/supervisor/IncidentReportPage";
 
 import LoginPage from "../components/auth/authPages/LoginPage"; // Login route page
@@ -37,6 +38,7 @@ export default function AppRoutes() { // Export a component that holds the route
       <Route path="/exam/active/:examId" element={<SupervisorDashboardPage />} />
       <Route path="/supervisor/floorsupervisorDashboardPage" element={<FloorSupervisorDashboardPage />} />
       <Route path="/Lecturer/lecturerDashboardPage" element={<LecturerDashboardPage />} />
+      <Route path="/student/page" element={<StudentPage />} />
       <Route path="/exam/view-classrooms" element={<ViewClassroomsPage />} />
       <Route path="/exam/incident-report/:examId" element={<IncidentReportPage />} />
     </Routes> // End of routes
