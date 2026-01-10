@@ -10,7 +10,7 @@ export const AttendanceService = {
       .from('classrooms')
       .select('id')
       .eq('exam_id', examId)
-      .eq('supervisor_id', supervisorId);
+      .eq('supervisor_id', supervisorId)
 
     if (roomErr || !classrooms || classrooms.length === 0) {
       console.error("No classroom found for this supervisor in this exam");
@@ -27,7 +27,8 @@ export const AttendanceService = {
         id, status,
         profiles:student_id (full_name, student_id)
       `)
-      .eq('classroom_id', classroom.id);
+      .eq('classroom_id', classroom.id)
+      .neq('status', 'absent');
 
     if (attErr) throw attErr;
 
@@ -225,9 +226,56 @@ async addStudentToExam(classroomId, studentProfileId) {
       return { success: true };
   },
 
+  // async searchEligibleStudents(examId, searchTerm) {
+  //         // 1. קבלת ה-course_id של המבחן הנוכחי
+  //         console.log("Searching eligible students for exam ID:", examId, "with search term:", searchTerm);
+  //   const { data: exam } = await supabaseAdmin
+  //       .from('exams')
+  //       .select('course_id')
+  //       .eq('id', examId)
+  //       .single();
+
+  //   if (!exam) throw new Error("Exam not found");
+
+  //   // 2. מציאת כל הסטודנטים שכבר נמצאים בחדרים של המבחן הזה
+  //   // ב-Supabase Join מתבצע על ידי ציון שם הטבלה המקושרת ב-select
+  //   const { data: existingAttendance, error: attError } = await supabaseAdmin
+  //       .from('attendance')
+  //       .select('student_id, classrooms!inner(exam_id)')
+  //       .eq('classrooms.exam_id', examId)
+  //       .neq('status', 'absent');
+
+  //   if (attError) throw attError;
+  //   const excludedProfileIds = existingAttendance?.map(a => a.student_id) || [];
+
+  //   // 3. חיפוש סטודנטים שרשומים לקורס הזה ב-course_registrations
+  //   let query = supabaseAdmin
+  //       .from('course_registrations')
+  //       .select(`
+  //           profiles!inner (
+  //               id,
+  //               student_id,
+  //               full_name
+  //           )
+  //       `)
+  //       .eq('course_id', exam.course_id);
+
+  //   // הוספת חיפוש לפי שם או ת"ז אם קיים
+  //   if (searchTerm) {
+  //       query = query.or(`full_name.ilike.%${searchTerm}%,student_id.ilike.%${searchTerm}%`, { foreignTable: 'profiles' });
+  //   }
+
+  //   const { data: registrations, error: regError } = await query.limit(15);
+  //   if (regError) throw regError;
+
+  //   // 4. סינון אלו שכבר רשומים למבחן (כבר בחדר) ושיטוח המבנה
+  //   return registrations
+  //       .map(reg => reg.profiles)
+  //       .filter(profile => !excludedProfileIds.includes(profile.id));
+  // }
+
   async searchEligibleStudents(examId, searchTerm) {
-          // 1. קבלת ה-course_id של המבחן הנוכחי
-          console.log("Searching eligible students for exam ID:", examId, "with search term:", searchTerm);
+    // 1. קבלת ה-course_id מהמבחן
     const { data: exam } = await supabaseAdmin
         .from('exams')
         .select('course_id')
@@ -236,17 +284,18 @@ async addStudentToExam(classroomId, studentProfileId) {
 
     if (!exam) throw new Error("Exam not found");
 
-    // 2. מציאת כל הסטודנטים שכבר נמצאים בחדרים של המבחן הזה
-    // ב-Supabase Join מתבצע על ידי ציון שם הטבלה המקושרת ב-select
-    const { data: existingAttendance, error: attError } = await supabaseAdmin
+    // 2. מציאת סטודנטים ש"תפוסים" כרגע (סטטוס לא absent)
+    // אלו הסטודנטים שלא נרצה להציג בחיפוש כי הם כבר בתוך המבחן
+    const { data: activeAttendance } = await supabaseAdmin
         .from('attendance')
         .select('student_id, classrooms!inner(exam_id)')
-        .eq('classrooms.exam_id', examId);
+        .eq('classrooms.exam_id', examId)
+        .neq('status', 'absent'); 
 
-    if (attError) throw attError;
-    const excludedProfileIds = existingAttendance?.map(a => a.student_id) || [];
+    const activeProfileIds = activeAttendance?.map(a => a.student_id) || [];
 
-    // 3. חיפוש סטודנטים שרשומים לקורס הזה ב-course_registrations
+    // 3. מקור האמת: חיפוש ב-course_registrations
+    // אנחנו מביאים את כל מי שרשום לקורס הזה
     let query = supabaseAdmin
         .from('course_registrations')
         .select(`
@@ -258,7 +307,7 @@ async addStudentToExam(classroomId, studentProfileId) {
         `)
         .eq('course_id', exam.course_id);
 
-    // הוספת חיפוש לפי שם או ת"ז אם קיים
+    // הוספת חיפוש טקסטואלי
     if (searchTerm) {
         query = query.or(`full_name.ilike.%${searchTerm}%,student_id.ilike.%${searchTerm}%`, { foreignTable: 'profiles' });
     }
@@ -266,10 +315,12 @@ async addStudentToExam(classroomId, studentProfileId) {
     const { data: registrations, error: regError } = await query.limit(15);
     if (regError) throw regError;
 
-    // 4. סינון אלו שכבר רשומים למבחן (כבר בחדר) ושיטוח המבנה
+    // 4. הסינון הסופי:
+    // מחזירים את כל מי שרשום לקורס (מ-registrations) 
+    // בתנאי שהוא לא מופיע ברשימת ה-active (אלו שכרגע בסטטוס present/submitted וכו')
     return registrations
         .map(reg => reg.profiles)
-        .filter(profile => !excludedProfileIds.includes(profile.id));
-  }
+        .filter(profile => !activeProfileIds.includes(profile.id));
+}
 
 };
