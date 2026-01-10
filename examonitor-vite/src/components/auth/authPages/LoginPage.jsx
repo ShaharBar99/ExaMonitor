@@ -60,7 +60,7 @@ export default function LoginPage() { // Login page component
       if (safeRole === "admin") navigate("/admin/users"); // Admin -> manage users
       else if(safeRole === "supervisor") navigate("/select-exam"); // Student / supervisor / lecturer -> active exam (for now)
       else if(safeRole === "lecturer") navigate("/Lecturer/lecturerDashboardPage");
-      else if(safeRole === "student") navigate("/select-exam"); // No student page yet
+      else if(safeRole === "student") navigate("/student/page");
       else if(safeRole === "floor_supervisor") navigate("/supervisor/floorsupervisorDashboardPage");
     } catch (err) { // Handle unexpected errors
       setFormError(err?.message || "Login failed"); // Set a readable message
