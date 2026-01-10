@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../lib/supabaseClient.js';
+import { AuditTrailService } from './auditTrailService.js';
 
 const ALLOWED_STATUS = new Set(['present', 'absent', 'exited_temporarily', 'submitted']);
 
@@ -45,6 +46,10 @@ export const AttendanceService = {
    * עדכון סטטוס סטודנט בטבלת attendance
    */
   async updateStudentStatus(attendanceId, status) {
+    // Map Hebrew statuses to English
+    
+    if (status === 'finished') status = 'submitted';
+
     if (!ALLOWED_STATUS.has(status)) {
       throw new Error('Invalid status value');
     }
@@ -58,10 +63,32 @@ export const AttendanceService = {
       .from('attendance')
       .update(updateData)
       .eq('id', attendanceId)
-      .select()
+      .select(`
+        id, status, student_id, classroom_id,
+        profiles:student_id (full_name, student_id),
+        classrooms:classroom_id (exam_id, room_number)
+      `)
       .single();
 
     if (error) throw error;
+
+    // Log to audit trail for submission
+    if (status === 'submitted') {
+      await AuditTrailService.log({
+        userId: null, // Could be supervisor, but for now null
+        action: 'student.submitted_exam',
+        metadata: {
+          attendanceId,
+          studentId: data.student_id,
+          classroomId: data.classroom_id,
+          examId: data.classrooms?.exam_id,
+          roomNumber: data.classrooms?.room_number,
+          studentName: data.profiles?.full_name,
+          studentIdNumber: data.profiles?.student_id
+        },
+      });
+    }
+
     return { success: true, data };
   },
 

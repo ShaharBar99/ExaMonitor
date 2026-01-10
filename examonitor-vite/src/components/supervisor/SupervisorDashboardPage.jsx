@@ -101,7 +101,7 @@ export default function SupervisorDashboard() {
       await attendanceHandlers.endBreak(student.id, setStudents);
     } else {
       const mappedStatus = status === 'במבחן' ? 'present' : status === 'סיים' ? 'finished' : status;
-      await attendanceHandlers.changeStudentStatus(student.id, mappedStatus, setStudents, student.studentId);
+      await attendanceHandlers.changeStudentStatus(student.id, mappedStatus, setStudents);
     }
   };
 

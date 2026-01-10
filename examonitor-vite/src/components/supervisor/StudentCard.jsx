@@ -2,7 +2,7 @@ import React from 'react';
 
 const StudentCard = ({ student, onStatusChange, onMoveClass }) => {
   const isOut = student.status === 'exited_temporarily';
-  const isFinished = student.status === 'submitted';
+  const isFinished = student.status === 'submitted' || student.status === 'finished';
 
   // לוגיקת עיצוב לפי סטטוס
   const getStatusConfig = () => {

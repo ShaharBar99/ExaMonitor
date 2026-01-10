@@ -30,19 +30,36 @@ export const attendanceHandlers = {
   /**
    * שינוי סטטוס סטודנט (כולל עדכון UI מקומי)
    */
-  changeStudentStatus: async (attendanceId, newStatus, setStudents, studentId) => {
-    try {
-      // עדכון השרת בשימוש בשם הפונקציה המדויק: updateStudentStatus
-      await attendanceApi.updateStudentStatus(attendanceId, newStatus);
+  changeStudentStatus: async (attendanceId, newStatus, setStudents) => {
+    // Map Hebrew statuses to English database values
+    const statusMap = {
+      'סיים': 'finished',
+      'במבחן': 'present',
+      'שירותים': 'exited_temporarily'
+    };
+    const mappedStatus = statusMap[newStatus] || newStatus;
 
+    try {
+      console.log(`Updating status for attendanceId ${attendanceId} to ${mappedStatus}`);
+      // עדכון השרת בשימוש בשם הפונקציה המדויק: updateStudentStatus
+      const updatedData = await attendanceApi.updateStudentStatus(attendanceId, mappedStatus);
+      console.log("Server responded with updated data:", updatedData);
       // עדכון ה-State של React בצורה אופטימית
-      setStudents(prevStudents => 
-        prevStudents.map(student => 
-          student.id === studentId 
-            ? { ...student, status: newStatus } 
-            : student
-        )
-      );
+      setStudents(prevStudents => {
+        return prevStudents.map(student => {
+          if (student.id === attendanceId) { 
+            console.log(`Found it! Updating status to: ${mappedStatus}`);
+            return { 
+              ...student, 
+              status: mappedStatus 
+            }; 
+          }
+          // --- השורה החסרה שהייתה חסרה לך: ---
+          return student; 
+        });
+      });
+    
+    console.log("State updated locally");
     } catch (error) {
       console.error("Failed to update status:", error);
       alert("חלה שגיאה בעדכון הסטטוס בשרת");
