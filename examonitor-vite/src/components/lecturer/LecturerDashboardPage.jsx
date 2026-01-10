@@ -12,7 +12,7 @@ import { examHandlers } from '../../handlers/examHandlers';
 import { timerHandlers } from '../../handlers/timerHandlers';
 import { notificationHandlers } from '../../handlers/notificationHandlers';
 import StatCard from '../exam/StatCard';
-
+import ViewClassroomsPage from '../classroom/ViewClassroomsPage';
 export default function LecturerDashboardPage() {
   const navigate = useNavigate();
   const { examId } = useParams();
@@ -84,13 +84,6 @@ export default function LecturerDashboardPage() {
               </div>
             </div>
 
-            <button 
-              onClick={() => navigate('/exam/view-classrooms', { state: { role: 'lecturer' } })}
-             className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/20 active:scale-95 flex items-center gap-3"
-            >
-              <span className="text-xl">📊</span>
-              מעקב פריסת חדרים
-            </button>
           </div>
 
           <div className="flex items-center gap-8">
@@ -165,7 +158,11 @@ export default function LecturerDashboardPage() {
                 </div>
             </div>
           </div>
+        <div>
+          < ViewClassroomsPage  />
+        </div>
         </main>
+            
       </div>
     </div>
   );
