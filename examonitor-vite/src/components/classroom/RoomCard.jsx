@@ -17,7 +17,7 @@ export default function RoomCard({ room, supervisors, onSupervisorChange, readOn
       <div className="flex justify-between items-start mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-2xl font-black text-slate-800 tabular-nums">חדר {room.id}</h3>
+            <h3 className="text-2xl font-black text-slate-800 tabular-nums">חדר {room.room_number}</h3>
             {room.status === 'warning' && <span className="text-xl">⚠️</span>}
           </div>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
@@ -68,13 +68,13 @@ export default function RoomCard({ room, supervisors, onSupervisorChange, readOn
             /* מבט מנהל קומה: Dropdown לניהול ושיבוץ */
             <>
               <select 
-                value={room.supervisor || ''}
+                value={room.supervisor_id || ''}
                 onChange={(e) => onSupervisorChange(room.id, e.target.value)}
                 className="w-full bg-indigo-50/50 border-2 border-transparent focus:border-indigo-200 group-hover:bg-indigo-50 rounded-2xl py-4 px-4 font-bold text-sm text-indigo-900 outline-none appearance-none cursor-pointer transition-all"
               >
                 <option value="" disabled>שבץ משגיח לחדר...</option>
                 {supervisors.map(sup => (
-                  <option key={sup.id} value={sup.name}>{sup.name}</option>
+                  <option key={sup.id} value={sup.id}>{sup.name}</option>
                 ))}
               </select>
               <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400 text-[10px]">

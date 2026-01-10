@@ -13,6 +13,7 @@ export default function RegisterPage() { // Register page component
   const [name, setName] = useState(""); // Name state
   const [username, setUsername] = useState(""); // Username state
   const [password, setPassword] = useState(""); // Password state
+  const [email, setEmail] = useState(""); // Email state
   const [isSubmitting, setIsSubmitting] = useState(false); // Loading
   const [formError, setFormError] = useState(""); // Top error
   const [fieldErrors, setFieldErrors] = useState({}); // Field errors
@@ -25,7 +26,7 @@ export default function RegisterPage() { // Register page component
 
     try { // Try register
       const result = await registerWithApi( // Call handler
-        { name, username, password, role }, // Payload
+        { name, username, email, password, role }, // Payload
         {} // Uses VITE_USE_AUTH_MOCK by default
       ); // End call
 
@@ -88,6 +89,18 @@ export default function RegisterPage() { // Register page component
               error={fieldErrors.username}
               disabled={isSubmitting}
               autoComplete="username"
+            />
+            <FormField
+              id="email"
+              name="email"
+              type="email" // Changed from 'text' to 'email' for better validation
+              label="אימייל"
+              placeholder="הכנס כתובת אימייל"
+              value={email} // You can keep the state name 'username' or rename it to 'email'
+              onChange={(e) => setEmail(e.target.value)}
+              error={fieldErrors.email}
+              disabled={isSubmitting}
+              autoComplete="email" // Updated for browser autofill
             />
 
             <FormField

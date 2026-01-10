@@ -4,8 +4,9 @@ export const ClassroomController = {
   async list(req, res, next) {
     try {
       const examId = req.query.exam_id || null;
-      const classrooms = await ClassroomService.listClassrooms(examId);
-      res.json({ classrooms });
+      const lecturerId = req.query.lecturer_id || null;
+      const classrooms = await ClassroomService.listClassrooms(examId, lecturerId);
+      res.json(classrooms);
     } catch (err) {
       next(err);
     }
@@ -58,6 +59,15 @@ export const ClassroomController = {
       });
 
       res.json({ classroom });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getSupervisors(req, res, next) {
+    try {
+      const supervisors = await ClassroomService.getSupervisors();
+      res.json({ supervisors });
     } catch (err) {
       next(err);
     }

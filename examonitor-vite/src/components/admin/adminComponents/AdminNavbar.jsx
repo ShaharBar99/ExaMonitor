@@ -2,10 +2,10 @@
 
 import React from "react"; // Import React
 import { NavLink, useNavigate } from "react-router-dom"; // Import NavLink + navigation
-
+import { useAuth } from "../../state/AuthContext"; // Import Auth context
 export default function AdminNavbar() { // Export AdminNavbar component
   const navigate = useNavigate(); // Get navigate function
-
+  let { token, user } = useAuth(); // Get auth state
   const linkBase = "px-3 py-2 rounded-xl text-sm font-semibold transition"; // Shared link styling
   const linkActive = "bg-slate-900 text-white shadow-sm"; // Active link styling
   const linkIdle = "bg-slate-100 text-slate-700 hover:bg-slate-200"; // Inactive link styling
@@ -15,8 +15,10 @@ export default function AdminNavbar() { // Export AdminNavbar component
   }; // End getLinkClass
 
   const onLogout = () => { // Handle logout click
-    sessionStorage.removeItem("auth_token"); // Remove session token (if used)
-    localStorage.removeItem("auth_token"); // Remove persistent token (if used)
+    sessionStorage.removeItem("token"); // Remove session token (if used)
+    localStorage.removeItem("token"); // Remove persistent token (if used)
+    token = null; // Clear token in context
+    user = null; // Clear user in context
     navigate("/login", { replace: true }); // Go to login page
   }; // End onLogout
 

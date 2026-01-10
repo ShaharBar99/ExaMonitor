@@ -1,16 +1,50 @@
-import React, { useState } from 'react';
-import { exams_mock } from '../../mocks/examsMock';
+import React, { useState, useEffect } from 'react';
+import { examHandlers } from '../../handlers/examHandlers';
+import { useAuth } from '../state/AuthContext';
 
 const SelectExamPage = ({ navigate }) => {
+  const { user } = useAuth();
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadExams = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedExams = await examHandlers.fetchExamsWithClassrooms(filterStatus, user?.id);
+        setExams(fetchedExams);
+      } catch (error) {
+        console.error("Failed to fetch exams", error);
+        setError("Failed to load exams. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExams();
+  }, [filterStatus, user?.id]);
 
   // לוגיקת סינון המבחנים
-  const filteredExams = exams_mock.filter(exam => {
-    const matchesSearch = exam.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          exam.room.toString().includes(searchTerm);
+  const filteredExams = exams.filter(exam => {
+    const courseName = exam.courses?.course_name || exam.course_id || '';
+    const courseCode = exam.courses?.course_code || '';
+    const matchesSearch = courseName.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          courseCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          exam.id.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
+
+  if (loading) {
+    return <div className="min-h-screen bg-[#0f172a] p-12 text-center text-white">טוען מבחנים...</div>;
+  }
+
+  if (error) {
+    return <div className="min-h-screen bg-[#0f172a] p-12 text-center text-red-400 font-bold">{error}</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#0f172a] p-12 text-right font-sans" dir="rtl">
@@ -80,10 +114,10 @@ const SelectExamPage = ({ navigate }) => {
               {/* Exam Name & ID */}
               <div className="col-span-2">
                 <div className="text-xl font-black text-slate-800  uppercase leading-tight group-hover:text-emerald-600 transition-colors">
-                  {exam.name}
+                  {exam.courses?.course_name || exam.course_id}
                 </div>
                 <div className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-tighter">
-                  Course ID: {exam.courseId || 'N/A'} • Exam ID: {exam.id}
+                  Course Code: {exam.courses?.course_code || 'N/A'} • Exam ID: {exam.id}
                 </div>
               </div>
 
@@ -92,8 +126,12 @@ const SelectExamPage = ({ navigate }) => {
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-lg">🏠</div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase">חדר</p>
-                    <p className="text-sm font-black text-slate-700">{exam.room}</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase">חדרים</p>
+                    <p className="text-sm font-black text-slate-700">
+                      {exam.classrooms && exam.classrooms.length > 0 
+                        ? exam.classrooms.map(c => c.room_number || c.id).join(', ')
+                        : 'אין חדרים שהוקצו'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -103,13 +141,15 @@ const SelectExamPage = ({ navigate }) => {
                 <span className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase border border-emerald-100 shadow-sm inline-flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   מוכן לשידור
+                  
                 </span>
               </div>
 
               {/* Action Button */}
               <div className="text-left">
+              
                 <button 
-                  onClick={() => navigate(`/exam/active/${exam.room}`)}
+                  onClick={() => navigate(`/exam/active/${exam.id}`, { state: { exam, classrooms: exam.classrooms } })}
                   className="bg-[#0f172a] hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center gap-3 mr-auto"
                 >
                   כניסה למערכת

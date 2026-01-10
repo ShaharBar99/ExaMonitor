@@ -1,6 +1,46 @@
 import { examsApi } from '../api/examsApi';
+import { classroomApi } from '../api/classroomApi';
 
 export const examHandlers = {
+    // טעינת רשימת מבחנים מהשרת
+    fetchExams: async (status = 'all') => {
+        try {
+            const exams = await examsApi.listExams(status);
+            return exams || [];
+        } catch (error) {
+            console.error("Error fetching exams:", error);
+            throw error;
+        }
+    },
+
+    // טעינת מבחנים יחד עם חדרים/כיתות
+    fetchExamsWithClassrooms: async (status = 'all', supervisorId = null) => {
+        try {
+            let exams = await examsApi.listExams(status);
+            let classrooms = await classroomApi.getClassrooms();
+            
+            // אם יש supervisor_id, סנן קודם את החדרים שהוקצו לעובד הפרטי הזה
+            if (supervisorId) {
+                classrooms = classrooms.filter(room => room.supervisor_id === supervisorId);
+                
+                // אז סנן את המבחנים כדי להראות רק את אלו שיש להם חדרים שהוקצו למשגיח הזה
+                const assignedExamIds = new Set(classrooms.map(room => room.exam_id));
+                exams = exams.filter(exam => assignedExamIds.has(exam.id));
+            }
+            
+            // צירוף חדרים לפי exam_id בדיוק
+            const examsWithClassrooms = exams.map(exam => ({
+                ...exam,
+                classrooms: classrooms.filter(room => room.exam_id === exam.id)
+            }));
+            
+            return examsWithClassrooms || [];
+        } catch (error) {
+            console.error("Error fetching exams with classrooms:", error);
+            throw error;
+        }
+    },
+
     // פונקציית סינון המבחנים לפי טקסט חופשי
     filterExams: (exams, query) => {
         try {
@@ -53,20 +93,41 @@ export const examHandlers = {
     // ניהול שינוי סטטוס המבחן (עצירה/חידוש/סיום)
     handleChangeStatus: async (examId, newStatus, setExamData) => {
         try {
-            const confirmMsg = newStatus === 'ended' ? "האם אתה בטוח שברצונך לסיים את המבחן? לא ניתן לבטל פעולה זו." : `האם לשנות את סטטוס המבחן ל-${newStatus}?`;
-            if (!window.confirm(confirmMsg)) return;
+            // 1. הודעת אישור מותאמת אישית יותר
+            const statusNames = {
+                'active': 'פעיל',
+                'paused': 'מוקפא',
+                'finished': 'סיום'
+            };
+            
+            const confirmMsg = newStatus === 'finished' 
+                ? "האם אתה בטוח שברצונך לסיים את המבחן? לא ניתן לבטל פעולה זו." 
+                : `האם לשנות את סטטוס המבחן ל-${statusNames[newStatus] || newStatus}?`;
 
+            if (!window.confirm(confirmMsg)) return false;
             const response = await examsApi.updateExamStatus(examId, newStatus);
-            if (response.success) {
-                // עדכון ה-State המקומי אם פונקציית העדכון סופקה
-                if (setExamData) {
-                    setExamData(prev => ({ ...prev, status: newStatus }));
+            console.log("Status update response:", response);
+            if (response) {
+                // עדכון ה-State המקומי רק אם הפונקציה קיימת
+                if (typeof setExamData === 'function') {
+                    setExamData(prev => ({ 
+                        ...prev, 
+                        status: newStatus,
+                        startTime: (newStatus === 'active' && !prev.startTime) ? new Date().toISOString() : prev.startTime
+                    }));
                 }
-                alert(`סטטוס המבחן עודכן ל-${newStatus}`);
+                
+                console.log(`Status updated to: ${newStatus}`);
+                return true;
+            } else {
+                throw new Error(response?.message || "השרת החזיר תשובה שלילית");
             }
+
         } catch (error) {
             console.error("Status update failed:", error);
-            alert("עדכון הסטטוס נכשל.");
+            alert("עדכון הסטטוס נכשל: " + (error.message || "שגיאת תקשורת"));
+            return false;
         }
+
     }
 };

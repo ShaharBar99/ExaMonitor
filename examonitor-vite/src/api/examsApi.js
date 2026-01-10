@@ -1,60 +1,38 @@
+// examsApi.js
+import { apiFetch } from './http';
+
+const useMock = String(import.meta.env.VITE_USE_AUTH_MOCK || "").toLowerCase() === "true";
+
 export const examsApi = {
-  // קבלת פרטי מבחן ספציפי
+  listExams: async (status) => {
+    if (useMock) return [];
+    const query = status && status !== 'all' ? `?status=${status}` : '';
+    return apiFetch(`/exams${query}`);
+  },
+
   getExamById: async (examId) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          id: examId,
-          name: "מבוא למדעי המחשב",
-          courseId: "CS101",
-          startTime: new Date().toISOString(),
-          duration: 180, // דקות
-          status: "started"
-        });
-      }, 500);
-    });
+    if (useMock) {
+      return {
+        id: examId,
+        course_id: "CS101",
+        original_start_time: new Date().toISOString(),
+        original_duration: 180,
+        extra_time: 0,
+        status: "active"
+      };
+    }
+    return apiFetch(`/exams/${examId}`);
   },
 
-  // שליחת הודעה מנהלתית מתפרצת (Broadcast)
-  broadcastAnnouncement: async (examId, message) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log(`Fake API: Announcement for exam ${examId}: ${message}`);
-        resolve({ success: true, timestamp: new Date().toISOString() });
-      }, 400);
-    });
-  },
+  updateExamStatus: async (examId, status) =>
+    apiFetch(`/exams/${examId}/status`, {
+      method: "PATCH",
+      body: { status }
+    }),
 
-  // שינוי סטטוס בחינה (started, paused, ended)
-  updateExamStatus: async (examId, status) => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        console.log(`Fake API: Exam ${examId} status updated to: ${status}`);
-        resolve({ success: true, newStatus: status });
-      }, 400);
-    });
-  }
+  broadcastAnnouncement: async (examId, message) =>
+    apiFetch(`/exams/${examId}/broadcast`, {
+      method: "POST",
+      body: { message }
+    }),
 };
-
-// Actual usage:
-// export const examsApi = {
-//   // GET /exams/:id
-//   getExamById: async (examId) => {
-//     // קבלת פרטי מבחן ליבה (שם, קוד, משך)
-//     return http.get(`/exams/${examId}`);
-//   },
-
-
-
-//   // POST /exams/:id/broadcast
-//   broadcastAnnouncement: async (examId, message) => {
-//     // שליחת הודעה מנהלתית מתפרצת לכלל המעורבים בבחינה
-//     return http.post(`/exams/${examId}/broadcast`, { message });
-//   },
-
-//   // PATCH /exams/:id/status
-//   updateExamStatus: async (examId, status) => {
-//     // שינוי סטטוס בחינה (started, paused, ended)
-//     return http.patch(`/exams/${examId}/status`, { status });
-//   }
-// };

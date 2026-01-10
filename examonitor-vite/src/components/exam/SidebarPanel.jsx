@@ -12,7 +12,7 @@ export default function SidebarPanel({ activeTab, userRole }) {
 
   // 2. טאב בוט - זמין למשגיח חדר בלבד
   if (activeTab === 'bot' && userRole === 'supervisor') {
-    return <ExamBotPanel />;
+    return <ExamBotPanel userRole={userRole} />;
   }
 
   // 3. ניהול הודעות (צ'אט מרצה / צ'אט קומה) - לפי הרשאות רכיב MessageManager

@@ -17,7 +17,7 @@ export class ApiError extends Error { // ApiError extends Error
 export async function apiFetch(path, options = {}) { // Main REST function
   const method = options.method || "GET"; // Default method is GET
   const body = options.body ?? null; // Default body is null
-  const token = localStorage.getItem("token") ?? null; // Optional token (caller can pass)
+  const token = options.token ?? localStorage.getItem("token") ?? null;
   const signal = options.signal; // Optional AbortController signal
 
   const headers = new Headers(); // Create headers object
@@ -49,7 +49,8 @@ export async function apiFetch(path, options = {}) { // Main REST function
     const message = (data && (data.message || data.error)) || res.statusText || "Request failed"; // Pick best message
     throw new ApiError(message, res.status, data); // Throw typed error with details
   } // End error case
-  localStorage.setItem('token', data?.token); // Store token in local storage
+  if (data?.token!==undefined)
+    localStorage.setItem('token', data?.token); // Store token in local storage
 
   return data; // Return parsed JSON data
 } // End apiFetch

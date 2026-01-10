@@ -88,4 +88,63 @@ export const AuthService = {
   async logout() {
     return { ok: true };
   },
+
+  async register(name, username, email, password, role) {
+    // "username" in the contract is your login identifier.
+    // In your project you use email auth, so treat username as email.
+    
+    const { data: existingUser, error: existingUserError } = await supabaseAdmin
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .single();
+
+    if (existingUser) {
+        const err = new Error('User with this username already exists');
+        err.status = 409;
+        throw err;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          full_name: name,
+          role: role,
+          username: username,
+        }
+      }
+    });
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = error.status || 500;
+      throw err;
+    }
+
+    const user = data.user;
+
+    const { error: profileError } = await supabaseAdmin.from('profiles').upsert([
+        { id: user.id, email: user.email, full_name: name, role, username },
+    ]);
+
+    if (profileError) {
+        // If profile creation fails, we should probably delete the auth user
+        await supabaseAdmin.auth.admin.deleteUser(user.id);
+        const err = new Error(profileError.message);
+        err.status = 500;
+        throw err;
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: name,
+
+        role: role,
+      },
+    };
+  },
 };
