@@ -196,13 +196,6 @@ export const AttendanceService = {
     if (error) throw error;
     return { success: true, data };
   },
-  הנתונים ששלחת הם דוגמה קלאסית למה שקורה כשמבצעים insert במקום upsert (עדכון או יצירה). הסטודנט עם המזהה ...79ef פשוט קיבל שורה חדשה בכל פעם שלחצו על הכפתור, למרות שהוא כבר היה קיים במערכת.
-
-כדי לפתור את זה, אנחנו חייבים לשנות את הגישה: במקום לחפש רק בחדר הספציפי, אנחנו נחפש את הסטודנט ברמת המבחן כולו (על פני כל החדרים). אם הוא נמצא – נעדכן את המיקום שלו לחדר הנוכחי. אם לא – ניצור שורה חדשה.
-
-הנה הקוד המעודכן והבטוח:
-
-JavaScript
 
 /**
  * הוספת סטודנט לחדר מבחן ידנית - גרסה חסינת כפילויות
@@ -278,7 +271,7 @@ async addStudentToExam(classroomId, studentProfileId) {
 
     if (upsertErr) throw upsertErr;
     return result;
-}
+},
 
   async removeStudentFromExam(attendanceId) {
     // 1. קודם כל נבדוק מה הסטטוס הנוכחי של הסטודנט
