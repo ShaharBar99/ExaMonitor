@@ -128,4 +128,36 @@ export const AttendanceController = {
       next(err);
     }
   },
+
+  addStudent: async (req, res, next) => {
+      try {
+          const { classroomId, studentProfileId } = req.body;
+          const result = await AttendanceService.addStudentToExam(classroomId, studentProfileId);
+          res.status(201).json(result);
+      } catch (err) {
+          next(err);
+      }
+  },
+
+  removeStudent: async (req, res, next) => {
+      try {
+          const { attendanceId } = req.params;
+          await AttendanceService.removeStudentFromExam(attendanceId);
+          res.json({ success: true });
+      } catch (err) {
+          next(err);
+      }
+  },
+  
+  getEligibleStudents: async (req, res, next) => {
+      try {
+          const { examId } = req.params;
+          const { query } = req.query;
+          console.log("Searching eligible students in controller for exam ID:", examId, "with search term:", query);
+          const students = await AttendanceService.searchEligibleStudents(examId, query);
+          res.json(students);
+      } catch (err) {
+          next(err);
+      }
+  },
 };

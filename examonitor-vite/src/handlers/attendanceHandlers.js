@@ -89,7 +89,7 @@ export const attendanceHandlers = {
   startBreak: async (studentId, reason, setStudents) => {
     try {
       await attendanceApi.startBreak(studentId, reason);
-      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, status: 'exited_temporarily' } : s));
+      setStudents(prev => prev.map(s => s.id === studentId || s.attendanceId === studentId ? { ...s, status: 'exited_temporarily' } : s));
     } catch (error) {
       console.error("Failed to start break:", error);
       alert("נכשל בהתחלת הפסקה");
@@ -102,10 +102,70 @@ export const attendanceHandlers = {
   endBreak: async (studentId, setStudents) => {
     try {
       await attendanceApi.endBreak(studentId);
-      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, status: 'present' } : s));
+      setStudents(prev => prev.map(s => s.id || s.attendanceId ? { ...s, status: 'present' } : s));
     } catch (error) {
       console.error("Failed to end break:", error);
       alert("נכשל בסיום הפסקה");
     }
-  }
+  },
+  // src/handlers/attendanceHandlers.js
+
+  /**
+   * הוספת סטודנט לרשימת הנוכחות
+   */
+  handleAddStudent: async (classroomId, studentProfileId, setStudents) => {
+    try {
+      console.log("Adding student:", studentProfileId, "to classroom:", classroomId);
+      const newRecord = await attendanceApi.addStudent(classroomId, studentProfileId);
+      
+      // יצירת אובייקט סטודנט תואם ל-UI מתוך התשובה של השרת
+      const newStudentUI = {
+        attendanceId: newRecord.id,
+        id: newRecord.profiles.id,
+        name: newRecord.profiles.full_name,
+        status: newRecord.status
+      };
+
+      setStudents(prev => [...prev, newStudentUI]);
+      alert("הסטודנט נוסף בהצלחה!");
+    } catch (error) {
+      alert(error.message || "נכשל בהוספת הסטודנט");
+    }
+  },
+
+    /**
+     * הסרת סטודנט (ביטול נוכחות)
+     */
+    handleRemoveStudent: async (studentId, setStudents) => {
+
+      try {
+        await attendanceApi.removeStudent(studentId);
+        
+        // עדכון ה-State של React - הסרת הסטודנט מהמערך
+        setStudents(prev => prev.filter(s => s.id !== studentId));
+      } catch (error) {
+        console.error("Remove failed:", error);
+        alert("נכשל בהסרת הסטודנט");
+      }
+    },
+    /**
+     * לוגיקת חיפוש סטודנטים בזמן אמת
+     */
+    handleSearchEligible: async (examId, query, setSearchResults, setIsSearching) => {
+    if (!query || query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const results = await attendanceApi.searchEligibleStudents(examId, query);
+      setSearchResults(results || []); // עדכון ה-State ישירות
+    } catch (error) {
+      console.error("Search error in handler:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  },
 };

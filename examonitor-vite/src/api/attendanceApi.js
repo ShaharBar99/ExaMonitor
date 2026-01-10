@@ -59,4 +59,27 @@ export const attendanceApi = {
       body: { student_id: studentId},
     });
   },
+  /**
+   * הוספת סטודנט ידנית למבחן בחדר ספציפי
+   */
+  addStudent: async (classroomId, studentProfileId) => {
+    return apiFetch('/attendance/add-manual', {
+      method: 'POST',
+      body: { classroomId, studentProfileId },
+    });
+  },
+
+  /**
+   * הסרת סטודנט מרשימת הנוכחות של המבחן
+   */
+  removeStudent: async (attendanceId) => {
+    return apiFetch(`/attendance/${attendanceId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  searchEligibleStudents: async (examId, query) => {
+    console.log("Searching eligible students in api for exam ID:", examId, "with search term:", query);
+    return apiFetch(`/attendance/exams/${examId}/eligible-students?query=${encodeURIComponent(query)}`);
+  },
 };
