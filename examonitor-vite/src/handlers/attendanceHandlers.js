@@ -134,7 +134,7 @@ export const attendanceHandlers = {
     try {
       console.log("Adding student:", studentProfileId, "to classroom:", classroomId);
       const newRecord = await attendanceApi.addStudent(classroomId, studentProfileId);
-      
+      console.log("Server returned new attendance record:", newRecord);
       // יצירת אובייקט סטודנט תואם ל-UI מתוך התשובה של השרת
       const newStudentUI = {
         attendanceId: newRecord.id,

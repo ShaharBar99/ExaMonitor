@@ -196,12 +196,19 @@ export const AttendanceService = {
     if (error) throw error;
     return { success: true, data };
   },
-  /**
- * הוספת סטודנט לחדר מבחן ידנית
- * מוודא שהסטודנט רשום לקורס לפני ההוספה
+  הנתונים ששלחת הם דוגמה קלאסית למה שקורה כשמבצעים insert במקום upsert (עדכון או יצירה). הסטודנט עם המזהה ...79ef פשוט קיבל שורה חדשה בכל פעם שלחצו על הכפתור, למרות שהוא כבר היה קיים במערכת.
+
+כדי לפתור את זה, אנחנו חייבים לשנות את הגישה: במקום לחפש רק בחדר הספציפי, אנחנו נחפש את הסטודנט ברמת המבחן כולו (על פני כל החדרים). אם הוא נמצא – נעדכן את המיקום שלו לחדר הנוכחי. אם לא – ניצור שורה חדשה.
+
+הנה הקוד המעודכן והבטוח:
+
+JavaScript
+
+/**
+ * הוספת סטודנט לחדר מבחן ידנית - גרסה חסינת כפילויות
  */
 async addStudentToExam(classroomId, studentProfileId) {
-    // 1. מציאת ה-course_id של המבחן המשויך לחדר
+    // 1. קבלת פרטי המבחן והקורס
     const { data: classroom, error: classErr } = await supabaseAdmin
         .from('classrooms')
         .select('exam_id, exams(course_id)')
@@ -209,8 +216,9 @@ async addStudentToExam(classroomId, studentProfileId) {
         .single();
 
     if (classErr) throw classErr;
+    const examId = classroom.exam_id;
 
-    // 2. בדיקה שהסטודנט אכן רשום לקורס הזה
+    // 2. בדיקה שהסטודנט רשום לקורס
     const { data: registration, error: regErr } = await supabaseAdmin
         .from('course_registrations')
         .select('id')
@@ -219,18 +227,48 @@ async addStudentToExam(classroomId, studentProfileId) {
         .single();
 
     if (regErr || !registration) {
-        throw new Error("הסטודנט אינו רשום לקורס זה ולכן לא ניתן להוסיפו למבחן");
+        throw new Error("הסטודנט אינו רשום לקורס זה");
     }
 
-    // 3. יצירת רשומת נוכחות
-    const { data: newAttendance, error: attErr } = await supabaseAdmin
+    // 3. חיפוש רשומה קיימת של הסטודנט במבחן הזה (בכל החדרים שלו)
+    const { data: existingAttendance, error: fetchErr } = await supabaseAdmin
         .from('attendance')
-        .insert([{
-            student_id: studentProfileId,
-            classroom_id: classroomId,
-            status: 'present',
-            check_in_time: new Date().toISOString()
-        }])
+        .select(`
+            id, 
+            status,
+            classroom_id,
+            classrooms!inner(exam_id)
+        `)
+        .eq('student_id', studentProfileId)
+        .eq('classrooms.exam_id', examId)
+        .maybeSingle();
+
+    if (fetchErr) throw fetchErr;
+
+    // קביעת הסטטוס: אם הוא כבר הגיש, נשמור על 'submitted'. אם הוא היה 'absent' או חדש, נהפוך ל-'present'.
+    let finalStatus = 'present';
+    if (existingAttendance) {
+        if (existingAttendance.status === 'submitted' || existingAttendance.status === 'finished') {
+            finalStatus = 'submitted';
+        }
+    }
+
+    // 4. ביצוע ה-Upsert (עדכון אם קיים, יצירה אם לא)
+    // אנחנו משתמשים ב-id הקיים אם מצאנו כזה כדי למנוע יצירת שורה חדשה
+    const attendanceData = {
+        student_id: studentProfileId,
+        classroom_id: classroomId,
+        status: finalStatus,
+        check_in_time: new Date().toISOString()
+    };
+
+    if (existingAttendance) {
+        attendanceData.id = existingAttendance.id; // הכרחי כדי ש-upsert יזהה שמדובר באותה שורה
+    }
+
+    const { data: result, error: upsertErr } = await supabaseAdmin
+        .from('attendance')
+        .upsert([attendanceData])
         .select(`
             id,
             status,
@@ -238,68 +276,38 @@ async addStudentToExam(classroomId, studentProfileId) {
         `)
         .single();
 
-    if (attErr) throw attErr;
-    return newAttendance;
-  },
+    if (upsertErr) throw upsertErr;
+    return result;
+}
 
   async removeStudentFromExam(attendanceId) {
-      const { error } = await supabaseAdmin
-          .from('attendance')
-          //.delete() shouldnt delete the record, just mark as removed
-          .update({ status: 'absent' })
-          .eq('id', attendanceId);
-      
-      if (error) throw error;
-      return { success: true };
+    // 1. קודם כל נבדוק מה הסטטוס הנוכחי של הסטודנט
+    const { data: currentRecord, error: fetchError } = await supabaseAdmin
+        .from('attendance')
+        .select('status')
+        .eq('id', attendanceId)
+        .single();
+
+    if (fetchError) throw fetchError;
+
+    // 2. אם הסטודנט כבר הגיש (submitted/finished), אנחנו לא רוצים להפוך אותו לנעדר
+    if (currentRecord.status === 'submitted' || currentRecord.status === 'finished') {
+        return { 
+            success: false, 
+            message: "לא ניתן להסיר סטודנט שכבר הגיש את המבחן" 
+        };
+    }
+
+    // 3. אם הוא לא הגיש, אפשר לשנות ל-absent
+    const { error: updateError } = await supabaseAdmin
+        .from('attendance')
+        .update({ status: 'absent' })
+        .eq('id', attendanceId);
+    
+    if (updateError) throw updateError;
+    
+    return { success: true };
   },
-
-  // async searchEligibleStudents(examId, searchTerm) {
-  //         // 1. קבלת ה-course_id של המבחן הנוכחי
-  //         console.log("Searching eligible students for exam ID:", examId, "with search term:", searchTerm);
-  //   const { data: exam } = await supabaseAdmin
-  //       .from('exams')
-  //       .select('course_id')
-  //       .eq('id', examId)
-  //       .single();
-
-  //   if (!exam) throw new Error("Exam not found");
-
-  //   // 2. מציאת כל הסטודנטים שכבר נמצאים בחדרים של המבחן הזה
-  //   // ב-Supabase Join מתבצע על ידי ציון שם הטבלה המקושרת ב-select
-  //   const { data: existingAttendance, error: attError } = await supabaseAdmin
-  //       .from('attendance')
-  //       .select('student_id, classrooms!inner(exam_id)')
-  //       .eq('classrooms.exam_id', examId)
-  //       .neq('status', 'absent');
-
-  //   if (attError) throw attError;
-  //   const excludedProfileIds = existingAttendance?.map(a => a.student_id) || [];
-
-  //   // 3. חיפוש סטודנטים שרשומים לקורס הזה ב-course_registrations
-  //   let query = supabaseAdmin
-  //       .from('course_registrations')
-  //       .select(`
-  //           profiles!inner (
-  //               id,
-  //               student_id,
-  //               full_name
-  //           )
-  //       `)
-  //       .eq('course_id', exam.course_id);
-
-  //   // הוספת חיפוש לפי שם או ת"ז אם קיים
-  //   if (searchTerm) {
-  //       query = query.or(`full_name.ilike.%${searchTerm}%,student_id.ilike.%${searchTerm}%`, { foreignTable: 'profiles' });
-  //   }
-
-  //   const { data: registrations, error: regError } = await query.limit(15);
-  //   if (regError) throw regError;
-
-  //   // 4. סינון אלו שכבר רשומים למבחן (כבר בחדר) ושיטוח המבנה
-  //   return registrations
-  //       .map(reg => reg.profiles)
-  //       .filter(profile => !excludedProfileIds.includes(profile.id));
-  // }
 
   async searchEligibleStudents(examId, searchTerm) {
     // 1. קבלת ה-course_id מהמבחן
