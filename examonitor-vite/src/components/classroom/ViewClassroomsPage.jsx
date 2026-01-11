@@ -94,14 +94,7 @@ export default function ViewClassroomsPage() {
       {/* Header */}
       <header className="flex justify-between items-center mb-12 bg-white/5 p-8 rounded-[40px] border border-white/10 backdrop-blur-md">
         <div className="flex items-center gap-8">
-          <button 
-            onClick={() => navigate(-1)} 
-            className="p-5 bg-white/10 rounded-2xl hover:bg-white/20 transition-all border border-white/10 group"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 rotate-180 transition-transform group-hover:-translate-x-1 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-          </button>
+
           
           <div>
             <h1 className="text-4xl font-black tracking-tight uppercase">

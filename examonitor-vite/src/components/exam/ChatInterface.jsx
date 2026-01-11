@@ -66,7 +66,7 @@ export default function ChatInterface({ title, messages = [], onSendMessage, acc
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="הקלד הודעה..."
-            className="w-full bg-slate-50 border-none rounded-2xl py-4 pr-12 pl-4 text-sm font-bold focus:ring-2 focus:ring-slate-100 transition-all text-right"
+            className="w-full bg-slate-50 text-black border-none rounded-2xl py-4 pr-12 pl-4 text-sm font-bold focus:ring-2 focus:ring-slate-100 transition-all text-right"
             dir="rtl"
           />
           <button 
