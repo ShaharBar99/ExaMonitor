@@ -14,7 +14,6 @@ import { notificationHandlers } from '../../handlers/notificationHandlers';
 import StatCard from '../exam/StatCard';
 import ViewClassroomsPage from '../classroom/ViewClassroomsPage';
 export default function LecturerDashboardPage() {
-  const navigate = useNavigate();
   const { examId } = useParams();
   const { examData, setExamData } = useExam();
   
@@ -75,7 +74,9 @@ export default function LecturerDashboardPage() {
         <header className="bg-white/5 border-b border-white/10 px-12 py-8 flex justify-between items-center z-30 backdrop-blur-md">
           <div className="flex items-center gap-10">
             <div>
-              <h1 className="text-3xl text-white  leading-none tracking-tight">קונסול מרצה</h1>
+              <h1 className="text-3xl font-bold text-white leading-none tracking-tight">
+               מסך נתונים למרצה
+              </h1>
               <div className="flex items-center gap-3 mt-3">
                 <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${examData?.status === 'paused' ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`}></span>
                 <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">

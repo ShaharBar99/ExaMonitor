@@ -8,8 +8,8 @@ import { DEFAULT_ROLE, registerWithApi } from "../../../handlers/authHandlers"; 
 
 export default function RegisterPage() { // Register page component
   const navigate = useNavigate(); // Navigation function
-
-  const [role, setRole] = useState(DEFAULT_ROLE); // Selected role
+  const roles = DEFAULT_ROLE.slice(0, 3);
+  const [role, setRole] = useState(roles); // Selected role
   const [name, setName] = useState(""); // Name state
   const [username, setUsername] = useState(""); // Username state
   const [password, setPassword] = useState(""); // Password state
@@ -62,7 +62,7 @@ export default function RegisterPage() { // Register page component
             </div>
           ) : null}
 
-          <RoleSelector value={role} onChange={setRole} disabled={isSubmitting} /> {/* Reuse role selector */}
+          <RoleSelector value={role} onChange={setRole} disabled={isSubmitting} isRegister={true}/> {/* Reuse role selector */}
 
           <form className="space-y-4 mt-4" onSubmit={onSubmit}> {/* Form */}
             <FormField

@@ -3,9 +3,15 @@
 import React, { useMemo } from "react"; // Import React and useMemo
 import { normalizeRole, ROLE_OPTIONS } from "../../../handlers/authHandlers"; // Import role helpers and options
 
-export default function RoleSelector({ value, onChange, disabled }) { // Role selector component
+export default function RoleSelector({ value, onChange, disabled, isRegister=false}) { // Role selector component
   const selectedRole = normalizeRole(value); // Normalize current selected role
-
+  const roles = useMemo(() => {
+    if (isRegister) {
+      // מסננים את מנהל המערכת החוצה
+      return ROLE_OPTIONS.filter(r => r.value !== 'admin' && r.value !== 'SYSTEM_ADMIN'); 
+    }
+    return ROLE_OPTIONS;
+  }, [isRegister]);
   const baseClass = useMemo(() => { // Memoize base button class
     return "role-btn px-3 py-2 rounded-xl border text-xs font-medium transition"; // Match your Tailwind styling
   }, []); // No dependencies
@@ -27,7 +33,7 @@ export default function RoleSelector({ value, onChange, disabled }) { // Role se
     <div className="mb-4"> {/* Role selection wrapper */}
       <label className="block text-xs font-medium text-slate-600 mb-2">בחר תפקיד</label> {/* Label */}
       <div className="grid grid-cols-2 gap-2 text-xs font-medium" id="role-toggle"> {/* Buttons grid */}
-        {ROLE_OPTIONS.map((r) => ( // Render each role option
+        {roles.map((r) => ( // Render each role option
           <button
             key={r.value} // Unique key
             type="button" // Not a submit button
