@@ -14,7 +14,7 @@ export default function LoginPage() { // Login page component
   const [role, setRole] = useState(DEFAULT_ROLE); // Selected role (from handlers)
   const [username, setUsername] = useState(""); // Username input state
   const [password, setPassword] = useState(""); // Password input state
-  const [rememberMe, setRememberMe] = useState(false); // Remember checkbox state (UI only for now)
+
 
   const [isSubmitting, setIsSubmitting] = useState(false); // Track submit loading state
   const [formError, setFormError] = useState(""); // Track top-level form error
@@ -41,7 +41,7 @@ export default function LoginPage() { // Login page component
     setIsSubmitting(true); // Set loading state
     try { // Start try/catch for async call
       const result = await loginWithApi( // Call handler (which calls the API)
-        { username, password, role, rememberMe }, // Payload from UI state
+        { username, password, role,  }, // Payload from UI state
         { navigate, auth } // Dependencies
       ); // End handler call
 
@@ -129,19 +129,8 @@ export default function LoginPage() { // Login page component
                   autoComplete="current-password"
                 />
             </div> {/* End password */}
-            <div className="flex items-center justify-between text-xs"> {/* Remember + Forgot row */}
-              <label className="inline-flex items-center gap-2 text-slate-600"> {/* Checkbox label */}
-                <input
-                  type="checkbox" // Checkbox
-                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" // Styling
-                  checked={rememberMe} // Controlled checked
-                  onChange={(e) => setRememberMe(e.target.checked)} // Update state
-                /> {/* End checkbox */}
-                <span>זכור אותי במחשב זה</span> {/* Text */}
-              </label> {/* End label */}
 
-              <button type="button" className="text-blue-600 hover:text-blue-700 hover:underline">שכחתי סיסמה</button> {/* Forgot button */}
-            </div> {/* End remember/forgot */}
+              
 
             <button
               type="submit" // Submit
