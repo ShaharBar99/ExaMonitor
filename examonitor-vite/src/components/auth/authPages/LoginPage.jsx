@@ -59,7 +59,8 @@ export default function LoginPage() { // Login page component
       // Route decision (assumption): no dedicated student page yet, so student goes to exam console. // Adjust later
       if (safeRole === "admin") navigate("/admin/users"); // Admin -> manage users
       else if(safeRole === "supervisor") navigate("/select-exam"); // Student / supervisor / lecturer -> active exam (for now)
-      else if(safeRole === "lecturer") navigate("/Lecturer/lecturerDashboardPage");
+      //else if(safeRole === "lecturer") navigate("/Lecturer/lecturerDashboardPage");
+      else if(safeRole === "lecturer") navigate("/select-exam");
       else if(safeRole === "student") navigate("/student/page");
       else if(safeRole === "floor_supervisor") navigate("/supervisor/floorsupervisorDashboardPage");
     } catch (err) { // Handle unexpected errors

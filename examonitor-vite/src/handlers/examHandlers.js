@@ -14,11 +14,12 @@ export const examHandlers = {
     },
 
     // טעינת מבחנים יחד עם חדרים/כיתות
-    fetchExamsWithClassrooms: async (status = 'all', supervisorId = null) => {
+    fetchExamsWithClassrooms: async (status = 'all', supervisorId = null,lecturerId = null) => {
         try {
             let exams = await examsApi.listExams(status);
             let classrooms = await classroomApi.getClassrooms();
-            
+            let courses = await examsApi.listCourses();
+            console.log('Fetched exams:', exams);
             // אם יש supervisor_id, סנן קודם את החדרים שהוקצו לעובד הפרטי הזה
             if (supervisorId) {
                 classrooms = classrooms.filter(room => room.supervisor_id === supervisorId);
@@ -27,8 +28,14 @@ export const examHandlers = {
                 const assignedExamIds = new Set(classrooms.map(room => room.exam_id));
                 exams = exams.filter(exam => assignedExamIds.has(exam.id));
             }
-            
-            // צירוף חדרים לפי exam_id בדיוק
+            if(lecturerId){
+                // אז סנן את המבחנים כדי להראות רק את אלו שיש להם חדרים שהוקצו למרצה הזה
+                courses = courses.filter(course => course.lecturer_id === lecturerId);
+                const assignedCourseIds = new Set(courses.map(course => course.id));
+                exams = exams.filter(exam => assignedCourseIds.has(exam.course_id));
+            }
+             // צירוף חדרים לפי exam_id בדיוק
+           
             const examsWithClassrooms = exams.map(exam => ({
                 ...exam,
                 classrooms: classrooms.filter(room => room.exam_id === exam.id)

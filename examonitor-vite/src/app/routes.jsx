@@ -37,7 +37,7 @@ export default function AppRoutes() { // Export a component that holds the route
       {/* דף המבחן עצמו (אחרי שבוחרים) */}
       <Route path="/exam/active/:examId" element={<SupervisorDashboardPage />} />
       <Route path="/supervisor/floorsupervisorDashboardPage" element={<FloorSupervisorDashboardPage />} />
-      <Route path="/Lecturer/lecturerDashboardPage" element={<LecturerDashboardPage />} />
+      <Route path="/Lecturer/lecturerDashboardPage/:examId" element={<LecturerDashboardPage />} />
       <Route path="/student/page" element={<StudentPage />} />
       <Route path="/exam/view-classrooms" element={<ViewClassroomsPage />} />
       <Route path="/exam/incident-report/:examId" element={<IncidentReportPage />} />

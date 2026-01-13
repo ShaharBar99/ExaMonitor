@@ -147,14 +147,22 @@ const SelectExamPage = ({ navigate }) => {
 
               {/* Action Button */}
               <div className="text-left">
-              
-                <button 
-                  onClick={() => navigate(`/exam/active/${exam.id}`, { state: { exam, classrooms: exam.classrooms } })}
-                  className="bg-[#0f172a] hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center gap-3 mr-auto"
-                >
+                if(user?.role === 'lecturer') {
+                  <button 
+                    onClick={() => navigate(`/Lecturer/lecturerDashboardPage/${exam.id}`, { state: { exam, classrooms: exam.classrooms } })}
+                    className="bg-[#0f172a] hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center gap-3 mr-auto"
+                  >
                   כניסה למערכת
                   <span className="text-lg">←</span>
-                </button>
+                  </button>
+                } else {
+                  <button 
+                    onClick={() => navigate(`/exam/active/${exam.id}`, { state: { exam, classrooms: exam.classrooms } })}
+                    className="bg-[#0f172a] hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center gap-3 mr-auto"
+                  >
+                  כניסה למערכת
+                  <span className="text-lg">←</span>
+                </button>}
               </div>
             </div>
           ))}
