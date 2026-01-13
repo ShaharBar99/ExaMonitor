@@ -4,8 +4,9 @@ import React, { useEffect, useMemo, useState } from "react"; // React + hooks
 import SelectField from "../../shared/SelectField"; // Reusable select
 import { fetchSecurityAlerts, filterSecurityAlerts, resolveAlert } from "../../../handlers/securityAlertsHandlers"; // Security handlers
 import AdminTable from "../adminComponents/AdminTable";
-
+import { useNavigate } from "react-router-dom"; // Navigation
 export default function SecurityAlertsPage() { // Security alerts page
+  const navigate = useNavigate();
   const [alerts, setAlerts] = useState([]); // Alerts list
   const [loading, setLoading] = useState(false); // Loading flag
   const [error, setError] = useState(""); // Error text
@@ -13,7 +14,7 @@ export default function SecurityAlertsPage() { // Security alerts page
   const [severity, setSeverity] = useState(""); // Severity filter
   const [status, setStatus] = useState(""); // Status filter
   const [rowBusyId, setRowBusyId] = useState(""); // Row busy tracking
-
+ 
   useEffect(() => { // Load on mount
     let mounted = true; // Mounted guard
     const run = async () => { // Async fetch
@@ -26,6 +27,7 @@ export default function SecurityAlertsPage() { // Security alerts page
       } catch (e) { // Catch errors
         if (!mounted) return; // Stop if unmounted
         setError(e?.message || "Failed to load security alerts"); // Set error
+        navigate("/login"); // Navigate away on error
       } finally { // Always
         if (!mounted) return; // Stop if unmounted
         setLoading(false); // Stop loading

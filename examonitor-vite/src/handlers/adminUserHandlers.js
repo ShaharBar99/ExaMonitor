@@ -25,7 +25,10 @@ export function filterUsers(users, filters = {}) { // Filter users by search/rol
 } // End filterUsers
 
 // Fetch users (REST or mock) via usersApi. // Thin handler
-export async function fetchUsers(filters = {}, deps = {}) { // Get users list
+export async function fetchUsers(filters = {}, deps = {}, userId) { // Get users list
+  if (userId === undefined || userId === null) { // Require userId
+    return { ok: false, apiError: { message: "User ID is required to fetch users." } }; // Error response
+  }
   const usersApi = deps.usersApi || usersApiDefault; // Use injected or default
   const token = (localStorage.getItem("token") || sessionStorage.getItem("token")) ?? null; // Get token from local storage
   const data = await usersApi.listUsers({ ...filters, token }); // Call api

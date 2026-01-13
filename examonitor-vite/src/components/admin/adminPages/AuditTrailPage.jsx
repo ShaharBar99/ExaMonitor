@@ -4,8 +4,9 @@ import React, { useEffect, useMemo, useState } from "react"; // React + hooks
 import FormField from "../../shared/FormField"; // Reusable text input
 import { fetchAuditEvents, filterAuditEvents } from "../../../handlers/auditTrailHandlers"; // Audit handlers
 import AdminTable from "../adminComponents/AdminTable";
-
+import { useNavigate } from "react-router-dom"; // Navigation
 export default function AuditTrailPage() { // Audit trail page
+  const navigate = useNavigate();
   const [events, setEvents] = useState([]); // Events list
   const [loading, setLoading] = useState(false); // Loading flag
   const [error, setError] = useState(""); // Error text
@@ -23,6 +24,7 @@ export default function AuditTrailPage() { // Audit trail page
       } catch (e) { // Catch errors
         if (!mounted) return; // Stop if unmounted
         setError(e?.message || "Failed to load audit events"); // Set error
+        navigate("/login"); // Navigate away on error
       } finally { // Always
         if (!mounted) return; // Stop if unmounted
         setLoading(false); // Stop loading

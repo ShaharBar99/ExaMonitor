@@ -5,12 +5,14 @@ import FormField from "../../shared/FormField"; // Input
 import SelectField from "../../shared/SelectField"; // Select
 import AdminTable from "../../admin/adminComponents/AdminTable"; // Table wrapper
 import { changeUserRole, changeUserStatus, fetchUsers, filterUsers } from "../../../handlers/adminUserHandlers"; // Handlers
-
+import { useAuth } from "../../state/AuthContext"; // Auth context
+import { useNavigate } from "react-router-dom"; // Navigation
 export default function ManageUsersPage() { // Page component
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]); // Users list
   const [loading, setLoading] = useState(false); // Loading
   const [error, setError] = useState(""); // Error
-
+  const { user } = useAuth(); // Current user
   const [search, setSearch] = useState(""); // Search
   const [role, setRole] = useState(""); // Role filter
   const [status, setStatus] = useState(""); // Status filter
@@ -23,7 +25,7 @@ export default function ManageUsersPage() { // Page component
       setLoading(true); // Loading on
       setError(""); // Clear error
       try { // Fetch
-        const res = await fetchUsers({}, {}); // Mock/REST handled inside
+        const res = await fetchUsers({}, {}, user?.id); // Mock/REST handled inside
         console.log('ManageUsersPage: fetchUsers res.data', res?.data); // Debug log
         if (!mounted) return; // Guard
         if (res.ok) setUsers(res.data.users || []); // Store
@@ -31,6 +33,7 @@ export default function ManageUsersPage() { // Page component
       } catch (e) { // Error
         if (!mounted) return; // Guard
         setError(e?.message || "Failed to load users"); // Show
+        navigate("/login"); // Navigate away on error
       } finally { // Done
         if (!mounted) return; // Guard
         setLoading(false); // Loading off
@@ -38,7 +41,7 @@ export default function ManageUsersPage() { // Page component
     }; // End run
     run(); // Execute
     return () => { mounted = false; }; // Cleanup
-  }, []); // Once
+  }, [user?.id]); // Once
 
   const filtered = useMemo(() => filterUsers(users, { search, role, status }), [users, search, role, status]); // Filter
 
