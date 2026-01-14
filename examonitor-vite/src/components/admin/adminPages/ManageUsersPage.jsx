@@ -189,7 +189,7 @@ export default function ManageUsersPage() { // Page component
 
                 <td className="px-3 py-3">
                   <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                    {statusLabel(u.is_active ? "פעיל" : "לא פעיל")}
+                   {u.is_active ? "פעיל" : "לא פעיל"}
                   </span>
                 </td>
 
@@ -197,10 +197,10 @@ export default function ManageUsersPage() { // Page component
                   <button
                     type="button"
                     disabled={rowBusyId === u.id}
-                    onClick={() => onToggleStatus(u.id, u.status)}
+                    onClick={() => onToggleStatus(u.id, u.is_active ? "active" : "inactive")}
                     className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-semibold transition"
                   >
-                    {u.status === "active" ? "השבת" : "הפעל"}
+                    {u.is_active ? "השבת" : "הפעל"}
                   </button>
                 </td>
               </tr>

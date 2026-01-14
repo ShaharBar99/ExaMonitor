@@ -8,7 +8,7 @@ export const AdminService = {
   async listUsers() {
     const { data, error } = await supabaseAdmin
       .from('profiles')
-      .select('id, full_name, email, role, created_at, username');
+      .select('id, full_name, email, role, created_at, username, is_active')
       console.log('AdminService.listUsers: fetched', data); // Debug log
 
     if (error) {
@@ -24,63 +24,38 @@ export const AdminService = {
       email: u.email ?? '',
       role: u.role ?? 'student',
       username: u.username ?? '',
-      is_active: true,          // placeholder (no column yet)
+      is_active: u.is_active ?? true,          // placeholder (no column yet)
       created_at: u.created_at, // real if exists
       permissions: [],          // placeholder (no column yet)
     }));
   },
 
-  async updateUserRole(userId, role) {
-    // We can update role if the column exists.
-    const { data, error } = await supabaseAdmin
-      .from('profiles')
-      .update({ role })
-      .eq('id', userId)
-      .select('id, full_name, email, role, created_at')
-      .single();
-
-    if (error) {
-      const err = new Error(error.message);
-      err.status = 400;
-      throw err;
-    }
-
-    return {
-      id: data.id,
-      full_name: data.full_name ?? '',
-      email: data.email ?? '',
-      role: data.role ?? role,
-      is_active: true,     // placeholder
-      created_at: data.created_at,
-      permissions: [],     // placeholder
-    };
-  },
-
   async updateUserStatus(userId, is_active) {
-    // Placeholder because DB might not have is_active column.
-    // We'll just return the existing user with the requested status.
-    const { data, error } = await supabaseAdmin
-      .from('profiles')
-      .select('id, full_name, email, role, created_at')
-      .eq('id', userId)
-      .single();
+  const { data, error } = await supabaseAdmin
+    .from('profiles')
+    .update({ is_active: !!is_active })
+    .eq('id', userId)
+    .select('id, full_name, email, role, created_at, username, is_active')
+    .single();
 
-    if (error) {
-      const err = new Error(error.message);
-      err.status = 400;
-      throw err;
-    }
+  if (error) {
+    const err = new Error(error.message);
+    err.status = 400;
+    throw err;
+  }
 
-    return {
-      id: data.id,
-      full_name: data.full_name ?? '',
-      email: data.email ?? '',
-      role: data.role ?? 'student',
-      is_active: !!is_active, // placeholder
-      created_at: data.created_at,
-      permissions: [],        // placeholder
-    };
-  },
+  return {
+    id: data.id,
+    full_name: data.full_name ?? '',
+    email: data.email ?? '',
+    role: data.role ?? 'student',
+    username: data.username ?? '',
+    is_active: data.is_active ?? true,
+    created_at: data.created_at,
+    permissions: [],
+  };
+}
+,
 
   async updateUserPermissions(userId, permissions) {
     // Placeholder because DB might not have permissions column.
@@ -102,7 +77,7 @@ export const AdminService = {
       full_name: data.full_name ?? '',
       email: data.email ?? '',
       role: data.role ?? 'student',
-      is_active: true,          // placeholder
+      is_active: data.is_active ?? true,          // placeholder
       created_at: data.created_at,
       permissions: permissions || [], // placeholder
     };
