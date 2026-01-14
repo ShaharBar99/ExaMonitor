@@ -3,7 +3,7 @@ import { supabase, supabaseAdmin } from '../lib/supabaseClient.js';
 async function fetchUserProfile(column, value) {
   const { data: profile, error: profileErr } = await supabaseAdmin
     .from('profiles')
-    .select('id, email, full_name, role, username')
+    .select('id, email, full_name, role, username, is_active')
     .eq(column, value)
     .single();
   if (profileErr) {
@@ -54,7 +54,12 @@ export const AuthService = {
     const profile = await fetchUserProfile('id', authUser.id);
 
     const actualRole = profile?.role ?? 'student';
-
+    const status = profile?.is_active ?? true;
+    if (!status) {
+      const err = new Error('User account is inactive');
+      err.status = 403;
+      throw err;
+    }
     // Enforce role match
     if (requestedRole !== actualRole) {
       const err = new Error('Role mismatch');
@@ -126,7 +131,7 @@ export const AuthService = {
     const user = data.user;
 
     const { error: profileError } = await supabaseAdmin.from('profiles').upsert([
-        { id: user.id, email: user.email, full_name: name, role, username },
+        { id: user.id, email: user.email, full_name: name, role, username, is_active: true },
     ]);
 
     if (profileError) {

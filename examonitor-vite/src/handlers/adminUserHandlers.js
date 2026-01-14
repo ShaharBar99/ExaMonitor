@@ -12,7 +12,8 @@ export function filterUsers(users, filters = {}) { // Filter users by search/rol
 
   return list.filter((u) => { // Filter predicate
     const name = String(u?.full_name || "").toLowerCase();
-    const uStatus = u?.is_active ? "active" : "inactive"; const username = String(u?.username || "").toLowerCase(); // Normalize username
+    const uStatus = u?.is_active ? "active" : "inactive"; 
+    const username = String(u?.username || "").toLowerCase(); // Normalize username
     const uRole = normalizeRole(u?.role); // Normalize role
 
     const matchQ = !q || name.includes(q) || username.includes(q); // Search matches
