@@ -10,13 +10,19 @@ const SelectExamPage = ({ navigate }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [error, setError] = useState(null);
 
+
   useEffect(() => {
     const loadExams = async () => {
       try {
         setLoading(true);
         setError(null);
-        const fetchedExams = await examHandlers.fetchExamsWithClassrooms(filterStatus, user?.id);
-        setExams(fetchedExams);
+        if(user && user?.role === 'lecturer'){
+          const fetchedExams = await examHandlers.fetchExamsWithClassrooms(filterStatus, null, user?.id);
+          setExams(fetchedExams);
+        } else {
+          const fetchedExams = await examHandlers.fetchExamsWithClassrooms(filterStatus, user?.id);
+          setExams(fetchedExams);
+        }
       } catch (error) {
         console.error("Failed to fetch exams", error);
         setError("Failed to load exams. Please try again.");
@@ -147,22 +153,23 @@ const SelectExamPage = ({ navigate }) => {
 
               {/* Action Button */}
               <div className="text-left">
-                if(user?.role === 'lecturer') {
+                {user?.role === 'lecturer' ? (
                   <button 
                     onClick={() => navigate(`/Lecturer/lecturerDashboardPage/${exam.id}`, { state: { exam, classrooms: exam.classrooms } })}
                     className="bg-[#0f172a] hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center gap-3 mr-auto"
                   >
-                  כניסה למערכת
-                  <span className="text-lg">←</span>
+                    כניסה למערכת (מרצה)
+                    <span className="text-lg">←</span>
                   </button>
-                } else {
+                ) : (
                   <button 
                     onClick={() => navigate(`/exam/active/${exam.id}`, { state: { exam, classrooms: exam.classrooms } })}
                     className="bg-[#0f172a] hover:bg-emerald-600 text-white px-8 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all shadow-lg active:scale-95 flex items-center gap-3 mr-auto"
                   >
-                  כניסה למערכת
-                  <span className="text-lg">←</span>
-                </button>}
+                    כניסה למערכת
+                    <span className="text-lg">←</span>
+                  </button>
+                )}
               </div>
             </div>
           ))}

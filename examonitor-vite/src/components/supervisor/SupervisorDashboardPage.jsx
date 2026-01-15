@@ -42,6 +42,12 @@ export default function SupervisorDashboard() {
   }, [examId, user.id, setExamData]);
 
   useEffect(() => {
+    if(user.role !== 'supervisor') {
+      navigate('/login');
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (location.state?.classrooms) {
       console.log("Using classrooms from navigation state:", location.state.classrooms); 
       setClassrooms(location.state.classrooms[0]);

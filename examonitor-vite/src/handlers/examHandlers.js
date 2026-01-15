@@ -18,7 +18,8 @@ export const examHandlers = {
         try {
             let exams = await examsApi.listExams(status);
             let classrooms = await classroomApi.getClassrooms();
-            let courses = await examsApi.listCourses();
+            let courses = [];
+            if (lecturerId!==null) courses = await examsApi.listCourses();
             console.log('Fetched exams:', exams);
             // אם יש supervisor_id, סנן קודם את החדרים שהוקצו לעובד הפרטי הזה
             if (supervisorId) {
