@@ -103,7 +103,7 @@ export const attendanceHandlers = {
   /**
    * התחלת הפסקה לסטודנט
    */
-  startBreak: async (studentId, reason, setStudents) => {
+  handleStartBreak: async (studentId, reason, setStudents) => {
     try {
       await attendanceApi.startBreak(studentId, reason);
       setStudents(prev => prev.map(s => s.id === studentId || s.attendanceId === studentId ? { ...s, status: 'exited_temporarily' } : s));
@@ -116,10 +116,17 @@ export const attendanceHandlers = {
   /**
    * סיום הפסקה לסטודנט
    */
-  endBreak: async (studentId, setStudents) => {
+  handleEndBreak: async (studentId, setStudents) => {
     try {
       await attendanceApi.endBreak(studentId);
-      setStudents(prev => prev.map(s => s.id || s.attendanceId ? { ...s, status: 'present' } : s));
+      setStudents(prev => 
+        prev.map(s => 
+          // בודקים אם הסטודנט הנוכחי בלולאה הוא זה שחזר מהשירותים
+          (s.id === studentId || s.attendanceId === studentId || s.studentId === studentId) 
+            ? { ...s, status: 'present' } // רק אותו מעדכנים
+            : s // כל השאר נשארים כפי שהיו
+        )
+      );
     } catch (error) {
       console.error("Failed to end break:", error);
       alert("נכשל בסיום הפסקה");

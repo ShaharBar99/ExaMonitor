@@ -135,10 +135,10 @@ export default function SupervisorDashboard() {
         await handleStatusChange(student.id, 'במבחן');
         setBotMsg({ text: `✅ כניסה למבחן: ${student.name}` });
       } else if (student.status === 'present') {
-        await attendanceHandlers.startBreak(student.id, 'toilet', setStudents);
+        await attendanceHandlers.handleStartBreak(student.id, 'toilet', setStudents);
         setBotMsg({ text: `🚶 יציאה לשירותים: ${student.name}`, isAlert: false });
       } else if (student.status === 'exited_temporarily') {
-        await attendanceHandlers.endBreak(student.id, setStudents);
+        await attendanceHandlers.handleEndBreak(student.id, setStudents);
         setBotMsg({ text: `🔙 חזרה מהשירותים: ${student.name}` });
       } else if (student.status === 'submitted') {
         setBotMsg({ text: `🚫 ${student.name} כבר הגיש/ה את הבחינה ולא ניתן לקלוט שוב.` });
@@ -179,9 +179,9 @@ export default function SupervisorDashboard() {
     const student = students.find(s => s.id === id || s.studentId === id);
     if (!student) return;
     if (status === 'שירותים') {
-      await attendanceHandlers.startBreak(student.id, 'toilet', setStudents);
+      await attendanceHandlers.handleStartBreak(student.id, 'toilet', setStudents);
     } else if (status === 'במבחן' && student.status === 'exited_temporarily') {
-      await attendanceHandlers.endBreak(student.id, setStudents);
+      await attendanceHandlers.handleEndBreak(student.id, setStudents);
     } else {
       const mappedStatus = status === 'במבחן' ? 'present' : status === 'סיים' ? 'submitted' : status;
       await attendanceHandlers.changeStudentStatus(student.id, mappedStatus, setStudents);
