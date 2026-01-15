@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
-export default function IncidentReportPage(examId, classroom) {
+export default function IncidentReportPage() {
   const navigate = useNavigate();
+  const { examId } = useParams(); // שליפת ה-ID של המבחן מהכתובת
   
   const [formData, setFormData] = useState({
     examId: examId || '',
-    roomNumber: classroom || '',
+    roomNumber: '',
     studentId: '',
     incidentType: '',
     severity: 'medium',
@@ -23,100 +24,101 @@ export default function IncidentReportPage(examId, classroom) {
     "אחר"
   ];
 
+  // פונקציית עזר לחזרה למבחן (לטאב ה-Attendance)
+  const goBackToExam = () => {
+    // מנווט חזרה לעמוד המבחן. המערכת שלך כבר תטען את טאב ברירת המחדל (Attendance)
+    window.location.href = `/exam/active/${examId}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // לוגיקה לשליחה...
-    // await incidentHandlers.submitReport(formData, navigate);
-    navigate(-1);
+    // כאן תבוא הלוגיקה של שליחת הדיווח ל-DB
+    console.log("Report Submitted:", formData);
+    goBackToExam();
   };
 
   return (
     <div className="min-h-screen bg-[#0f172a] p-8 md:p-16 text-right text-white font-sans" dir="rtl">
       
       {/* Header Section */}
-      <header className="max-w-4xl mx-auto flex justify-between items-center mb-16">
-        <div className="flex items-center gap-8">
+      <header className="max-w-5xl mx-auto flex justify-between items-center mb-20">
+        <div className="flex items-center gap-10">
           <button 
-            onClick={() => navigate(-1)} 
-            className="w-14 h-14 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all active:scale-90"
+            type="button"
+            onClick={goBackToExam} 
+            className="w-20 h-20 flex items-center justify-center bg-white/5 border-2 border-white/10 rounded-[25px] hover:bg-white/10 hover:border-white/20 transition-all active:scale-90"
           >
-            <span className="text-xl">➜</span>
+            <span className="text-3xl text-rose-500">➜</span>
           </button>
           <div>
-            <h1 className="text-4xl font-black italic uppercase tracking-tighter leading-none">Report Incident</h1>
-            <div className="flex items-center gap-3 mt-3">
-              <span className="w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>
-              <p className="text-slate-400 font-black text-[15px] uppercase tracking-[0.3em]">בקרת אירועים בזמן אמת • פרוטוקול אבטחה פעיל</p>
+            <h1 className="text-6xl font-black italic uppercase tracking-tighter leading-none mb-4">Report Incident</h1>
+            <div className="flex items-center gap-4">
+              <span className="w-4 h-4 bg-rose-500 rounded-full animate-ping"></span>
+              <p className="text-slate-400 font-black text-2xl uppercase tracking-[0.2em]">בקרת אירועים בזמן אמת</p>
             </div>
           </div>
         </div>
         
         <div className="hidden md:flex flex-col items-end">
-            <span className="text-[15px] font-black text-slate-500 uppercase tracking-widest mb-1">Time of Incident</span>
-            <span className="text-2xl font-black font-mono text-rose-500">{formData.time}</span>
+            <span className="text-xl font-black text-slate-500 uppercase tracking-widest mb-2">Time of Incident</span>
+            <span className="text-5xl font-black font-mono text-rose-500">{formData.time}</span>
         </div>
       </header>
 
       {/* Main Form Content */}
-      <main className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-[45px] shadow-2xl shadow-black/50 overflow-hidden border border-white/10">
+      <main className="max-w-5xl mx-auto">
+        <div className="bg-white rounded-[55px] shadow-2xl shadow-black/60 overflow-hidden border border-white/10">
           
-          {/* Info Banner */}
-          <div className="bg-rose-600 p-8 flex items-center justify-between">
-            <p className="text-white font-black text-sm italic uppercase tracking-tight">
+          <div className="bg-rose-600 p-10 flex items-center justify-between">
+            <p className="text-white font-black text-xl italic uppercase tracking-tight">
               ⚠️ שים לב: דיווח זה מתועד ביומן הבחינה הדיגיטלי ונשלח מיידית למנהל הקומה
             </p>
-            <span className="text-rose-200 text-xs font-bold opacity-50 font-mono">CODE: INC-772</span>
+            <span className="text-rose-200 text-lg font-bold opacity-60 font-mono">INC-CODE: {examId?.slice(-4)}</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-12 md:p-16 space-y-10">
+          <form onSubmit={handleSubmit} className="p-16 md:p-20 space-y-14">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              {/* מספר חדר */}
-              <div className="space-y-3">
-                <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest pr-2">מספר חדר / מיקום</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-14">
+              <div className="space-y-5">
+                <label className="text-2xl font-black text-slate-400 uppercase tracking-widest pr-4">מספר חדר / מיקום</label>
                 <input 
                   required
                   type="text" 
-                  placeholder="לדוגמה: 302"
-                  className="w-full bg-slate-50 border-2 border-slate-100 focus:border-rose-500 focus:bg-white rounded-[22px] py-5 px-8 text-slate-900 font-black transition-all outline-none"
+                  value={formData.roomNumber}
+                  className="w-full bg-slate-50 border-4 border-slate-100 focus:border-rose-500 focus:bg-white rounded-[30px] py-7 px-10 text-3xl text-slate-900 font-black transition-all outline-none"
                   onChange={(e) => setFormData({...formData, roomNumber: e.target.value})}
                 />
               </div>
 
-              {/* תעודת זהות סטודנט */}
-              <div className="space-y-3">
-                <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest pr-2">ת.ז. סטודנט מעורב</label>
+              <div className="space-y-5">
+                <label className="text-2xl font-black text-slate-400 uppercase tracking-widest pr-4">ת.ז. סטודנט מעורב</label>
                 <input 
                   type="text" 
-                  placeholder="הזן 9 ספרות"
-                  className="w-full bg-slate-50 border-2 border-slate-100 focus:border-rose-500 focus:bg-white rounded-[22px] py-5 px-8 text-slate-900 font-black transition-all outline-none"
+                  className="w-full bg-slate-50 border-4 border-slate-100 focus:border-rose-500 focus:bg-white rounded-[30px] py-7 px-10 text-3xl text-slate-900 font-black transition-all outline-none"
                   onChange={(e) => setFormData({...formData, studentId: e.target.value})}
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              {/* סוג אירוע */}
-              <div className="space-y-3">
-                <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest pr-2">סיווג האירוע</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-14">
+              <div className="space-y-5">
+                <label className="text-2xl font-black text-slate-400 uppercase tracking-widest pr-4">סיווג האירוע</label>
                 <div className="relative">
                   <select 
                     required
-                    className="w-full bg-slate-50 border-2 border-slate-100 focus:border-rose-500 focus:bg-white rounded-[22px] py-5 px-8 text-slate-900 font-black transition-all outline-none appearance-none cursor-pointer"
+                    className="w-full bg-slate-50 border-4 border-slate-100 focus:border-rose-500 focus:bg-white rounded-[30px] py-7 px-10 text-3xl text-slate-900 font-black transition-all outline-none appearance-none cursor-pointer"
                     onChange={(e) => setFormData({...formData, incidentType: e.target.value})}
                   >
                     <option value="">בחר מהרשימה...</option>
                     {incidentTypes.map(type => <option key={type} value={type}>{type}</option>)}
                   </select>
-                  <div className="absolute left-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">▼</div>
+                  <div className="absolute left-10 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-2xl">▼</div>
                 </div>
               </div>
 
-              {/* דחיפות */}
-              <div className="space-y-3">
-                <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest pr-2">רמת חומרה</label>
-                <div className="flex gap-3 h-17">
+              <div className="space-y-5">
+                <label className="text-2xl font-black text-slate-400 uppercase tracking-widest pr-4">רמת חומרה</label>
+                <div className="flex gap-5 h-24">
                   {[
                     {id: 'low', label: 'רגיל', color: 'peer-checked:bg-slate-900'},
                     {id: 'medium', label: 'בינוני', color: 'peer-checked:bg-amber-500'},
@@ -130,7 +132,7 @@ export default function IncidentReportPage(examId, classroom) {
                         checked={formData.severity === lvl.id}
                         onChange={() => setFormData({...formData, severity: lvl.id})} 
                       />
-                      <div className={`h-full flex items-center justify-center rounded-[20px] bg-slate-100 text-slate-400 font-black text-[15px] uppercase tracking-widest transition-all peer-checked:text-white peer-checked:shadow-lg ${lvl.color}`}>
+                      <div className={`h-full flex items-center justify-center rounded-[25px] bg-slate-100 text-slate-400 font-black text-xl uppercase tracking-widest transition-all peer-checked:text-white peer-checked:shadow-2xl ${lvl.color}`}>
                         {lvl.label}
                       </div>
                     </label>
@@ -139,43 +141,40 @@ export default function IncidentReportPage(examId, classroom) {
               </div>
             </div>
 
-            {/* תיאור האירוע */}
-            <div className="space-y-3">
-              <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest pr-2">תיאור מפורט של המקרה</label>
+            <div className="space-y-5">
+              <label className="text-2xl font-black text-slate-400 uppercase tracking-widest pr-4">תיאור מפורט של המקרה</label>
               <textarea 
                 required
-                rows="5"
-                placeholder="פרט כאן את מהלך האירוע בצורה אובייקטיבית..."
-                className="w-full bg-slate-50 border-2 border-slate-100 focus:border-rose-500 focus:bg-white rounded-[30px] py-6 px-8 text-slate-900 font-bold transition-all outline-none resize-none leading-relaxed"
+                rows="6"
+                className="w-full bg-slate-50 border-4 border-slate-100 focus:border-rose-500 focus:bg-white rounded-[40px] py-10 px-10 text-3xl text-slate-900 font-bold transition-all outline-none resize-none leading-relaxed"
                 onChange={(e) => setFormData({...formData, description: e.target.value})}
               ></textarea>
             </div>
 
             {/* כפתורי פעולה */}
-            <div className="flex flex-col md:flex-row gap-5 pt-6">
+            <div className="flex flex-col md:flex-row gap-8 pt-10">
               <button 
                 type="submit"
-                className="flex-2 bg-slate-900 text-white py-6 rounded-[22px] font-black text-sm uppercase tracking-[0.2em] hover:bg-rose-600 transition-all active:scale-[0.98] shadow-2xl shadow-slate-200 flex items-center justify-center gap-4"
+                className="flex-2 bg-slate-900 text-white py-10 rounded-[30px] font-black text-2xl uppercase tracking-[0.2em] hover:bg-rose-600 transition-all active:scale-[0.98] shadow-2xl flex items-center justify-center gap-6"
               >
                 <span>SEND REPORT</span>
-                <span className="opacity-30">|</span>
+                <span className="opacity-30 text-4xl">|</span>
                 <span>שליחת דיווח חריג</span>
               </button>
               
               <button 
                 type="button"
-                onClick={() => navigate(-1)}
-                className="flex-1 bg-white border-2 border-slate-100 text-slate-400 py-6 rounded-[22px] font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
+                onClick={goBackToExam} // שינוי כאן: חזרה ישירה למבחן
+                className="flex-1 bg-white border-4 border-slate-100 text-slate-400 py-10 rounded-[30px] font-black text-xl uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
               >
-                ביטול
+                ביטול וחזרה
               </button>
             </div>
           </form>
         </div>
 
-        {/* Footer info */}
-        <p className="mt-10 text-center text-[15px] font-black text-slate-600 uppercase tracking-[0.4em] opacity-50">
-          Digital Incident Logging System • Version 4.0.1 • Authorized Personnel Only
+        <p className="mt-16 text-center text-xl font-black text-slate-600 uppercase tracking-[0.4em] opacity-40">
+          Digital Incident Logging System • Version 4.0.1
         </p>
       </main>
     </div>
