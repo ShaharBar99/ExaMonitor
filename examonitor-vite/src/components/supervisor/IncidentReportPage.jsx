@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-export default function IncidentReportPage() {
+export default function IncidentReportPage(examId, classroom) {
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
-    roomNumber: '',
+    examId: examId || '',
+    roomNumber: classroom || '',
     studentId: '',
     incidentType: '',
     severity: 'medium',
@@ -45,14 +46,14 @@ export default function IncidentReportPage() {
             <h1 className="text-4xl font-black italic uppercase tracking-tighter leading-none">Report Incident</h1>
             <div className="flex items-center gap-3 mt-3">
               <span className="w-2 h-2 bg-rose-500 rounded-full animate-ping"></span>
-              <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em]">בקרת אירועים בזמן אמת • פרוטוקול אבטחה פעיל</p>
+              <p className="text-slate-400 font-black text-[15px] uppercase tracking-[0.3em]">בקרת אירועים בזמן אמת • פרוטוקול אבטחה פעיל</p>
             </div>
           </div>
         </div>
         
         <div className="hidden md:flex flex-col items-end">
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Time of Incident</span>
-            <span className="text-2xl font-black font-mono text-rose-500 italic">{formData.time}</span>
+            <span className="text-[15px] font-black text-slate-500 uppercase tracking-widest mb-1">Time of Incident</span>
+            <span className="text-2xl font-black font-mono text-rose-500">{formData.time}</span>
         </div>
       </header>
 
@@ -73,7 +74,7 @@ export default function IncidentReportPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               {/* מספר חדר */}
               <div className="space-y-3">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pr-2">מספר חדר / מיקום</label>
+                <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest pr-2">מספר חדר / מיקום</label>
                 <input 
                   required
                   type="text" 
@@ -85,7 +86,7 @@ export default function IncidentReportPage() {
 
               {/* תעודת זהות סטודנט */}
               <div className="space-y-3">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pr-2">ת.ז. סטודנט מעורב</label>
+                <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest pr-2">ת.ז. סטודנט מעורב</label>
                 <input 
                   type="text" 
                   placeholder="הזן 9 ספרות"
@@ -98,7 +99,7 @@ export default function IncidentReportPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               {/* סוג אירוע */}
               <div className="space-y-3">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pr-2">סיווג האירוע</label>
+                <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest pr-2">סיווג האירוע</label>
                 <div className="relative">
                   <select 
                     required
@@ -114,7 +115,7 @@ export default function IncidentReportPage() {
 
               {/* דחיפות */}
               <div className="space-y-3">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pr-2">רמת חומרה</label>
+                <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest pr-2">רמת חומרה</label>
                 <div className="flex gap-3 h-17">
                   {[
                     {id: 'low', label: 'רגיל', color: 'peer-checked:bg-slate-900'},
@@ -129,7 +130,7 @@ export default function IncidentReportPage() {
                         checked={formData.severity === lvl.id}
                         onChange={() => setFormData({...formData, severity: lvl.id})} 
                       />
-                      <div className={`h-full flex items-center justify-center rounded-[20px] bg-slate-100 text-slate-400 font-black text-[11px] uppercase tracking-widest transition-all peer-checked:text-white peer-checked:shadow-lg ${lvl.color}`}>
+                      <div className={`h-full flex items-center justify-center rounded-[20px] bg-slate-100 text-slate-400 font-black text-[15px] uppercase tracking-widest transition-all peer-checked:text-white peer-checked:shadow-lg ${lvl.color}`}>
                         {lvl.label}
                       </div>
                     </label>
@@ -140,7 +141,7 @@ export default function IncidentReportPage() {
 
             {/* תיאור האירוע */}
             <div className="space-y-3">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pr-2">תיאור מפורט של המקרה</label>
+              <label className="text-[15px] font-black text-slate-400 uppercase tracking-widest pr-2">תיאור מפורט של המקרה</label>
               <textarea 
                 required
                 rows="5"
@@ -173,7 +174,7 @@ export default function IncidentReportPage() {
         </div>
 
         {/* Footer info */}
-        <p className="mt-10 text-center text-[10px] font-black text-slate-600 uppercase tracking-[0.4em] opacity-50">
+        <p className="mt-10 text-center text-[15px] font-black text-slate-600 uppercase tracking-[0.4em] opacity-50">
           Digital Incident Logging System • Version 4.0.1 • Authorized Personnel Only
         </p>
       </main>

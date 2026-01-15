@@ -12,7 +12,8 @@ import { useExam } from '../state/ExamContext';
 import { useAuth } from '../state/AuthContext';
 import StatCard from '../exam/StatCard';
 import { HeaderButton } from '../shared/Button';
-import AdmissionScanner from './AdmissionScanner'; // ייבוא הסורק
+import AdmissionScanner from './AdmissionScanner';
+import IncidentReportPage from './IncidentReportPage';
 
 const PROTOCOL_STEPS = [
   { 
@@ -42,6 +43,7 @@ export default function SupervisorDashboard() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('bot');
+  const [dashboardTab, setDashboardTab] = useState('attendance'); 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [remainingTime, setRemainingTime] = useState(null);
   const [classrooms, setClassrooms] = useState([]);
@@ -49,7 +51,7 @@ export default function SupervisorDashboard() {
   const [botMsg, setBotMsg] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
   const alertedStudents = useRef(new Set());
-  const [isScannerOpen, setIsScannerOpen] = useState(false); // מצב סורק
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const [isRemoveBarOpen, setIsRemoveBarOpen] = useState(false);
   const [removeSearchQuery, setRemoveSearchQuery] = useState('');
@@ -61,6 +63,7 @@ export default function SupervisorDashboard() {
   const lastScannedId = useRef(null);
   const scanLock = useRef(false);
 
+  // --- כל הלוגיקה המקורית (ללא שינוי) ---
   useEffect(() => {
     attendanceHandlers.initSupervisorConsole(examId, user.id, setStudents, setLoading, setExamData);
   }, [examId, user.id, setExamData]);
@@ -121,51 +124,34 @@ export default function SupervisorDashboard() {
   }, [students, remainingTime]);
 
   const handleScanResult = async (scannedId) => {
-  if (scanLock.current || scannedId === lastScannedId.current) return;
+    if (scanLock.current || scannedId === lastScannedId.current) return;
+    scanLock.current = true;
+    lastScannedId.current = scannedId;
 
-  scanLock.current = true;
-  lastScannedId.current = scannedId;
-
-  const student = students.find(s => s.student_id === scannedId || s.id === scannedId || s.studentId === scannedId);
-  
-  if (student) {
-    // מקרה 1: הסטודנט רשום אך עדיין לא נכנס (Check-in)
-    if (student.status === 'absent' || !student.status) {
-      await handleStatusChange(student.id, 'במבחן');
-      setBotMsg({ text: `✅ כניסה למבחן: ${student.name}` });
-    } 
+    const student = students.find(s => s.student_id === scannedId || s.id === scannedId || s.studentId === scannedId);
     
-    // מקרה 2: הסטודנט כבר במבחן ורוצה לצאת לשירותים
-    else if (student.status === 'present') {
-      await attendanceHandlers.startBreak(student.id, 'toilet', setStudents);
-      setBotMsg({ text: `🚶 יציאה לשירותים: ${student.name}`, isAlert: false });
-    } 
-    
-    // מקרה 3: הסטודנט בחוץ וחוזר כעת מהשירותים
-    else if (student.status === 'exited_temporarily') {
-      await attendanceHandlers.endBreak(student.id, setStudents);
-      setBotMsg({ text: `🔙 חזרה מהשירותים: ${student.name}` });
-    }
-    
-    // מקרה 4: הסטודנט כבר הגיש את הבחינה
-    else if (student.status === 'submitted') {
-      setBotMsg({ text: `🚫 ${student.name} כבר הגיש/ה את הבחינה ולא ניתן לקלוט שוב.` });
-    }
-  } else {
-    await attendanceHandlers.handleAddStudent(classrooms.id, null, setStudents, scannedId);
-      
+    if (student) {
+      if (student.status === 'absent' || !student.status) {
+        await handleStatusChange(student.id, 'במבחן');
+        setBotMsg({ text: `✅ כניסה למבחן: ${student.name}` });
+      } else if (student.status === 'present') {
+        await attendanceHandlers.startBreak(student.id, 'toilet', setStudents);
+        setBotMsg({ text: `🚶 יציאה לשירותים: ${student.name}`, isAlert: false });
+      } else if (student.status === 'exited_temporarily') {
+        await attendanceHandlers.endBreak(student.id, setStudents);
+        setBotMsg({ text: `🔙 חזרה מהשירותים: ${student.name}` });
+      } else if (student.status === 'submitted') {
+        setBotMsg({ text: `🚫 ${student.name} כבר הגיש/ה את הבחינה ולא ניתן לקלוט שוב.` });
+      }
+    } else {
+      await attendanceHandlers.handleAddStudent(classrooms.id, null, setStudents, scannedId);
       setBotMsg({ text: `✨ ${scannedId} נוסף ונקלט.` });  
-  }
-
-// פונקציות עזר לצלילים כדי להבדיל בין כניסה ליציאה
-
-
-  // 2. שחרור הנעילה אחרי 3 שניות כדי לאפשר סריקה של הסטודנט הבא
-  setTimeout(() => {
-    scanLock.current = false;
-    lastScannedId.current = null;
-  }, 3000);
-};
+    }
+    setTimeout(() => {
+      scanLock.current = false;
+      lastScannedId.current = null;
+    }, 3000);
+  };
 
   const handleBotAction = (action) => {
     if (action === "NEXT_STEP") {
@@ -191,7 +177,6 @@ export default function SupervisorDashboard() {
 
   const handleStatusChange = async (id, status) => {
     const student = students.find(s => s.id === id || s.studentId === id);
-    console.log('Changing status for student:', student, 'to', status);
     if (!student) return;
     if (status === 'שירותים') {
       await attendanceHandlers.startBreak(student.id, 'toilet', setStudents);
@@ -236,13 +221,13 @@ export default function SupervisorDashboard() {
     return students.filter(s => s.id?.includes(removeSearchQuery) || s.name.toLowerCase().includes(removeSearchQuery.toLowerCase())).slice(0, 3);
   }, [students, removeSearchQuery]);
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-[#0f172a] text-white font-black italic">INITIALIZING SYSTEM...</div>;
+  if (loading) return <div className="h-screen flex items-center justify-center bg-[#0f172a] text-white font-black text-4xl">טוען מערכת...</div>;
 
   return (
     <div className="h-screen flex bg-[#0f172a] overflow-hidden text-right font-sans" dir="rtl">
       
       <Sidebar 
-        tabs={[{ id: 'bot', icon: '🤖', label: 'ExamBot' }, { id: 'chat', icon: '🏢', label: "קשר" }]} 
+        tabs={[{ id: 'bot', icon: '🤖', label: 'עוזר' }, { id: 'chat', icon: '🏢', label: "קשר" }]} 
         activeTab={activeTab} setActiveTab={setActiveTab} 
         isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} 
         logoText="EX" logoColor="bg-emerald-600"
@@ -251,100 +236,144 @@ export default function SupervisorDashboard() {
       </Sidebar>
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="bg-white/5 border-b border-white/10 px-10 py-8 flex justify-between items-center z-30 backdrop-blur-md">
-          <div className="flex items-center gap-8 text-white">
+        
+        {/* Header מוגדל */}
+        <header className="bg-white/10 border-b-2 border-white/10 px-10 py-8 flex justify-between items-center z-30 backdrop-blur-md">
+          <div className="flex items-center gap-10 text-white">
             <div>
-              <h1 className="text-3xl font-black leading-none tracking-tight uppercase">Room Control</h1>
-              <div className="flex items-center gap-3 mt-3">
-                <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${examData?.status === 'pending' ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em]">
-                   {classrooms.room_number || 'WING A'} • {examId} • {examData?.status === 'pending' ? 'הכנה' : 'פעולה'}
-                </p>
-              </div>
+              <h1 className="text-4xl font-black uppercase">ניהול בחינה</h1>
+              <p className="text-xl text-emerald-400 font-bold mt-1">כיתה {classrooms.room_number || '---'}</p>
             </div>
+
+            {/* ניווט טאבים ענק */}
+            <nav className="flex bg-black/40 p-2 rounded-[25px] border border-white/20">
+              <button 
+                onClick={() => setDashboardTab('attendance')} 
+                className={`px-14 py-5 rounded-[20px] text-3xl font-black transition-all ${dashboardTab === 'attendance' ? 'bg-emerald-600 text-white shadow-xl' : 'text-slate-400 hover:text-white'}`}
+              >
+                👥 נוכחות
+              </button>
+              <button 
+                onClick={() => setDashboardTab('incident')} 
+                className={`px-14 py-5 rounded-[20px] text-3xl font-black transition-all ${dashboardTab === 'incident' ? 'bg-rose-600 text-white shadow-xl' : 'text-slate-400 hover:text-white'}`}
+              >
+                ⚠️ דיווח
+              </button>
+            </nav>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button onClick={() => setIsScannerOpen(true)} className="bg-emerald-600 text-white px-6 py-4 rounded-xl font-black text-xs uppercase flex items-center gap-2 hover:bg-emerald-500 transition-all">
-              <span>📷</span> סרוק לקליטה
-            </button>
-            <HeaderButton onClick={() => incidentHandlers.handleCallManager(examId)} variant="warning" label="קריאה למנהל" icon="🆘" />
-            <HeaderButton onClick={() => navigate(`/exam/incident-report/${examId}`)} variant="danger" label="דיווח חריג" icon="⚠️" />
-            <div className="mx-6 px-6 border-x border-white/10 shrink-0">
+          <div className="flex items-center gap-6">
+            <div className="scale-125 origin-right ml-20">
               {remainingTime !== null && <ExamTimer initialSeconds={remainingTime} isPaused={examData?.status !== 'active'} />}
             </div>
-            <button onClick={handleFinishExam} className="bg-white text-[#0f172a] px-10 py-5 rounded-2xl font-black text-xs uppercase hover:bg-emerald-500 hover:text-white transition-all">
-              סיום מבחן
+            <button onClick={handleFinishExam} className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black text-xl hover:bg-rose-600 hover:text-white transition-all shadow-xl">
+              סיום
             </button>
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-12 bg-[#0f172a] space-y-10">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-in slide-in-from-top-4 duration-500">
-            <StatCard label="רשומים" value={students.length} variant="default" icon="👥" />
-            <StatCard label="הגישו" value={students.filter(s => s.status === 'submitted').length} variant="success" icon="📝" />
-            <StatCard label="בחדר" value={students.filter(s => s.status === 'present').length} variant="info" icon="🏠" />
-            <StatCard label="בחוץ" value={students.filter(s => s.status === 'exited_temporarily').length} variant="warning" highlight={students.filter(s => s.status === 'exited_temporarily').length > 0} icon="🚶" />
-          </div>
-
-          <div className="bg-white rounded-[50px] shadow-2xl border border-white/10 flex flex-col relative overflow-hidden animate-in slide-in-from-bottom-8 duration-700 min-h-150">
-            
-            {/* Removal Bar */}
-            <div className={`absolute top-0 left-0 w-full z-40 transition-all duration-500 bg-rose-600 ${isRemoveBarOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
-                <div className="px-12 py-8 flex items-center gap-8">
-                    <input 
-                      type="text" placeholder="חיפוש להסרה מהירה..."
-                      className="flex-1 bg-white/20 border-2 border-white/30 rounded-2xl py-4 px-8 text-white font-bold placeholder:text-white/50 outline-none"
-                      value={removeSearchQuery} onChange={(e) => setRemoveSearchQuery(e.target.value)}
-                    />
-                    <div className="flex gap-4">
-                      {filteredForRemoval.map(s => (
-                        <button key={s.id} onClick={() => confirmRemoval(s)} className="bg-white px-6 py-4 rounded-2xl font-black text-slate-800 text-xs shadow-xl">
-                          {s.name} ✖
-                        </button>
-                      ))}
-                    </div>
-                    <button onClick={() => setIsRemoveBarOpen(false)} className="text-white font-black text-xs uppercase">ביטול</button>
+          
+          {dashboardTab === 'attendance' ? (
+            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              
+              {/* סטטיסטיקה וכפתורים ראשיים */}
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                <StatCard label="רשומים" value={students.length} variant="default" icon="👥" />
+                <StatCard label="בחדר" value={students.filter(s => s.status === 'present').length} variant="info" icon="🏠" />
+                
+                <div className="md:col-span-3 flex gap-6">
+                    {/* כפתור סריקה ענק */}
+                    <button 
+                        onClick={() => setIsScannerOpen(true)}
+                        className="flex-1 bg-emerald-500 text-white rounded-[35px] flex flex-col items-center justify-center gap-2 hover:bg-emerald-400 shadow-2xl border-b-8 border-emerald-700 active:border-b-0 transition-all py-4"
+                    >
+                        <span className="text-5xl">📷</span>
+                        <span className="font-black text-2xl uppercase">סרוק סטודנט</span>
+                    </button>
+                    {/* כפתור קריאה למנהל ענק */}
+                    <button 
+                        onClick={() => incidentHandlers.handleCallManager(examId)}
+                        className="flex-1 bg-amber-500 text-white rounded-[35px] flex flex-col items-center justify-center gap-2 hover:bg-amber-400 shadow-2xl border-b-8 border-amber-700 active:border-b-0 transition-all py-4"
+                    >
+                        <span className="text-5xl">🆘</span>
+                        <span className="font-black text-2xl uppercase">קריאה למנהל</span>
+                    </button>
                 </div>
-            </div>
-
-            <div className="p-12 flex flex-col gap-10">
-              <div className="flex justify-between items-center">
-                <h2 className="text-4xl font-black text-[#0f172a] uppercase tracking-tighter italic">Attendance</h2>
-                <button onClick={() => setIsRemoveBarOpen(true)} className="bg-rose-50 text-rose-500 px-8 py-4 rounded-2xl font-black text-[11px] uppercase border-2 border-rose-100 hover:bg-rose-500 hover:text-white transition-all">
-                  ✖ הסרה מהירה
-                </button>
               </div>
 
-              {/* חיפוש והוספה ידנית */}
-              <div className="relative bg-slate-50 p-6 rounded-[30px] border border-slate-100">
-                <input 
-                  type="text" placeholder="חיפוש סטודנט להוספה..." 
-                  className="w-full bg-white border-2 border-transparent focus:border-emerald-500 py-4 px-6 rounded-2xl font-bold shadow-sm outline-none transition-all"
-                  value={searchQuery} onChange={handleSearchChange}
-                />
-                {searchResults.length > 0 && (
-                  <ul className="absolute z-50 w-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden">
-                    {searchResults.map(result => (
-                      <li key={result.id} onClick={() => { attendanceHandlers.handleAddStudent(classrooms.id, result.id, setStudents); setSearchQuery(''); setSearchResults([]); }}
-                          className="px-6 py-4 hover:bg-emerald-50 cursor-pointer flex justify-between items-center group">
-                        <span className="font-black text-slate-800">{result.full_name} ({result.student_id})</span>
-                        <span className="text-emerald-600 font-black text-xs opacity-0 group-hover:opacity-100">+ הוסף</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+              {/* רשימת הסטודנטים */}
+              <div className="bg-white rounded-[50px] shadow-2xl flex flex-col relative overflow-hidden min-h-125 border-8 border-white/5">
+                
+                {/* שורת הסרה (Removal Bar) */}
+                <div className={`absolute top-0 left-0 w-full z-40 transition-all duration-500 bg-rose-600 ${isRemoveBarOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
+                    <div className="px-12 py-8 flex items-center gap-8">
+                        <input 
+                          type="text" placeholder="חפש שם להסרה..."
+                          className="flex-1 bg-white/20 border-2 border-white/30 rounded-2xl py-5 px-8 text-2xl text-white font-bold placeholder:text-white/50 outline-none"
+                          value={removeSearchQuery} onChange={(e) => setRemoveSearchQuery(e.target.value)}
+                        />
+                        <div className="flex gap-4">
+                          {filteredForRemoval.map(s => (
+                            <button key={s.id} onClick={() => confirmRemoval(s)} className="bg-white px-8 py-4 rounded-2xl font-black text-slate-800 text-xl">
+                              {s.name} ✖
+                            </button>
+                          ))}
+                        </div>
+                        <button onClick={() => setIsRemoveBarOpen(false)} className="text-white font-black text-xl">ביטול</button>
+                    </div>
+                </div>
+
+                <div className="p-12 flex flex-col gap-10">
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-5xl font-black text-slate-900 italic">Attendance</h2>
+                    <button onClick={() => setIsRemoveBarOpen(true)} className="text-rose-600 font-black text-2xl underline decoration-4 underline-offset-8">✖ הסרה מהירה</button>
+                  </div>
+
+                  {/* חיפוש והוספה ידנית - מוגדל */}
+                  <div className="relative">
+                    <input 
+                      type="text" placeholder="חיפוש או הוספת סטודנט..." 
+                      className="w-full bg-slate-100 border-4 border-transparent focus:border-emerald-500 py-8 px-10 rounded-[30px] font-black text-3xl shadow-inner outline-none transition-all placeholder:text-slate-400"
+                      value={searchQuery} onChange={handleSearchChange}
+                    />
+                    {searchResults.length > 0 && (
+                      <ul className="absolute z-50 w-full mt-4 bg-white rounded-[30px] shadow-2xl border-4 border-slate-100 overflow-hidden">
+                        {searchResults.map(result => (
+                          <li key={result.id} onClick={() => { attendanceHandlers.handleAddStudent(classrooms.id, result.id, setStudents); setSearchQuery(''); setSearchResults([]); }}
+                              className="px-10 py-7 hover:bg-emerald-50 cursor-pointer flex justify-between items-center border-b last:border-0 border-slate-100">
+                            <span className="font-black text-3xl text-slate-800">{result.full_name} ({result.student_id})</span>
+                            <span className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-black text-xl">הוסף +</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex-1 p-12 pt-0 overflow-y-auto">
+                  <StudentGrid students={students} onStatusChange={handleStatusChange} />
+                </div>
               </div>
             </div>
-
-            <div className="flex-1 p-12 pt-0 overflow-y-auto">
-              <StudentGrid students={students} onStatusChange={handleStatusChange} />
+          ) : (
+            <div className="max-w-6xl mx-auto animate-in zoom-in-95 duration-500">
+                <IncidentReportPage examId={examId} classrooms={classrooms} />
             </div>
-          </div>
+          )}
         </main>
       </div>
 
-      {isScannerOpen && <AdmissionScanner onScan={handleScanResult} onClose={() => setIsScannerOpen(false)} />}
+      {isScannerOpen && (
+        <AdmissionScanner 
+          key="unique-scanner" 
+          onScan={handleScanResult} 
+          onClose={() => {
+            setIsScannerOpen(false);
+            scanLock.current = false;
+          }} 
+        />
+      )}
     </div>
   );
 }
