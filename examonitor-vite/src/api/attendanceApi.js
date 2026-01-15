@@ -62,10 +62,10 @@ export const attendanceApi = {
   /**
    * הוספת סטודנט ידנית למבחן בחדר ספציפי
    */
-  addStudent: async (classroomId, studentProfileId) => {
+  addStudent: async (classroomId, studentProfileId, studentId) => {
     return apiFetch('/attendance/add-manual', {
       method: 'POST',
-      body: { classroomId, studentProfileId },
+      body: { classroomId, studentProfileId , studentId},
     });
   },
 

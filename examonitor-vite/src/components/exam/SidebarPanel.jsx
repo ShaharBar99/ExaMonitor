@@ -3,7 +3,7 @@ import MessageManager from './MessageManager';
 import NotificationManager from './NotificationManager';
 import ExamBotPanel from '../supervisor/ExamBotPanel'; // הרכיב שהרגע עדכנו
 
-export default function SidebarPanel({ activeTab, userRole }) {
+export default function SidebarPanel({ activeTab, userRole ,externalMessage, onAction }) {
   
   // 1. טאב התראות - משותף לכולם (עם סינון פנימי)
   if (activeTab === 'notifications') {
@@ -12,7 +12,11 @@ export default function SidebarPanel({ activeTab, userRole }) {
 
   // 2. טאב בוט - זמין למשגיח חדר בלבד
   if (activeTab === 'bot' && userRole === 'supervisor') {
-    return <ExamBotPanel userRole={userRole} />;
+    return <ExamBotPanel 
+        userRole={userRole} 
+        externalMessage={externalMessage} // חשוב!
+        onAction={onAction}               // חשוב!
+      />;
   }
 
   // 3. ניהול הודעות (צ'אט מרצה / צ'אט קומה) - לפי הרשאות רכיב MessageManager

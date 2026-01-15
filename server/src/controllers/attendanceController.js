@@ -131,8 +131,8 @@ export const AttendanceController = {
 
   addStudent: async (req, res, next) => {
       try {
-          const { classroomId, studentProfileId } = req.body;
-          const result = await AttendanceService.addStudentToExam(classroomId, studentProfileId);
+          const { classroomId, studentProfileId, studentId } = req.body;
+          const result = await AttendanceService.addStudentToExam(classroomId, studentProfileId, studentId);
           res.status(201).json(result);
       } catch (err) {
           next(err);

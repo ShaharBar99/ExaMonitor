@@ -125,21 +125,43 @@ export const AttendanceService = {
   /**
    * חזרה מהפסקה - סגירת רשומת ה-break והחזרת הסטטוס ל-present
    */
-  async endBreak({ attendanceId }) {
+ /**
+ * חזרה מהפסקה - סגירת רשומת ה-break האחרונה והחזרת הסטטוס ל-present
+ */
+async endBreak({ attendanceId }) {
     const now = new Date().toISOString();
+    console.log("Ending break for attendance ID:", attendanceId);
 
-    // 1. עדכון זמן חזרה ברשומה הפתוחה האחרונה
-    const { data: brk, error: breakErr } = await supabaseAdmin
+  // 1. איתור ההפסקה הפתוחה האחרונה של הסטודנט (זמן חזרה הוא NULL)
+  // אנחנו ממיינים לפי exit_time יורד ולוקחים רק 1 כדי להיות בטוחים
+    const { data: openBreaks, error: findErr } = await supabaseAdmin
       .from('student_breaks')
-      .update({ return_time: now })
+      .select('id')
       .eq('attendance_id', attendanceId)
       .is('return_time', null)
-      .select()
-      .single();
+      .order('exit_time', { ascending: false })
+      .limit(1);
 
-    if (breakErr) throw breakErr;
+    if (findErr) throw findErr;
 
-    // 2. החזרת סטטוס הנוכחות ל"נוכח"
+    let closedBreak = null;
+
+    // 2. אם נמצאה הפסקה פתוחה, נעדכן אותה
+    if (openBreaks && openBreaks.length > 0) {
+      const { data: brk, error: breakErr } = await supabaseAdmin
+        .from('student_breaks')
+        .update({ return_time: now })
+        .eq('id', openBreaks[0].id) // עדכון לפי ה-ID הספציפי של השורה
+        .select()
+        .single();
+
+      if (breakErr) throw breakErr;
+      closedBreak = brk;
+    } else {
+      console.warn("No open break found for this student, but proceeding to reset status.");
+    }
+
+    // 3. החזרת סטטוס הנוכחות ל"נוכח" (בכל מקרה, כדי שהסטודנט לא ייתקע בחוץ)
     const { data: att, error: attErr } = await supabaseAdmin
       .from('attendance')
       .update({ status: 'present' })
@@ -149,7 +171,12 @@ export const AttendanceService = {
 
     if (attErr) throw attErr;
 
-    return { success: true, break: brk, attendance: att };
+    return { 
+      success: true, 
+      break: closedBreak, 
+      attendance: att,
+      wasBreakFound: !!closedBreak 
+    };
   },
 
   /**
@@ -200,8 +227,28 @@ export const AttendanceService = {
 /**
  * הוספת סטודנט לחדר מבחן ידנית - גרסה חסינת כפילויות
  */
-async addStudentToExam(classroomId, studentProfileId) {
-    // 1. קבלת פרטי המבחן והקורס
+async addStudentToExam(classroomId, studentProfileId = null, studentId = null) {
+    let finalProfileId = studentProfileId;
+    console.log("Adding student to classroom:", classroomId, "with profile ID:", studentProfileId, "or student ID:", studentId);
+    // 1. אם קיבלנו studentId (ת"ז) ולא UUID, נמיר אותו ל-UUID מהפרופיל
+    if (studentId !== null && !finalProfileId) {
+        const { data: profile, error: profErr } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('student_id', studentId) // מחפש בעמודה של תעודות הזהות
+            .single();
+
+        if (profErr || !profile) {
+            throw new Error(`לא נמצא סטודנט עם תעודת זהות ${studentId}`);
+        }
+        finalProfileId = profile.id;
+    }
+
+    if (!finalProfileId) {
+        throw new Error("חובה לספק מזהה פרופיל או תעודת זהות");
+    }
+
+    // 2. קבלת פרטי המבחן והקורס
     const { data: classroom, error: classErr } = await supabaseAdmin
         .from('classrooms')
         .select('exam_id, exams(course_id)')
@@ -211,19 +258,19 @@ async addStudentToExam(classroomId, studentProfileId) {
     if (classErr) throw classErr;
     const examId = classroom.exam_id;
 
-    // 2. בדיקה שהסטודנט רשום לקורס
+    // 3. בדיקה שהסטודנט רשום לקורס
     const { data: registration, error: regErr } = await supabaseAdmin
         .from('course_registrations')
         .select('id')
-        .eq('student_id', studentProfileId)
+        .eq('student_id', finalProfileId)
         .eq('course_id', classroom.exams.course_id)
-        .single();
+        .maybeSingle(); // שימוש ב-maybeSingle גמיש יותר מ-single
 
     if (regErr || !registration) {
         throw new Error("הסטודנט אינו רשום לקורס זה");
     }
 
-    // 3. חיפוש רשומה קיימת של הסטודנט במבחן הזה (בכל החדרים שלו)
+    // 4. חיפוש רשומה קיימת של הסטודנט במבחן הזה
     const { data: existingAttendance, error: fetchErr } = await supabaseAdmin
         .from('attendance')
         .select(`
@@ -232,31 +279,32 @@ async addStudentToExam(classroomId, studentProfileId) {
             classroom_id,
             classrooms!inner(exam_id)
         `)
-        .eq('student_id', studentProfileId)
+        .eq('student_id', finalProfileId)
         .eq('classrooms.exam_id', examId)
         .maybeSingle();
 
     if (fetchErr) throw fetchErr;
 
-    // קביעת הסטטוס: אם הוא כבר הגיש, נשמור על 'submitted'. אם הוא היה 'absent' או חדש, נהפוך ל-'present'.
+    // קביעת הסטטוס
     let finalStatus = 'present';
     if (existingAttendance) {
         if (existingAttendance.status === 'submitted' || existingAttendance.status === 'finished') {
             finalStatus = 'submitted';
+        } else if (existingAttendance.status === 'present' || existingAttendance.status === 'exited_temporarily') {
+            finalStatus = existingAttendance.status; // שומרים על סטטוס קיים אם הוא כבר במבחן או בשירותים
         }
     }
 
-    // 4. ביצוע ה-Upsert (עדכון אם קיים, יצירה אם לא)
-    // אנחנו משתמשים ב-id הקיים אם מצאנו כזה כדי למנוע יצירת שורה חדשה
+    // 5. ביצוע ה-Upsert
     const attendanceData = {
-        student_id: studentProfileId,
+        student_id: finalProfileId,
         classroom_id: classroomId,
         status: finalStatus,
-        check_in_time: new Date().toISOString()
+        check_in_time: existingAttendance?.check_in_time || new Date().toISOString()
     };
 
     if (existingAttendance) {
-        attendanceData.id = existingAttendance.id; // הכרחי כדי ש-upsert יזהה שמדובר באותה שורה
+        attendanceData.id = existingAttendance.id;
     }
 
     const { data: result, error: upsertErr } = await supabaseAdmin

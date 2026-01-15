@@ -130,20 +130,27 @@ export const attendanceHandlers = {
   /**
    * הוספת סטודנט לרשימת הנוכחות
    */
-  handleAddStudent: async (classroomId, studentProfileId, setStudents) => {
+  handleAddStudent: async (classroomId, studentProfileId, setStudents, studentId=null) => {
     try {
       console.log("Adding student:", studentProfileId, "to classroom:", classroomId);
-      const newRecord = await attendanceApi.addStudent(classroomId, studentProfileId);
+      const newRecord = await attendanceApi.addStudent(classroomId, studentProfileId, studentId);
       console.log("Server returned new attendance record:", newRecord);
       // יצירת אובייקט סטודנט תואם ל-UI מתוך התשובה של השרת
       const newStudentUI = {
-        attendanceId: newRecord.id,
-        id: newRecord.profiles.id,
-        name: newRecord.profiles.full_name,
-        status: newRecord.status
-      };
+        ...newRecord, // שומר על הכל (status, check_in_time וכו')
+        id: newRecord.id, // ה-UUID של ה-attendance (קריטי להפסקות!)
+        student_id: newRecord.profiles?.student_id || newRecord.student_id,
+        name: newRecord.profiles?.full_name || "סטודנט חדש",
+        // אם שאר הקוד שלך מצפה ל-profiles אובייקט, נשמור גם אותו
+        profiles: newRecord.profiles 
+    };
 
-      setStudents(prev => [...prev, newStudentUI]);
+      setStudents(prev => {
+        // מניעת כפילויות ב-State למקרה שהסטודנט כבר קיים
+        const exists = prev.find(s => s.id === newStudentUI.id);
+        if (exists) return prev;
+        return [...prev, newStudentUI];
+      });
       alert("הסטודנט נוסף בהצלחה!");
     } catch (error) {
       alert(error.message || "נכשל בהוספת הסטודנט");

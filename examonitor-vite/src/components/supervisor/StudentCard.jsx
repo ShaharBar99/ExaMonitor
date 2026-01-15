@@ -31,7 +31,7 @@ const StudentCard = ({ student, onStatusChange, onMoveClass }) => {
         <h3 className="text-2xl font-black text-slate-900 tracking-tighter leading-none group-hover:text-emerald-600 transition-colors">
           {student.name}
         </h3>
-        <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-widest">ת.ז • {student.studentId}</p>
+        <p className="text-[10px] text-slate-400 font-bold mt-2 uppercase tracking-widest">ת.ז • {student.studentId ? student.studentId : student.student_id}</p>
       </div>
 
       {/* אזור פעולות */}
