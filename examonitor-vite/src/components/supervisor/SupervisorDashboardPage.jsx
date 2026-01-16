@@ -78,39 +78,41 @@ export default function SupervisorDashboard() {
     }
   }, [location.state]);
 
-  // --- תיקון סנכרון זמן וחישוב טיימרים מרובים ---
-  useEffect(() => {
-    const syncTime = async () => {
-      // 1. קבלת השניות שנותרו לסיום הכללי
-      const seconds = await timerHandlers.getRemainingSeconds(examId);
-      setRemainingTime(seconds);
-
-      // 2. קבלת נתוני הבסיס (משך מקורי) מה-Handler שציינת
-      const timingData = await timerHandlers.getTimeDataByExamId(examId);
+ useEffect(() => {
+  const syncTime = async () => {
+    const timingData = await timerHandlers.getTimeDataByExamId(examId);
+    
+    if (timingData?.start_time && examData?.status === 'active') {
+      const startTime = new Date(timingData.start_time).getTime();
+      const now = Date.now();
       
-      if (seconds !== null && timingData && examData?.status === 'active') {
-        const originalDuration = timingData.original_duration || 0;
+      // משך הבסיס בדקות (כולל הארכות גורפות שניתנו לכולם ב-extra_time)
+      const baseDurationMin = (timingData.original_duration || 0) + (timingData.extra_time || 0);
+      
+      const calculateRemaining = (percent) => {
+        // חישוב סך הדקות לסטודנט ספציפי: (בסיס + הארכה לכולם) + (אחוז מהמקור)
+        const totalStudentDurationMin = baseDurationMin + (timingData.original_duration * percent);
+        const targetEndTime = startTime + (totalStudentDurationMin * 60000);
+        return Math.max(0, Math.floor((targetEndTime - now) / 1000));
+      };
 
-        const calculateWithPercent = (percent) => {
-          const extraPercentSecs = (originalDuration * percent) * 60;
-          return Math.max(0, Math.floor(seconds + extraPercentSecs));
-        };
+      const regSecs = calculateRemaining(0);
+      setRemainingTime(regSecs);
 
-        setTimers([
-          { id: 'reg', label: "רגיל (0%)", secs: seconds, color: "#34d399" },
-          { id: '25', label: "תוספת 25%", secs: calculateWithPercent(0.25), color: "#818cf8" },
-          { id: '50', label: "תוספת 50%", secs: calculateWithPercent(0.50), color: "#c084fc" }
-        ]);
-      } else {
-        setTimers([]);
-      }
-    };
+      setTimers([
+        { id: 'reg', label: "רגיל (0%)", secs: regSecs, color: "#34d399" },
+        { id: '25', label: "תוספת 25%", secs: calculateRemaining(0.25), color: "#818cf8" },
+        { id: '50', label: "תוספת 50%", secs: calculateRemaining(0.50), color: "#c084fc" }
+      ]);
+    } else {
+      setTimers([]);
+    }
+  };
 
-    syncTime();
-    const interval = setInterval(syncTime, 10000);
-    return () => clearInterval(interval);
-  }, [examId, examData?.status]); // מסנכרן מחדש כשהסטטוס משתנה ל-active
-
+  syncTime();
+  const interval = setInterval(syncTime, 1000); // דיוק של שנייה אחת
+  return () => clearInterval(interval);
+}, [examId, examData?.status]);
   // הסרנו את ה-useEffect הקודם של ה-setTimers כי הוא עכשיו בתוך ה-syncTime
 
   useEffect(() => {
