@@ -163,63 +163,6 @@ export const ExamService = {
     return { exam: examData, report };
   },
 
-  async getExtendedReport(examId) {
-  // 1. שליפת הנתונים עם Join נכון ל-classrooms כדי לסנן לפי ה-examId
-    const [attendance, incidents, breaks] = await Promise.all([
-      // סינון סטודנטים לפי ה-exam_id שנמצא בטבלת ה-classrooms
-      supabaseAdmin
-        .from('attendance')
-        .select('*, classrooms!inner(exam_id)')
-        .eq('classrooms.exam_id', examId),
-
-      supabaseAdmin
-        .from('exam_incidents')
-        .select('*')
-        .eq('exam_id', examId),
-
-      // סינון הפסקות דרך ה-attendance וה-classroom
-      supabaseAdmin
-        .from('student_breaks')
-        .select('*, attendance!inner(id, profiles(full_name), classrooms!inner(exam_id))')
-        .eq('attendance.classrooms.exam_id', examId)
-    ]);
-
-    const attData = attendance?.data || [];
-    const incData = incidents?.data || [];
-    const brkData = breaks?.data || [];
-
-    // 2. חישוב זמני הפסקות
-    let totalMinutes = 0;
-    brkData.forEach(b => {
-      if (b.return_time && b.exit_time) {
-        const duration = (new Date(b.return_time) - new Date(b.exit_time)) / 60000;
-        totalMinutes += duration;
-      }
-    });
-
-    const avgBreak = brkData.length > 0 ? (totalMinutes / brkData.length).toFixed(1) : "0.0";
-
-    return {
-      summary: {
-        total: attData.length,
-        // שים לב: ב-attendance_status הסטטוס יכול להיות 'submitted' או 'finished' לפי הקוד שלך
-        submitted: attData.filter(a => ['submitted', 'finished'].includes(a.status)).length,
-        absent: attData.filter(a => a.status === 'absent').length,
-        notSubmitted: attData.filter(a => ['present', 'exited_temporarily'].includes(a.status)).length
-      },
-      breaks: {
-        count: brkData.length,
-        averageMinutes: avgBreak,
-        mostExits: this.getStudentWithMostExits(brkData)
-      },
-      incidents: {
-        total: incData.length,
-        highSeverity: incData.filter(i => i.severity === 'high').length,
-        technicalIssues: incData.filter(i => i.incident_type?.includes('תקלה')).length
-      }
-    };
-  },
-
   getStudentWithMostExits(breaksData) {
     if (!breaksData || breaksData.length === 0) return null;
 
