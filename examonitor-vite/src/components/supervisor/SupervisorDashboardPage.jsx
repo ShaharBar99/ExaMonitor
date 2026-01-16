@@ -166,8 +166,8 @@ export default function SupervisorDashboard() {
         // רק סטודנטים שכרגע "במבחן" או "בחוץ זמנית"
         if (student.status !== 'present' && student.status !== 'exited_temporarily') return false;
 
-        const extraTimePercent = student.extra_time_percent || 0;
-
+        const extraTimePercent = student.personalExtra || 0;
+        console.log(`Checking student ${student.name} with extra time ${extraTimePercent}%`);
         // בדיקה לפי אחוז ההארכה של הסטודנט
         if (extraTimePercent === 0 && regTimer?.secs <= 0) return true;
         if (extraTimePercent === 25 && t25Timer?.secs <= 0) return true;
