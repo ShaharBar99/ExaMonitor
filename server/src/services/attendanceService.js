@@ -244,8 +244,7 @@ async addStudentToExam(classroomId, studentProfileId = null, studentId = null) {
         }
         finalProfileId = profile.id;
     }
-
-    if (!finalProfileId) {
+    if (finalProfileId===null) {
         throw new Error("חובה לספק מזהה פרופיל או תעודת זהות");
     }
 
@@ -258,7 +257,6 @@ async addStudentToExam(classroomId, studentProfileId = null, studentId = null) {
 
     if (classErr) throw classErr;
     const examId = classroom.exam_id;
-
     // 3. בדיקה שהסטודנט רשום לקורס
     const { data: registration, error: regErr } = await supabaseAdmin
         .from('course_registrations')
@@ -266,7 +264,6 @@ async addStudentToExam(classroomId, studentProfileId = null, studentId = null) {
         .eq('student_id', finalProfileId)
         .eq('course_id', classroom.exams.course_id)
         .maybeSingle(); // שימוש ב-maybeSingle גמיש יותר מ-single
-
     if (regErr || !registration) {
         throw new Error("הסטודנט אינו רשום לקורס זה");
     }

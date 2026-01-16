@@ -32,64 +32,47 @@ const calculateExamTiming = (exam) => {
 /**
  * פונקציית הגיבוי החכמה - מנתחת את ה-DB ומחזירה תשובות ספציפיות ללא AI
  */
-const getSmartResponse = async (message, role, examId) => {
+const getSmartResponse = async (message, role, examId, stats) => {
     const msg = message.toLowerCase();
-    if (!examId) return "בחר מבחן כדי שאוכל לעזור עם נתונים בזמן אמת.";
 
+    // אם יש לנו stats מהקליינט, נשתמש בהם מיד - זה הכי אמין
+    if (stats) {
+        if (msg.includes('סטטוס') || msg.includes('כמה') || msg.includes('מצב')) {
+            return [
+                `📊 *סיכום מצב (זמן אמת):*`,
+                `🏠 סטודנטים בכיתה: ${stats.liveStats.present}`,
+                `✅ סטודנטים סיימו: ${stats.liveStats.submitted}`,
+                `🚶 סטודנטים בחוץ: ${stats.liveStats.out}`,
+                `📈 אחוז הגשה: ${stats.liveStats.percentFinished}%`
+            ].join('\n'); // מחבר את המערך לירידות שורה נקיות
+        }
+
+        if (msg.includes('שירותים') || msg.includes('בחוץ')) {
+            return `🚶 כרגע יש ${stats.liveStats.out} סטודנטים מחוץ לכיתה.
+    ${stats.liveStats.longestOutName ? `⏳ הכי הרבה זמן בחוץ: ${stats.liveStats.longestOutName}.` : ''}`;
+        }
+    }
+
+    // אם אין stats, או ששואלים על זמן, נשאר עם הלוגיקה המקורית מה-DB
     try {
-        // שליפת נתונים מקיפה מה-DB לפי ה-Schema
         const { data: exam } = await supabaseAdmin
             .from('exams')
             .select('*, courses:course_id(course_name)')
             .eq('id', examId)
             .single();
 
-        const { data: attendance } = await supabaseAdmin
-            .from('attendance')
-            .select('*, student_breaks(*)')
-            .eq('classroom_id', examId);
-
         const timing = calculateExamTiming(exam);
 
-        // 1. בדיקת חריגות זמן בשירותים (מעל 15 דקות ללא חזרה)
-        const longBreaks = attendance?.filter(a => {
-            return a.student_breaks?.some(b => !b.return_time && (new Date() - new Date(b.exit_time)) > 15 * 60000);
-        }) || [];
-
-        // 2. בניית מענה לפי מילות מפתח
-        
-        // מענה על זמן
         if (msg.includes('זמן') || msg.includes('נותר') || msg.includes('שעה')) {
             if (timing.isOver) return "המבחן הסתיים רשמית.";
-            return `למבחן ב${exam?.courses?.course_name || 'קורס'} נותרו עוד ${timing.remaining} דקות. שעת הסיום המתוכננת: ${timing.endTime}.`;
+            return `למבחן ב${exam?.courses?.course_name || 'קורס'} נותרו עוד ${timing.remaining} דקות.`;
         }
 
-        // מענה על חריגות שירותים
-        if (msg.includes('שירותים') || msg.includes('חריגות') || msg.includes('בחוץ')) {
-            const currentlyOut = attendance?.filter(a => a.student_breaks?.some(b => !b.return_time)).length || 0;
-            let response = `כרגע יש ${currentlyOut} סטודנטים מחוץ לכיתה.`;
-            
-            if (longBreaks.length > 0) {
-                response += `\n⚠️ שים לב: ${longBreaks.length} סטודנטים נמצאים בחוץ מעל ל-15 דקות!`;
-            }
-            return response;
-        }
-
-        // מענה על סטטוס כללי
-        if (msg.includes('סטטוס') || msg.includes('כמה') || msg.includes('מצב')) {
-            const present = attendance?.filter(a => a.status === 'present').length || 0;
-            const finished = attendance?.filter(a => a.status === 'finished').length || 0;
-            return `סיכום מצב:
-- ${present} סטודנטים בכיתה.
-- ${finished} סטודנטים סיימו.
-- זמן נותר: ${timing.remaining} דקות.`;
-        }
-
-        return "אני פועל כרגע במצב נתונים יבשים (ללא AI). אני יכול לענות על 'זמן נותר', 'חריגות שירותים' או 'סטטוס'.";
+        return "אני פועל במצב נתונים משולב. שאל אותי על 'סטטוס כיתה' או 'זמן נותר'.";
 
     } catch (error) {
         console.error('SmartResponse Error:', error);
-        return "חלה שגיאה בגישה לנתוני המבחן ב-DB.";
+        return "שגיאה בגישה לנתוני המבחן.";
     }
 };
 
@@ -148,7 +131,7 @@ const buildPrompt = async (message, role, examId) => {
 };
 
 export const BotService = {
-    async getReply(message, role, examId) {
+    async getReply(message, role, examId, stats) {
         try {
             // ניסיון ראשון: AI
             if (GEMINI_API_KEY) {
@@ -156,10 +139,10 @@ export const BotService = {
                 return await callGeminiAPI(prompt);
             }
             // אם אין מפתח, עוברים לגיבוי
-            return await getSmartResponse(message, role, examId);
+            return await getSmartResponse(message, role, examId, stats);
         } catch (error) {
             console.error('Falling back to SmartResponse due to:', error.message);
-            return await getSmartResponse(message, role, examId);
+            return await getSmartResponse(message, role, examId, stats);
         }
     },
 

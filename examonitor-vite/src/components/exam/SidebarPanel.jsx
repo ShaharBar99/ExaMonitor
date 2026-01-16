@@ -3,7 +3,7 @@ import MessageManager from './MessageManager';
 import NotificationManager from './NotificationManager';
 import ExamBotPanel from '../supervisor/ExamBotPanel'; // הרכיב שהרגע עדכנו
 
-export default function SidebarPanel({ activeTab, userRole ,externalMessage, onAction }) {
+export default function SidebarPanel({ activeTab, userRole ,externalMessage, liveStats=null , onAction }) {
   
   // 1. טאב התראות - משותף לכולם (עם סינון פנימי)
   if (activeTab === 'notifications') {
@@ -16,6 +16,7 @@ export default function SidebarPanel({ activeTab, userRole ,externalMessage, onA
         userRole={userRole} 
         externalMessage={externalMessage} // חשוב!
         onAction={onAction}               // חשוב!
+        liveStats={liveStats}
       />;
   }
 

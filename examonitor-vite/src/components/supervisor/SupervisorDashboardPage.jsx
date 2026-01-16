@@ -12,6 +12,7 @@ import { useAuth } from '../state/AuthContext';
 import StatCard from '../exam/StatCard';
 import AdmissionScanner from './AdmissionScanner';
 import IncidentReportPage from './IncidentReportPage';
+import { classroomHandler } from '../../handlers/classroomHandlers';
 
 const PROTOCOL_STEPS = [
   { 
@@ -63,6 +64,8 @@ export default function SupervisorDashboard() {
   const [timers, setTimers] = useState([]);
   const [selectedTimerId, setSelectedTimerId] = useState('reg');
 
+  const [studentToMove, setStudentToMove] = useState(null); // מחזיק אובייקט סטודנט או null
+  const [otherClassrooms, setOtherClassrooms] = useState([]); // רשימת כיתות זמינות
   // --- לוגיקת טעינה ראשונית ---
   useEffect(() => {
     attendanceHandlers.initSupervisorConsole(examId, user.id, setStudents, setLoading, setExamData);
@@ -198,7 +201,29 @@ export default function SupervisorDashboard() {
 
     autoSubmitCheck();
   }, [timers, students, examData?.status]); // רץ בכל פעם שהטיימרים או רשימת הסטודנטים מתעדכנים
+  // בתוך SupervisorDashboard.jsx, לפני ה-return
+  const liveStats = useMemo(() => {
+    // בדיקה לפי הסטטוסים המדויקים שמופיעים ב-StudentCard.jsx
+    const out = students.filter(s => s.status === 'exited_temporarily').length;
+    const submitted = students.filter(s => s.status === 'submitted' || s.status === 'סיים').length;
+    const total = students.length;
+    const present = total - submitted - out;
 
+    const studentsOut = students.filter(s => s.status === 'exited_temporarily');
+    // מיון לפי זמן יציאה (וודא שיש שדה כזה ב-DB)
+    const longestOutStudent = [...studentsOut].sort((a, b) => 
+      new Date(a.last_exit_time) - new Date(b.last_exit_time)
+    )[0];
+
+    return {
+      present,
+      out,
+      submitted,
+      total,
+      percentFinished: total > 0 ? Math.round((submitted / total) * 100) : 0,
+      longestOutName: longestOutStudent?.name || null
+    };
+  }, [students]);
   const handleScanResult = async (scannedId) => {
     if (scanLock.current || scannedId === lastScannedId.current) return;
     scanLock.current = true;
@@ -227,6 +252,20 @@ export default function SupervisorDashboard() {
       scanLock.current = false;
       lastScannedId.current = null;
     }, 3000);
+  };
+
+  const handleOpenMoveModal = async (studentId) => {
+    const student = students.find(s => s.id === studentId);
+    setStudentToMove(student);
+    // כאן קוראים ל-API שמביא את כל הכיתות של המבחן הזה
+    try {
+      const allRooms = await classroomHandler.getClassrooms(examId);
+      // מסננים את הכיתה הנוכחית שבה המשגיח נמצא
+      const filteredRooms = allRooms.filter(room => room.id !== classrooms.id);
+      setOtherClassrooms(filteredRooms);
+    } catch (err) {
+      console.error("Failed to fetch other classrooms", err);
+    }
   };
 
   const handleBotAction = (action) => {
@@ -292,6 +331,34 @@ export default function SupervisorDashboard() {
     }
   };
 
+ const handleExecuteMove = async (targetRoomId) => {
+  if (!studentToMove) return;
+  try {
+    // 1. הסרה מהכיתה הנוכחית (שימוש ב-Handler הקיים)
+    // אנחנו מעבירים את ה-ID הפנימי של הרישום לבחינה
+    await attendanceHandlers.handleRemoveStudent(studentToMove.id, setStudents);
+
+    // 2. הוספה לכיתה החדשה (שימוש ב-Handler הקיים)
+    // הפונקציה הזו בדרך כלל מקבלת classroomId ו-student_id
+    await attendanceHandlers.handleAddStudent(targetRoomId, null, (newStudents) => {
+      // אנחנו לא באמת רוצים לעדכן את הסטייט המקומי שלנו עם הסטודנט החדש, 
+      // כי הוא עבר לכיתה אחרת. לכן נעביר פונקציה ריקה או פשוט לא נעדכן.
+      console.log(`Student ${studentToMove.name} added to room ${targetRoomId}`);
+    }, studentToMove.studentId);
+
+    // 3. עדכון הבוט וסגירת המודל
+    setBotMsg({
+      text: `🔄 הסטודנט ${studentToMove.name} הועבר בהצלחה לחדר אחר.`,
+      isAlert: false
+    });
+    
+    setStudentToMove(null);
+  } catch (err) {
+    console.error("Transfer failed:", err);
+    alert("ההעברה נכשלה. אנא נסה שוב.");
+  }
+};
+
   const filteredForRemoval = useMemo(() => {
     if (!removeSearchQuery || removeSearchQuery.length < 2) return [];
     return students.filter(s => s.id?.includes(removeSearchQuery) || s.name.toLowerCase().includes(removeSearchQuery.toLowerCase())).slice(0, 3);
@@ -308,7 +375,7 @@ export default function SupervisorDashboard() {
         isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} 
         logoText="EX" logoColor="bg-emerald-600"
       >
-        <SidebarPanel activeTab={activeTab} userRole="supervisor" externalMessage={botMsg} onAction={handleBotAction} />
+        <SidebarPanel activeTab={activeTab} userRole="supervisor" externalMessage={botMsg} liveStats={liveStats} onAction={handleBotAction} />
       </Sidebar>
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
@@ -465,7 +532,7 @@ export default function SupervisorDashboard() {
                 </div>
 
                 <div className="flex-1 p-12 pt-0 overflow-y-auto">
-                  <StudentGrid students={students} onStatusChange={handleStatusChange} />
+                  <StudentGrid students={students} onStatusChange={handleStatusChange} onMoveClass={handleOpenMoveModal}/>
                 </div>
               </div>
             </div>
@@ -487,6 +554,54 @@ export default function SupervisorDashboard() {
           }} 
         />
       )}
+      
+      {studentToMove && (
+        /* תיקון כאן: הסרתי את ה-div הכפול */
+        <div className="fixed inset-0 z-110 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" 
+            onClick={() => setStudentToMove(null)} 
+          />
+
+          <div className="relative bg-white rounded-[40px] p-10 w-full max-w-lg shadow-2xl animate-in zoom-in duration-200 text-right">
+            <h3 className="text-3xl font-black text-slate-900 mb-2">העברת כיתה</h3>
+            <p className="text-slate-500 font-bold mb-8">
+              לאיזו כיתה תרצה להעביר את <span className="text-emerald-600">{studentToMove.name}</span>?
+            </p>
+            
+            <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
+              {otherClassrooms.length > 0 ? (
+                otherClassrooms.map(room => (
+                  <button
+                    key={room.id}
+                    onClick={() => handleExecuteMove(room.id)}
+                    className="w-full flex justify-between items-center p-6 bg-slate-50 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200 rounded-3xl transition-all group"
+                  >
+                    <div className="text-right">
+                      <span className="block font-black text-xl text-slate-800">חדר {room.room_number}</span>
+                      <span className="text-sm text-slate-400 font-bold">{room.building || 'בניין מרכזי'}</span>
+                    </div>
+                    <span className="bg-white text-emerald-600 px-4 py-2 rounded-xl font-black shadow-sm group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                      העבר לכאן ←
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="text-center py-10 text-slate-400 font-bold italic">
+                  לא נמצאו כיתות נוספות למבחן זה
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={() => setStudentToMove(null)}
+              className="w-full mt-8 py-4 text-slate-400 font-black hover:text-slate-600 transition-colors"
+            >
+              ביטול
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-  );
+    )
 }

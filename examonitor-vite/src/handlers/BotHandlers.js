@@ -3,18 +3,19 @@ import { botAPI } from '../api/BotApi';
 
 export const botHandlers = {
   // הפונקציה המרכזית שהקומפוננטה תפעיל
-  handleSendMessage: async (text, context, onReply, setTyping) => {
+  handleSendMessage: async (text, context, onReply, setTyping, stats) => {
     if (!text.trim()) return;
 
     // 1. הפעלת אינדיקטור טעינה ב-UI
     setTyping(true);
-
+    console.log(stats);
     try {
       // 2. קריאה לשיטה בתוך botAPI.js
       const data = await botAPI.postChatMessage({
         message: text,
         role: context.role,
-        examId: context.examId
+        examId: context.examId,
+        stats: stats
       });
 
       // 3. החזרת התשובה המעובדת לקומפוננטה

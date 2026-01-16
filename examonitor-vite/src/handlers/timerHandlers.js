@@ -39,7 +39,6 @@ export const timerHandlers = {
   getTimeDataByExamId: async (examId) => {
     try {
       const examData = await timerApi.getExamTiming(examId); 
-      console.log("Fetched exam timing data:", examData);
       return {start_time: examData.startTime, original_duration: examData.originalDuration, extra_time: examData.extraTime};
     } catch (error) {
       console.error("Failed to get exam timing:", error);

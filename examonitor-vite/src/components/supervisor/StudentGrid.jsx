@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import StudentCard from './StudentCard';
 
-const StudentGrid = ({ students, onStatusChange }) => {
+const StudentGrid = ({ students, onStatusChange , onMoveClass}) => {
   const [search, setSearch] = useState('');
 
   const filteredStudents = students.filter(s => 
@@ -28,6 +28,7 @@ const StudentGrid = ({ students, onStatusChange }) => {
             key={student.id} 
             student={student} 
             onStatusChange={onStatusChange} 
+            onMoveClass={onMoveClass}
           />
         ))}
       </div>

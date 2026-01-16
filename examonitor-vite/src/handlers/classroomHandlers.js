@@ -37,6 +37,14 @@ export const classroomHandler = {
       setLoading(false);
     }
   },
+  getClassrooms: async(examId)=>{
+    try{
+    return await classroomApi.getClassrooms(examId);
+    }
+    catch(err){
+      console.error("Failed to fetch classrooms",err);
+    }
+  },
 
   /**
    * Handles the assignment of a supervisor to a classroom.

@@ -2,7 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { botHandlers } from "../../handlers/BotHandlers"; 
 import { useParams } from "react-router-dom";
 
-export default function ExamBotPanel({ userRole = "supervisor", externalMessage = null, onAction = null }) {
+export default function ExamBotPanel({ 
+  userRole = "supervisor", 
+  externalMessage = null, 
+  onAction = null, 
+  liveStats = null 
+}) {
   const { examId } = useParams();
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -15,8 +20,10 @@ export default function ExamBotPanel({ userRole = "supervisor", externalMessage 
       time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) 
     }
   ]);
+  
   const scrollRef = useRef(null);
-  const lastMsgRef = useRef(null); // רפרנס למניעת הודעות כפולות
+  const lastMsgRef = useRef(null); 
+  const alertedThresholds = useRef(new Set()); // למניעת הצפת הודעות זהות מהבוט
 
   // גלילה אוטומטית לסוף הצ'אט
   useEffect(() => {
@@ -25,7 +32,37 @@ export default function ExamBotPanel({ userRole = "supervisor", externalMessage 
     }
   }, [chat, isTyping]);
 
-  // האזנה להודעות חיצוניות - עם מנגנון מניעת כפילות
+  // 1. לוגיקת הודעות יזומות (Proactive Bot) על בסיס liveStats
+  useEffect(() => {
+    if (!liveStats || userRole !== 'supervisor') return;
+
+    const addBotAlert = (text, id) => {
+      if (alertedThresholds.current.has(id)) return;
+      
+      setChat(prev => [...prev, {
+        role: "bot",
+        text,
+        isAlert: true,
+        time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
+      }]);
+      alertedThresholds.current.add(id);
+    };
+
+    // התראה: עומס בשירותים (מעל 3 סטודנטים בחוץ)
+    if (liveStats.out >= 3) {
+      addBotAlert(`⚠️ שים לב: כרגע יש ${liveStats.out} סטודנטים מחוץ לכיתה. כדאי לוודא שאין התקהלות במסדרון.`, 'high_out_count');
+    } else if (liveStats.out < 2) {
+      alertedThresholds.current.delete('high_out_count'); 
+    }
+
+    // התראה: אחוז הגשות משמעותי
+    if (liveStats.percentFinished >= 50 && liveStats.percentFinished < 90) {
+      addBotAlert(`📊 עדכון: כבר ${liveStats.percentFinished}% מהסטודנטים הגישו את המבחן.`, 'half_finished');
+    }
+
+  }, [liveStats, userRole]);
+
+  // 2. האזנה להודעות חיצוניות (מהפרוטוקול או מהמערכת)
   useEffect(() => {
     if (externalMessage && externalMessage.text !== lastMsgRef.current) {
       const systemMsg = {
@@ -37,7 +74,7 @@ export default function ExamBotPanel({ userRole = "supervisor", externalMessage 
       };
       
       setChat(prev => [...prev, systemMsg]);
-      lastMsgRef.current = externalMessage.text; // שמירת ההודעה האחרונה למניעת חזרה
+      lastMsgRef.current = externalMessage.text;
     }
   }, [externalMessage]);
 
@@ -45,28 +82,52 @@ export default function ExamBotPanel({ userRole = "supervisor", externalMessage 
     e.preventDefault();
     if (!input.trim() || isTyping) return;
 
+    const userText = input.trim();
     const userMsg = { 
       role: "user", 
-      text: input, 
+      text: userText, 
       time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) 
     };
     
     setChat(prev => [...prev, userMsg]);
-    const currentInput = input;
     setInput("");
 
+    // --- לוגיקת "תשובות מהירות" מבוססת liveStats ---
+    const lowerInput = userText.toLowerCase();
+    let quickReply = null;
+
+    if (lowerInput.includes("כמה") && (lowerInput.includes("בחוץ") || lowerInput.includes("שירותים"))) {
+      quickReply = `כרגע יש ${liveStats?.out || 0} סטודנטים מחוץ לכיתה. ${liveStats?.longestOutName ? `הסטודנט ${liveStats.longestOutName} נמצא בחוץ הכי הרבה זמן.` : ''}`;
+    } else if (lowerInput.includes("מצב") || lowerInput.includes("סטטיסטיקה")) {
+      quickReply = `סיכום כיתה נוכחי: 🏠 ${liveStats?.present || 0} בתוך הכיתה, 🚶 ${liveStats?.out || 0} בחוץ, ו-✅ ${liveStats?.submitted || 0} הגישו.`;
+    }
+
+    if (quickReply) {
+      setIsTyping(true);
+      setTimeout(() => {
+        setChat(prev => [...prev, {
+          role: "bot",
+          text: quickReply,
+          time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+        }]);
+        setIsTyping(false);
+      }, 600);
+      return;
+    }
+
+    // שליחה ל-AI (עם ה-Stats כ-Context)
     await botHandlers.handleSendMessage(
-      currentInput,
+      userText,
       { role: userRole, examId },
       (reply) => setChat(prev => [...prev, reply]),
-      setIsTyping
+      setIsTyping,
+      {liveStats}
     );
   };
 
   return (
     <div className="flex flex-col h-full bg-white shadow-inner font-sans" dir="rtl">
-      
-      {/* Header - מוגדל */}
+      {/* Header */}
       <div className="p-8 border-b-2 border-slate-100 flex items-center justify-between bg-white/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <div className={`w-4 h-4 rounded-full ${isTyping ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></div>
@@ -79,7 +140,7 @@ export default function ExamBotPanel({ userRole = "supervisor", externalMessage 
         </div>
       </div>
 
-      {/* Chat Area - טקסט הודעות מוגדל */}
+      {/* Chat Area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-50/30 scrollbar-hide">
         {chat.map((msg, index) => (
           <div key={index} className={`flex flex-col ${msg.role === 'user' ? 'items-start' : 'items-end'}`}>
@@ -94,9 +155,8 @@ export default function ExamBotPanel({ userRole = "supervisor", externalMessage 
                   ? 'bg-amber-50 border-4 border-amber-500 text-slate-900 rounded-tr-none text-2xl font-black'
                   : 'bg-[#1e293b] text-white rounded-tr-none text-2xl font-medium'
             }`}>
-              <p>{msg.text}</p>
+              <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
 
-              {/* לחצני פעולה - מוגדלים משמעותית */}
               {msg.options && (
                 <div className="mt-6 flex flex-wrap gap-4">
                   {msg.options.map((opt, i) => (
@@ -129,7 +189,7 @@ export default function ExamBotPanel({ userRole = "supervisor", externalMessage 
         )}
       </div>
 
-      {/* Input Area - שדה קלט ענק */}
+      {/* Input Area */}
       <div className="p-6 border-t-2 border-slate-100 bg-white">
         <form onSubmit={handleSendMessage} className="relative flex gap-4">
           <input 
@@ -137,7 +197,7 @@ export default function ExamBotPanel({ userRole = "supervisor", externalMessage 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isTyping}
-            placeholder={isTyping ? "מעבד..." : "כתוב הודעה כאן..."}
+            placeholder={isTyping ? "מעבד..." : "שאל אותי על מצב הכיתה או נהלים..."}
             className="w-full pl-6 pr-6 py-6 bg-slate-100 border-4 border-transparent focus:border-emerald-500/20 focus:bg-white rounded-[25px] text-2xl transition-all outline-none font-bold text-slate-700 disabled:opacity-50"
           />
           <button 
