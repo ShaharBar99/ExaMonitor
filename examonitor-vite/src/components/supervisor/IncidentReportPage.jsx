@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { incidentHandlers } from '../../handlers/incidentHandlers';
+import { useAuth } from '../state/AuthContext';
 
 export default function IncidentReportPage() {
   const navigate = useNavigate();
   const { examId } = useParams(); // שליפת ה-ID של המבחן מהכתובת
-  
+  const { user } = useAuth();
+
   const [formData, setFormData] = useState({
     examId: examId || '',
     roomNumber: '',
@@ -12,7 +15,7 @@ export default function IncidentReportPage() {
     incidentType: '',
     severity: 'medium',
     description: '',
-    time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+    time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
   });
 
   const incidentTypes = [
@@ -33,7 +36,7 @@ export default function IncidentReportPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     // כאן תבוא הלוגיקה של שליחת הדיווח ל-DB
-    console.log("Report Submitted:", formData);
+    await incidentHandlers.submitReport(formData, user.id); // העברת ה-ID של המדווח
     goBackToExam();
   };
 

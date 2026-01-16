@@ -30,23 +30,21 @@ export const incidentHandlers = {
    * שליחת דוח אירוע מפורט (טופס)
    * Route: POST /incidents
    */
-  submitReport: async (formData, navigate) => {
-    try {
-      // בדיקת תקינות נתונים לפני שליחה
-      if (!formData || !formData.type || !formData.severity) {
+  submitReport: async (formData, reporterId) => { // הוספת reporterId
+  try {
+      if (!formData.incidentType || !formData.severity || !formData.description) {
         throw new Error("Missing required report fields");
       }
 
-      // שליחת אובייקט הנתונים המלא ל-API
-      await incidentsApi.reportIncident(formData);
+      // צירוף ה-ID של המדווח לנתונים שנשלחים
+      const fullData = { ...formData, reporterId };
+    
+      await incidentsApi.reportIncident(fullData);
       alert("הדיווח נשלח בהצלחה ותועד במערכת");
-      
-      if (navigate) {
-        navigate(-1); // חזרה לדף הקודם לאחר הצלחה
-      }
+    
     } catch (error) {
       console.error("Incident report submission failed:", error);
-      alert("הדיווח לא נשלח. וודא שכל השדות מלאים ונסה שוב.");
+      alert("שגיאה בשליחת הדיווח: " + error.message);
     }
   },
 
