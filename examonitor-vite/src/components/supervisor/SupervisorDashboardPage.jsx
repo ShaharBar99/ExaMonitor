@@ -148,6 +148,55 @@ export default function SupervisorDashboard() {
     return () => clearInterval(monitorInterval);
   }, [students, remainingTime]);
 
+    // הוסף את ה-Effect הזה בתוך הקומפוננטה SupervisorDashboard
+  useEffect(() => {
+    // אם המבחן לא פעיל או שאין טיימרים, אל תבצע בדיקה
+    if (examData?.status !== 'active' || timers.length === 0) return;
+
+    const autoSubmitCheck = async () => {
+      // מצא את הטיימרים הספציפיים
+      const regTimer = timers.find(t => t.id === 'reg');
+      const t25Timer = timers.find(t => t.id === '25');
+      const t50Timer = timers.find(t => t.id === '50');
+
+      // רשימה של סטודנטים שצריך להגיש להם אוטומטית
+      const studentsToSubmit = students.filter(student => {
+        // רק סטודנטים שכרגע "במבחן" או "בחוץ זמנית"
+        if (student.status !== 'present' && student.status !== 'exited_temporarily') return false;
+
+        const extraTimePercent = student.extra_time_percent || 0;
+
+        // בדיקה לפי אחוז ההארכה של הסטודנט
+        if (extraTimePercent === 0 && regTimer?.secs <= 0) return true;
+        if (extraTimePercent === 25 && t25Timer?.secs <= 0) return true;
+        if (extraTimePercent === 50 && t50Timer?.secs <= 0) return true;
+
+        return false;
+      });
+
+      if (studentsToSubmit.length > 0) {
+        console.log(`Auto-submitting for ${studentsToSubmit.length} students`);
+        
+        // ביצוע הגשה עבור כל סטודנט שזמנו עבר
+        for (const student of studentsToSubmit) {
+          try {
+            await attendanceHandlers.changeStudentStatus(student.id, 'submitted', setStudents);
+            
+            // הוספת הודעה לבוט כדי שהמשגיח ידע שזה קרה
+            setBotMsg({
+              text: `⏰ זמן הבחינה הסתיים עבור ${student.name}. הטופס הוגש אוטומטית.`,
+              isAlert: true
+            });
+          } catch (error) {
+            console.error(`Failed to auto-submit for ${student.id}`, error);
+          }
+        }
+      }
+    };
+
+    autoSubmitCheck();
+  }, [timers, students, examData?.status]); // רץ בכל פעם שהטיימרים או רשימת הסטודנטים מתעדכנים
+
   const handleScanResult = async (scannedId) => {
     if (scanLock.current || scannedId === lastScannedId.current) return;
     scanLock.current = true;
