@@ -137,5 +137,24 @@ export const examHandlers = {
             return false;
         }
 
-    }
+    },
+    handleAddExtraTime: async (examId, setExamData) => {
+      try {
+          const additionalMinutes = 15; // ברירת מחדל
+          if (!window.confirm(`האם להוסיף ${additionalMinutes} דקות לכל הסטודנטים במבחן?`)) return;
+
+          const updatedExam = await examsApi.addExtraTime(examId, additionalMinutes);
+          
+          if (updatedExam) {
+              setExamData(prev => ({
+                  ...prev,
+                  extra_time: updatedExam.extra_time
+              }));
+              alert(`נוספו ${additionalMinutes}  דקות בהצלחה, המתן כ-10 שניות לאחר האישור`);
+          }
+      } catch (error) {
+          console.error("Failed to add extra time:", error);
+          alert("נכשל בעדכון זמן ההארכה");
+      }
+  },
 };

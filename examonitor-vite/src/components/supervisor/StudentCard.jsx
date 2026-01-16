@@ -3,7 +3,7 @@ import React from 'react';
 const StudentCard = ({ student, onStatusChange, onMoveClass }) => {
   const isOut = student.status === 'exited_temporarily';
   const isFinished = student.status === 'submitted' || student.status === 'finished';
-
+  const personalExtra = student.personalExtra || 0;
   const getStatusConfig = () => {
     if (isFinished) return { bg: 'bg-slate-100', text: 'text-slate-500', label: 'הגיש מבחן', dot: 'bg-slate-400' };
     if (isOut) return { bg: 'bg-amber-100', text: 'text-amber-700', label: 'יצא מהחדר', dot: 'bg-amber-500' };
@@ -33,6 +33,13 @@ const StudentCard = ({ student, onStatusChange, onMoveClass }) => {
         <p className="text-lg text-slate-400 font-black mt-3 uppercase tracking-widest">
           ת.ז • {student.studentId ? student.studentId : student.student_id}
         </p>
+        {/* הוספת תג הארכה אישית */}
+        {personalExtra > 0 && (
+          <div className="bg-purple-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-purple-200">
+            <span className="text-lg">⏱️</span>
+            <span className="font-black text-sm">+{personalExtra}% זמן</span>
+          </div>
+        )}
       </div>
 
       {/* אזור פעולות - כפתורים גדולים ונוחים */}

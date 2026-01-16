@@ -76,7 +76,6 @@ export const ExamController = {
   async addExtraTime(req, res, next) {
     try {
       const { minutes } = req.body;
-
       if (typeof minutes !== 'number' || minutes <= 0) {
         return res.status(400).json({ error: 'minutes must be a positive number' });
       }

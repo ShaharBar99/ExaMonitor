@@ -7,7 +7,7 @@ export const timerHandlers = {
   getRemainingSeconds: async (examId) => {
     try {
       const timing = await timerApi.getExamTiming(examId);
-      
+
       const start = new Date(timing.startTime).getTime();
       const now = new Date().getTime();
       
@@ -32,6 +32,17 @@ export const timerHandlers = {
       return await timerApi.pauseExam(examId, reason);
     } catch (error) {
       console.error("Failed to pause exam:", error);
+      throw error;
+    }
+  },
+
+  getTimeDataByExamId: async (examId) => {
+    try {
+      const examData = await timerApi.getExamTiming(examId); 
+      console.log("Fetched exam timing data:", examData);
+      return {start_time: examData.startTime, original_duration: examData.originalDuration, extra_time: examData.extraTime};
+    } catch (error) {
+      console.error("Failed to get exam timing:", error);
       throw error;
     }
   },

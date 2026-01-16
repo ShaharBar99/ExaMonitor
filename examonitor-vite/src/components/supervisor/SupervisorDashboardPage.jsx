@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { attendanceHandlers } from '../../handlers/attendanceHandlers';
-import { incidentHandlers } from '../../handlers/incidentHandlers';
 import { timerHandlers } from '../../handlers/timerHandlers';
 import { examHandlers } from '../../handlers/examHandlers';
 import Sidebar from '../layout/Sidebar';
@@ -11,7 +10,6 @@ import ExamTimer from '../exam/ExamTimer';
 import { useExam } from '../state/ExamContext';
 import { useAuth } from '../state/AuthContext';
 import StatCard from '../exam/StatCard';
-import { HeaderButton } from '../shared/Button';
 import AdmissionScanner from './AdmissionScanner';
 import IncidentReportPage from './IncidentReportPage';
 
@@ -62,8 +60,10 @@ export default function SupervisorDashboard() {
 
   const lastScannedId = useRef(null);
   const scanLock = useRef(false);
+  const [timers, setTimers] = useState([]);
+  const [selectedTimerId, setSelectedTimerId] = useState('reg');
 
-  // --- כל הלוגיקה המקורית (ללא שינוי) ---
+  // --- לוגיקת טעינה ראשונית ---
   useEffect(() => {
     attendanceHandlers.initSupervisorConsole(examId, user.id, setStudents, setLoading, setExamData);
   }, [examId, user.id, setExamData]);
@@ -78,15 +78,40 @@ export default function SupervisorDashboard() {
     }
   }, [location.state]);
 
+  // --- תיקון סנכרון זמן וחישוב טיימרים מרובים ---
   useEffect(() => {
     const syncTime = async () => {
+      // 1. קבלת השניות שנותרו לסיום הכללי
       const seconds = await timerHandlers.getRemainingSeconds(examId);
       setRemainingTime(seconds);
+
+      // 2. קבלת נתוני הבסיס (משך מקורי) מה-Handler שציינת
+      const timingData = await timerHandlers.getTimeDataByExamId(examId);
+      
+      if (seconds !== null && timingData && examData?.status === 'active') {
+        const originalDuration = timingData.original_duration || 0;
+
+        const calculateWithPercent = (percent) => {
+          const extraPercentSecs = (originalDuration * percent) * 60;
+          return Math.max(0, Math.floor(seconds + extraPercentSecs));
+        };
+
+        setTimers([
+          { id: 'reg', label: "רגיל (0%)", secs: seconds, color: "#34d399" },
+          { id: '25', label: "תוספת 25%", secs: calculateWithPercent(0.25), color: "#818cf8" },
+          { id: '50', label: "תוספת 50%", secs: calculateWithPercent(0.50), color: "#c084fc" }
+        ]);
+      } else {
+        setTimers([]);
+      }
     };
+
     syncTime();
-    const interval = setInterval(syncTime, 60000);
+    const interval = setInterval(syncTime, 10000);
     return () => clearInterval(interval);
-  }, [examId]);
+  }, [examId, examData?.status]); // מסנכרן מחדש כשהסטטוס משתנה ל-active
+
+  // הסרנו את ה-useEffect הקודם של ה-setTimers כי הוא עכשיו בתוך ה-syncTime
 
   useEffect(() => {
     if (examData?.status === 'pending' && currentStep === 0 && !botMsg) {
@@ -237,7 +262,6 @@ export default function SupervisorDashboard() {
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
         
-        {/* Header מוגדל */}
         <header className="bg-white/10 border-b-2 border-white/10 px-10 py-8 flex justify-between items-center z-30 backdrop-blur-md">
           <div className="flex items-center gap-10 text-white">
             <div>
@@ -245,7 +269,6 @@ export default function SupervisorDashboard() {
               <p className="text-xl text-emerald-400 font-bold mt-1">כיתה {classrooms.room_number || '---'}</p>
             </div>
 
-            {/* ניווט טאבים ענק */}
             <nav className="flex bg-black/40 p-2 rounded-[25px] border border-white/20">
               <button 
                 onClick={() => setDashboardTab('attendance')} 
@@ -262,11 +285,53 @@ export default function SupervisorDashboard() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="scale-125 origin-right ml-20">
-              {remainingTime !== null && <ExamTimer initialSeconds={remainingTime} isPaused={examData?.status !== 'active'} />}
-            </div>
-            <button onClick={handleFinishExam} className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black text-xl hover:bg-rose-600 hover:text-white transition-all shadow-xl">
+          <div className="flex items-center gap-8">
+            {timers.length > 0 ? (
+            <div className="flex flex-col items-center bg-black/30 p-4 rounded-[30px] border border-white/10 shadow-2xl min-w-70">
+      
+                {/* הטיימר הגדול - מציג את הטיימר שנבחר */}
+                <div className="scale-125 transform mb-4">
+                  {timers.filter(t => t.id === selectedTimerId).map(t => (
+                    <div key={t.id} className="flex flex-col items-center animate-in zoom-in duration-300">
+                      <ExamTimer 
+                          key={`${t.id}-${t.secs}`} 
+                          initialSeconds={t.secs} 
+                          isPaused={examData?.status !== 'active'} 
+                        />
+                    </div>
+                  ))}
+                </div>
+
+                {/* כפתורי המעבר (Selector) */}
+                <div className="flex gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+                  {timers.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setSelectedTimerId(t.id)}
+                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all duration-300 ${
+                        selectedTimerId === t.id 
+                          ? 'bg-white text-slate-900 shadow-lg scale-105' 
+                          : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                      }`}
+                      style={selectedTimerId === t.id ? { backgroundColor: t.color } : {}}
+                    >
+                      {t.label} {/* מציג "רגיל", "תוספת" וכו' */}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-black/20 px-8 py-6 rounded-[30px] border border-white/5">
+                <span className="text-white/40 font-bold text-lg animate-pulse">
+                  {examData?.status === 'pending' ? 'הטיימר יופעל עם תחילת המבחן' : 'מחשב זמן...'}
+                </span>
+              </div>
+            )}
+
+            <button 
+              onClick={handleFinishExam} 
+              className="bg-rose-600 text-white px-12 py-7 rounded-[30px] font-black text-2xl hover:bg-rose-500 transition-all shadow-[0_0_30px_rgba(225,29,72,0.3)] active:scale-95"
+            >
               סיום
             </button>
           </div>
@@ -277,13 +342,11 @@ export default function SupervisorDashboard() {
           {dashboardTab === 'attendance' ? (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
               
-              {/* סטטיסטיקה וכפתורים ראשיים */}
               <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                 <StatCard label="רשומים" value={students.length} variant="default" icon="👥" />
                 <StatCard label="בחדר" value={students.filter(s => s.status === 'present').length} variant="info" icon="🏠" />
                 
                 <div className="md:col-span-3 flex gap-6">
-                    {/* כפתור סריקה ענק */}
                     <button 
                         onClick={() => setIsScannerOpen(true)}
                         className="flex-1 bg-emerald-500 text-white rounded-[35px] flex flex-col items-center justify-center gap-2 hover:bg-emerald-400 shadow-2xl border-b-8 border-emerald-700 active:border-b-0 transition-all py-4"
@@ -291,21 +354,21 @@ export default function SupervisorDashboard() {
                         <span className="text-5xl">📷</span>
                         <span className="font-black text-2xl uppercase">סרוק סטודנט</span>
                     </button>
-                    {/* כפתור קריאה למנהל ענק */}
                     <button 
-                        onClick={() => incidentHandlers.handleCallManager(examId)}
-                        className="flex-1 bg-amber-500 text-white rounded-[35px] flex flex-col items-center justify-center gap-2 hover:bg-amber-400 shadow-2xl border-b-8 border-amber-700 active:border-b-0 transition-all py-4"
+                        onClick={() => examHandlers.handleAddExtraTime(examId, setExamData)}
+                        className="flex-1 bg-indigo-600 text-white rounded-[35px] flex flex-col items-center justify-center gap-2 hover:bg-indigo-500 shadow-2xl border-b-8 border-indigo-800 active:border-b-0 transition-all py-4"
                     >
-                        <span className="text-5xl">🆘</span>
-                        <span className="font-black text-2xl uppercase">קריאה למנהל</span>
+                        <span className="text-5xl">⏳</span>
+                        <div className="flex flex-col items-center">
+                            <span className="font-black text-2xl uppercase">הוסף הארכה</span>
+                            <span className="text-sm font-bold opacity-80">(15 דקות לכולם)</span>
+                        </div>
                     </button>
                 </div>
               </div>
 
-              {/* רשימת הסטודנטים */}
               <div className="bg-white rounded-[50px] shadow-2xl flex flex-col relative overflow-hidden min-h-125 border-8 border-white/5">
                 
-                {/* שורת הסרה (Removal Bar) */}
                 <div className={`absolute top-0 left-0 w-full z-40 transition-all duration-500 bg-rose-600 ${isRemoveBarOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
                     <div className="px-12 py-8 flex items-center gap-8">
                         <input 
@@ -330,7 +393,6 @@ export default function SupervisorDashboard() {
                     <button onClick={() => setIsRemoveBarOpen(true)} className="text-rose-600 font-black text-2xl underline decoration-4 underline-offset-8">✖ הסרה מהירה</button>
                   </div>
 
-                  {/* חיפוש והוספה ידנית - מוגדל */}
                   <div className="relative">
                     <input 
                       type="text" placeholder="חיפוש או הוספת סטודנט..." 

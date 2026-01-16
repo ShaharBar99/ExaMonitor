@@ -26,7 +26,7 @@ export const AttendanceService = {
       .from('attendance')
       .select(`
         id, status,
-        profiles:student_id (full_name, student_id)
+        profiles:student_id (full_name, student_id, personal_extra_time)
       `)
       .eq('classroom_id', classroom.id)
       .neq('status', 'absent');
@@ -38,7 +38,8 @@ export const AttendanceService = {
       studentId: s.profiles?.student_id,
       name: s.profiles?.full_name,
       status: s.status,
-      classroomId: classroom.id // עכשיו אנחנו יודעים בוודאות באיזה חדר אנחנו
+      classroomId: classroom.id, // עכשיו אנחנו יודעים בוודאות באיזה חדר אנחנו
+      personalExtra: s.profiles?.personal_extra_time || 0
     }));
   },
 

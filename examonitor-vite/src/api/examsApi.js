@@ -35,4 +35,9 @@ export const examsApi = {
       method: "POST",
       body: { message }
     }),
+  addExtraTime: async (examId, additionalMinutes) =>
+    apiFetch(`/exams/${examId}/extra-time`, {
+      method: "PATCH",
+      body: { minutes: additionalMinutes }
+    }),
 };

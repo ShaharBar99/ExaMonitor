@@ -167,36 +167,37 @@ export const attendanceHandlers = {
     /**
      * הסרת סטודנט (ביטול נוכחות)
      */
-    handleRemoveStudent: async (studentId, setStudents) => {
+  handleRemoveStudent: async (studentId, setStudents) => {
 
+        try {
+          await attendanceApi.removeStudent(studentId);
+          
+          // עדכון ה-State של React - הסרת הסטודנט מהמערך
+          setStudents(prev => prev.filter(s => s.id !== studentId));
+        } catch (error) {
+          console.error("Remove failed:", error);
+          alert("נכשל בהסרת הסטודנט");
+        }
+      },
+      /**
+       * לוגיקת חיפוש סטודנטים בזמן אמת
+       */
+      handleSearchEligible: async (examId, query, setSearchResults, setIsSearching) => {
+      if (!query || query.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
       try {
-        await attendanceApi.removeStudent(studentId);
-        
-        // עדכון ה-State של React - הסרת הסטודנט מהמערך
-        setStudents(prev => prev.filter(s => s.id !== studentId));
+        const results = await attendanceApi.searchEligibleStudents(examId, query);
+        setSearchResults(results || []); // עדכון ה-State ישירות
       } catch (error) {
-        console.error("Remove failed:", error);
-        alert("נכשל בהסרת הסטודנט");
+        console.error("Search error in handler:", error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
       }
     },
-    /**
-     * לוגיקת חיפוש סטודנטים בזמן אמת
-     */
-    handleSearchEligible: async (examId, query, setSearchResults, setIsSearching) => {
-    if (!query || query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const results = await attendanceApi.searchEligibleStudents(examId, query);
-      setSearchResults(results || []); // עדכון ה-State ישירות
-    } catch (error) {
-      console.error("Search error in handler:", error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  },
+    
 };

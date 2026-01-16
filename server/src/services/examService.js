@@ -343,7 +343,7 @@ export const ExamService = {
         console.error("Error fetching timing:", error);
         throw error;
     }
-
+    console.log("Fetched timing data:", data);
     // חשוב: ה-Frontend מצפה לשמות שדות ב-camelCase
     return {
         startTime: data.original_start_time,
