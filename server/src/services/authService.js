@@ -14,6 +14,21 @@ async function fetchUserProfile(column, value) {
 
   return profile;
 }
+async function logFailedLoginAttempt({ username, role, ip, reason }) { // Log failed login attempt
+      try { // Never break login flow if logging fails
+        await supabaseAdmin.from("failed_login_attempts").insert([ // Insert one row
+          { // Row
+            attempted_username: String(username || ""), // Username used
+            attempted_role: role ? String(role) : null, // Role used
+            ip_address: ip ? String(ip) : null, // IP if provided
+            reason: String(reason || "Login failed"), // Failure reason
+            status: "open", // Default status
+          }, // End row
+        ]); // End insert
+      } catch (e) { // Ignore logging errors
+        // intentionally ignored
+      } // End try/catch
+    } // End logFailedLoginAttempt
 
     // Fetch role from profiles (server-side)
     //  .eq('id', authUser.id)
@@ -25,57 +40,88 @@ export const AuthService = {
    * Validates requested role against profiles.role.
    * Returns the access token + user (including role).
    */
-  async login(username, password, requestedRole) {
-    // "username" in the contract is your login identifier.
-    // In your project you use email auth, so treat username as email.
 
-    const user = await fetchUserProfile('username', username);
+  async login(username, password, requestedRole, meta = {}) { // Login + role validation + active check
+    const ctx = { // Context for logging
+      username, // Attempted username
+      role: requestedRole, // Attempted role
+      ip: meta.ip, // Request IP
+    }; // End ctx
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password,
-    });
+    const fail = async (message, status) => { // Centralized failure handler
+      await logFailedLoginAttempt({ ...ctx, reason: message }); // Log attempt
+      const err = new Error(message); // Create error
+      err.status = status; // Attach status code
+      throw err; // Throw
+    }; // End fail
 
-    if (error) {
-      const err = new Error(error.message);
-      err.status = 401;
-      throw err;
-    }
+    // 1) Username not found / profile fetch error
+    let user; // Profile row for the username
+    try { // Catch not-found or DB error from fetchUserProfile
+      user = await fetchUserProfile("username", username); // Lookup by username
+    } catch (e) { // Any error -> treat as invalid credentials
+      return fail("Invalid username or password", 401); // Log + throw
+    } // End try/catch
 
-    const authUser = data.user;
-    const token = data.session?.access_token;
+    if (!user?.email) { // Extra safety guard
+      return fail("Invalid username or password", 401); // Log + throw
+    } // End guard
 
-    if (!authUser || !token) {
-      const err = new Error('Login failed');
-      err.status = 401;
-      throw err;
-    }
+    // 2) Supabase signInWithPassword error
+    let data; // Supabase auth response data
+    try { // Catch sign-in errors
+      const res = await supabase.auth.signInWithPassword({ // Sign in using email from profile
+        email: user.email, // Email
+        password, // Password
+      }); // End sign-in
 
-    const profile = await fetchUserProfile('id', authUser.id);
+      data = res.data; // Extract data
+      const error = res.error; // Extract error
 
-    const actualRole = profile?.role ?? 'student';
-    const status = profile?.is_active ?? true;
-    if (!status) {
-      const err = new Error('User account is inactive');
-      err.status = 403;
-      throw err;
-    }
-    // Enforce role match
-    if (requestedRole !== actualRole) {
-      const err = new Error('Role mismatch');
-      err.status = 403;
-      throw err;
-    }
-  
-    return {
-      token,
-      user: {
-        id: authUser.id,
-        email: profile.email ?? authUser.email ?? '',
-        full_name: profile.full_name ?? '',
-        role: actualRole,
-      },
-    };
+      if (error) { // If Supabase returned an error
+        return fail("Invalid username or password", 401); // Log + throw (don’t leak details)
+      } // End error check
+    } catch (e) { // Unexpected error
+      return fail("Invalid username or password", 401); // Log + throw
+    } // End try/catch
+
+    const authUser = data?.user; // Auth user
+    const token = data?.session?.access_token; // Access token
+
+    if (!authUser || !token) { // Missing session/token
+      return fail("Login failed", 401); // Log + throw
+    } // End guard
+
+    // 3) Profile fetch error after login (by id)
+    let profile; // Full profile row
+    try { // Catch DB errors
+      profile = await fetchUserProfile("id", authUser.id); // Fetch profile by user id
+    } catch (e) { // Profile lookup failed
+      return fail("Login failed", 401); // Log + throw
+    } // End try/catch
+
+    const actualRole = profile?.role ?? "student"; // Actual role from DB
+    const status = profile?.is_active ?? true; // Active flag from DB
+
+    // 4) Inactive user
+    if (!status) { // If user is inactive
+      return fail("User account is inactive", 403); // Log + throw
+    } // End inactive check
+
+    // 5) Role mismatch
+    if (requestedRole !== actualRole) { // If requested role doesn't match
+      return fail("Role mismatch", 403); // Log + throw
+    } // End role check
+
+    return { // Success response
+      token, // JWT access token
+      user: { // User object
+        id: authUser.id, // User id
+        email: profile.email ?? authUser.email ?? "", // Email
+        full_name: profile.full_name ?? "", // Name
+        role: actualRole, // Role
+      }, // End user
+    }; // End return
   },
 
   async getMe(accessToken) {

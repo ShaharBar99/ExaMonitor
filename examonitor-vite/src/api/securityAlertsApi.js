@@ -12,7 +12,6 @@ export async function listSecurityAlerts({ token, severity, status } = {}) { // 
   } // End mock
 
   const q = new URLSearchParams(); // Build query
-  if (severity) q.set("severity", severity); // Optional severity
   if (status) q.set("status", status); // Optional status
   const suffix = q.toString() ? `?${q.toString()}` : ""; // Query suffix
 

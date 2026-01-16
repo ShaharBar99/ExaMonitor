@@ -99,10 +99,60 @@ export const AdminService = {
     return { items: data || [], total: count ?? 0 };
   },
 
-  async listSecurityAlerts() {
-    // Placeholder: no table yet.
-    return [];
-  },
+  async listSecurityAlerts(status) {
+  let q = supabaseAdmin
+    .from("failed_login_attempts")
+    .select("id, created_at, attempted_username, attempted_role, ip_address, reason, status")
+    .order("created_at", { ascending: false });
+
+  if (status) q = q.eq("status", status);
+
+  const { data, error } = await q;
+
+  if (error) {
+    const err = new Error(error.message);
+    err.status = 400;
+    throw err;
+  }
+
+  return (data || []).map((r) => ({
+    id: r.id,
+    ts: r.created_at,
+    username: r.attempted_username,
+    role: r.attempted_role,
+    ip: r.ip_address,
+    reason: r.reason,
+    status: r.status,
+  }));
+},
+
+async resolveSecurityAlert(id) {
+  const { data, error } = await supabaseAdmin
+    .from("failed_login_attempts")
+    .update({ status: "resolved", resolved_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("id, created_at, attempted_username, attempted_role, ip_address, reason, status")
+    .single();
+
+  if (error) {
+    const err = new Error(error.message);
+    err.status = 400;
+    throw err;
+  }
+
+  return {
+    alert: {
+      id: data.id,
+      ts: data.created_at,
+      username: data.attempted_username,
+      role: data.attempted_role,
+      ip: data.ip_address,
+      reason: data.reason,
+      status: data.status,
+    },
+  };
+},
+
 
   async resolveSecurityAlert(id) {
     // Placeholder: no table yet.

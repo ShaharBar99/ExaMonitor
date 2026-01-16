@@ -77,7 +77,7 @@ export const AdminController = {
 
   async listSecurityAlerts(req, res, next) {
     try {
-      const alerts = await AdminService.listSecurityAlerts();
+      const alerts = await AdminService.listSecurityAlerts(req.query.status);
       res.json({ alerts });
     } catch (err) {
       next(err);
