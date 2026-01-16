@@ -135,7 +135,8 @@ export const ExamService = {
       const { data: classrooms, error: roomsErr } = await supabaseAdmin
         .from('classrooms')
         .select('id')
-        .eq('exam_id', examId);
+        .eq('exam_id', examId)
+        .eq('supervisor_id', userId); // רק חדרים ללא משגיח מוקצה
 
       if (roomsErr) throw roomsErr;
 
@@ -156,7 +157,7 @@ export const ExamService = {
       }
 
       // 3. יצירת הדוח - הוספתי await כדי להבטיח שהדוח ייווצר רק אחרי שהסטודנטים עודכנו
-      report = await this.finalizeAndSaveReport(examId, userId);
+      report = await this.finalizeAndSaveReport(examId, userId, classrooms[0]?.id); // שימוש ב-classroom_id
     }
 
     return { exam: examData, report };
@@ -238,24 +239,97 @@ export const ExamService = {
     };
   },
 
-  async finalizeAndSaveReport(examId, userId) {
-    const reportData = await this.getExtendedReport(examId);
+    async finalizeAndSaveReport(examId, userId, classroomId) {
+    // 1. נפיק נתונים *רק* עבור הכיתה הספציפית הזו
+    const reportData = await this.getClassroomReport(classroomId);
 
+    // 2. שמירה בטבלת exam_reports - אבל הפעם לפי classroom_id
     const { data, error } = await supabaseAdmin
       .from('exam_reports')
       .upsert({
         exam_id: examId,
+        classroom_id: classroomId, // חייב להוסיף את העמודה הזו ב-DB
         generated_by: userId,
         summary_stats: reportData,
         created_at: new Date().toISOString()
-      }, { onConflict: 'exam_id' })
+      }, { 
+        onConflict: 'classroom_id' // המפתח לייחודיות הוא הכיתה, לא המבחן!
+      })
       .select()
       .single();
 
     if (error) throw error;
     return data;
   },
+  async getClassroomReport(classroomId) {
+    console.log(`[DEBUG] Fetching classroom report for ID: ${classroomId}`);
 
+    const [attendance, incidents, breaks] = await Promise.all([
+      // 1. כל הסטודנטים שרשומים לחדר הזה
+      supabaseAdmin
+        .from('attendance')
+        .select('status')
+        .eq('classroom_id', classroomId),
+
+      // 2. כל האירועים החריגים שנרשמו בחדר הזה
+      // הנחה: יש לך עמודת classroom_id בטבלת exam_incidents
+      supabaseAdmin
+        .from('exam_incidents')
+        .select('*')
+        .eq('classroom_id', classroomId),
+
+      // 3. כל ההפסקות של הסטודנטים בחדר הזה
+      supabaseAdmin
+        .from('student_breaks')
+        .select('*, attendance!inner(classroom_id, profiles(full_name))')
+        .eq('attendance.classroom_id', classroomId)
+    ]);
+
+    const attData = attendance?.data || [];
+    const incData = incidents?.data || [];
+    const brkData = breaks?.data || [];
+
+    // חישוב זמני הפסקות (בדקות)
+    let totalBreakMinutes = 0;
+    brkData.forEach(b => {
+      if (b.return_time && b.exit_time) {
+        const duration = (new Date(b.return_time) - new Date(b.exit_time)) / 60000;
+        totalBreakMinutes += duration;
+      }
+    });
+
+    const avgBreak = brkData.length > 0 
+      ? (totalBreakMinutes / brkData.length).toFixed(1) 
+      : "0.0";
+
+    // מציאת הסטודנט שיצא הכי הרבה פעמים בחדר הזה
+    const mostExits = this.getStudentWithMostExits(brkData);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      classroomId: classroomId,
+      summary: {
+        totalStudents: attData.length,
+        submitted: attData.filter(a => ['submitted', 'finished'].includes(a.status)).length,
+        absent: attData.filter(a => a.status === 'absent').length,
+        currentlyInRoom: attData.filter(a => a.status === 'present').length,
+        currentlyInBreak: attData.filter(a => a.status === 'exited_temporarily').length
+      },
+      breaks: {
+        totalCount: brkData.length,
+        averageMinutes: avgBreak,
+        mostExits: mostExits
+      },
+      incidents: {
+        total: incData.length,
+        highSeverity: incData.filter(i => i.severity === 'high').length,
+        types: incData.reduce((acc, curr) => {
+          acc[curr.incident_type] = (acc[curr.incident_type] || 0) + 1;
+          return acc;
+        }, {})
+      }
+    };
+  },
   // PATCH /exams/:id/extra-time  (adds minutes)
   async addExtraTime(examId, additionalMinutes) {
     // read current extra_time first
