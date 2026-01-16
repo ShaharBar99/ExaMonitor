@@ -190,7 +190,7 @@ export default function SupervisorDashboard() {
 
   const handleFinishExam = async () => {
     if (window.confirm("לסיים את המבחן לכולם?")) {
-      await examHandlers.handleChangeStatus(examId, 'finished', setExamData);
+      await examHandlers.handleChangeStatus(examId, 'finished', setExamData, user.id);
       navigate('/select-exam');
     }
   };

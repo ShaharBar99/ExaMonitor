@@ -24,10 +24,10 @@ export const examsApi = {
     return apiFetch(`/exams/${examId}`);
   },
 
-  updateExamStatus: async (examId, status) =>
+  updateExamStatus: async (examId, status, userId) =>
     apiFetch(`/exams/${examId}/status`, {
       method: "PATCH",
-      body: { status }
+      body: { status, userId }
     }),
 
   broadcastAnnouncement: async (examId, message) =>

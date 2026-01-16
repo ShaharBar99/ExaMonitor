@@ -99,7 +99,7 @@ export const examHandlers = {
     },
 
     // ניהול שינוי סטטוס המבחן (עצירה/חידוש/סיום)
-    handleChangeStatus: async (examId, newStatus, setExamData) => {
+    handleChangeStatus: async (examId, newStatus, setExamData, userId) => {
         try {
             // 1. הודעת אישור מותאמת אישית יותר
             const statusNames = {
@@ -113,7 +113,7 @@ export const examHandlers = {
                 : `האם לשנות את סטטוס המבחן ל-${statusNames[newStatus] || newStatus}?`;
 
             if (!window.confirm(confirmMsg)) return false;
-            const response = await examsApi.updateExamStatus(examId, newStatus);
+            const response = await examsApi.updateExamStatus(examId, newStatus, userId);
             console.log("Status update response:", response);
             if (response) {
                 // עדכון ה-State המקומי רק אם הפונקציה קיימת

@@ -116,31 +116,143 @@ export const ExamService = {
   },
 
   // PATCH /exams/:id/status
-  async updateStatus(examId, status) {
-    const { data, error } = await supabaseAdmin
+  async updateStatus(examId, status, userId) {
+    // 1. עדכון המבחן עצמו
+    const { data: examData, error: examError } = await supabaseAdmin
       .from('exams')
       .update({ status })
       .eq('id', examId)
-      .select(`
-        id,
-        course_id,
-        original_start_time,
-        original_duration,
-        extra_time,
-        status,
-        courses:course_id (
-          id,
-          course_name,
-          course_code
-        )
-      `)
+      .select(`*, courses:course_id (course_name, course_code)`)
       .single();
-    if (error) {
-      const err = new Error(error.message);
-      err.status = 400;
-      throw err;
+
+    if (examError) throw examError;
+
+    let report = null;
+
+    // 2. אם המבחן הסתיים - נבצע Force Submit לכולם
+    if (status === 'finished') {
+      // שלב א': מציאת כל החדרים ששייכים למבחן הזה
+      const { data: classrooms, error: roomsErr } = await supabaseAdmin
+        .from('classrooms')
+        .select('id')
+        .eq('exam_id', examId);
+
+      if (roomsErr) throw roomsErr;
+
+      const roomIds = classrooms.map(r => r.id);
+
+      if (roomIds.length > 0) {
+        // שלב ב': עדכון כל הסטודנטים בחדרים האלו שנמצאים בסטטוס פעיל
+        const { error: attError } = await supabaseAdmin
+          .from('attendance')
+          .update({ 
+            status: 'submitted', 
+            check_out_time: new Date().toISOString()
+          })
+          .in('classroom_id', roomIds) // שימוש ב-classroom_id במקום exam_id
+          .in('status', ['present', 'exited_temporarily']);
+
+        if (attError) console.error("Error auto-submitting students:", attError);
+      }
+
+      // 3. יצירת הדוח - הוספתי await כדי להבטיח שהדוח ייווצר רק אחרי שהסטודנטים עודכנו
+      report = await this.finalizeAndSaveReport(examId, userId);
     }
 
+    return { exam: examData, report };
+  },
+
+  async getExtendedReport(examId) {
+  // 1. שליפת הנתונים עם Join נכון ל-classrooms כדי לסנן לפי ה-examId
+    const [attendance, incidents, breaks] = await Promise.all([
+      // סינון סטודנטים לפי ה-exam_id שנמצא בטבלת ה-classrooms
+      supabaseAdmin
+        .from('attendance')
+        .select('*, classrooms!inner(exam_id)')
+        .eq('classrooms.exam_id', examId),
+
+      supabaseAdmin
+        .from('exam_incidents')
+        .select('*')
+        .eq('exam_id', examId),
+
+      // סינון הפסקות דרך ה-attendance וה-classroom
+      supabaseAdmin
+        .from('student_breaks')
+        .select('*, attendance!inner(id, profiles(full_name), classrooms!inner(exam_id))')
+        .eq('attendance.classrooms.exam_id', examId)
+    ]);
+
+    const attData = attendance?.data || [];
+    const incData = incidents?.data || [];
+    const brkData = breaks?.data || [];
+
+    // 2. חישוב זמני הפסקות
+    let totalMinutes = 0;
+    brkData.forEach(b => {
+      if (b.return_time && b.exit_time) {
+        const duration = (new Date(b.return_time) - new Date(b.exit_time)) / 60000;
+        totalMinutes += duration;
+      }
+    });
+
+    const avgBreak = brkData.length > 0 ? (totalMinutes / brkData.length).toFixed(1) : "0.0";
+
+    return {
+      summary: {
+        total: attData.length,
+        // שים לב: ב-attendance_status הסטטוס יכול להיות 'submitted' או 'finished' לפי הקוד שלך
+        submitted: attData.filter(a => ['submitted', 'finished'].includes(a.status)).length,
+        absent: attData.filter(a => a.status === 'absent').length,
+        notSubmitted: attData.filter(a => ['present', 'exited_temporarily'].includes(a.status)).length
+      },
+      breaks: {
+        count: brkData.length,
+        averageMinutes: avgBreak,
+        mostExits: this.getStudentWithMostExits(brkData)
+      },
+      incidents: {
+        total: incData.length,
+        highSeverity: incData.filter(i => i.severity === 'high').length,
+        technicalIssues: incData.filter(i => i.incident_type?.includes('תקלה')).length
+      }
+    };
+  },
+
+  getStudentWithMostExits(breaksData) {
+    if (!breaksData || breaksData.length === 0) return null;
+
+    const exitCounts = {};
+    breaksData.forEach(b => {
+      const studentName = b.attendance?.profiles?.full_name || "סטודנט לא ידוע";
+      exitCounts[studentName] = (exitCounts[studentName] || 0) + 1;
+    });
+
+    const topName = Object.keys(exitCounts).reduce((a, b) => 
+      exitCounts[a] > exitCounts[b] ? a : b
+    );
+
+    return {
+      name: topName,
+      count: exitCounts[topName]
+    };
+  },
+
+  async finalizeAndSaveReport(examId, userId) {
+    const reportData = await this.getExtendedReport(examId);
+
+    const { data, error } = await supabaseAdmin
+      .from('exam_reports')
+      .upsert({
+        exam_id: examId,
+        generated_by: userId,
+        summary_stats: reportData,
+        created_at: new Date().toISOString()
+      }, { onConflict: 'exam_id' })
+      .select()
+      .single();
+
+    if (error) throw error;
     return data;
   },
 

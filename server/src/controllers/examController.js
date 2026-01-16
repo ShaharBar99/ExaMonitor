@@ -58,7 +58,7 @@ export const ExamController = {
 
   async updateStatus(req, res, next) {
     try {
-      const { status } = req.body;
+      const { status, userId } = req.body;
 
       if (!ALLOWED_STATUS.has(status)) {
         return res.status(400).json({
@@ -66,8 +66,8 @@ export const ExamController = {
         });
       }
 
-      const exam = await ExamService.updateStatus(req.params.id, status);
-      res.json({ exam });
+      const {exam, updatedStudents, report} = await ExamService.updateStatus(req.params.id, status, userId);
+      res.json({ exam, updatedStudents, report });
     } catch (err) {
       next(err);
     }
