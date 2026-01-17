@@ -22,43 +22,51 @@ export default function ViewClassroomsPage() {
 
   // טעינת נתונים באמצעות ה-Handler של ה-Classrooms
   useEffect(() => {
-    // For lecturers: prefer server-side filtered by exam id when available,
-    // otherwise fetch classrooms for the lecturer's id (their courses' exams).
+  // Define an internal async function
+  const fetchData = async () => {
     if (isLecturer) {
       if (examData?.id) {
         classroomHandler.loadDisplayData(userRole, examData.id, examData?.courseName || null, setClassrooms, setLoading);
+        console.log(classrooms);
       } else if (user?.id) {
         setLoading(true);
-        classroomApi.getClassrooms(null, user.id)
-          .then(data => setClassrooms(data))
-          .catch(err => { console.error('Failed to load lecturer classrooms:', err); setClassrooms([]); })
-          .finally(() => setLoading(false));
+        try {
+          const classes = await classroomApi.getClassrooms(null, user.id);
+          setClassrooms(classes);
+        } catch (err) {
+          console.error('Failed to load lecturer classrooms:', err);
+          setClassrooms([]);
+        } finally {
+          setLoading(false);
+        }
       } else {
         setClassrooms([]);
         setLoading(false);
       }
     } else {
       // supervisors and floor supervisors
-      classroomHandler.loadDisplayData(
+      await classroomHandler.loadDisplayData(
         userRole,
         examData?.id || null,
         examData?.courseName || null,
         setClassrooms,
         setLoading
       );
+      //console.log(classrooms);
 
-      // טעינת רשימת משגיחים זמינים (רק למנהל קומה)
       if (!isLecturer) {
-        classroomHandler.loadSupervisors()
-          .then(supervisors => {
-            setSupervisors(supervisors);
-          })
-          .catch(error => {
-            console.error('Failed to load supervisors:', error);
-          });
+        try {
+          const supervisors = await classroomHandler.loadSupervisors();
+          setSupervisors(supervisors);
+        } catch (error) {
+          console.error('Failed to load supervisors:', error);
+        }
       }
     }
-  }, [userRole, examData, user]);
+  };
+
+  fetchData(); // Execute the async function
+}, [userRole, examData, user, isLecturer]); // Added isLecturer to deps for safety
 
   // סינון מקומי לצורך שורת החיפוש (UI בלבד)
   const filteredClassrooms = useMemo(() => {

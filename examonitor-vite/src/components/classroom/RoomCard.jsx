@@ -36,7 +36,7 @@ export default function RoomCard({ room, supervisors, onSupervisorChange, readOn
       <div className="grid grid-cols-2 gap-3 mb-8">
         <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
           <p className="text-[9px] font-black text-slate-400 uppercase mb-1">נבחנים בחדר</p>
-          <p className="text-xl font-black text-slate-800">{room.studentsCount}</p>
+          <p className="text-xl font-black text-slate-800">{room.studentsCount || 0}</p>
         </div>
         <div className="p-4 bg-emerald-50/30 rounded-2xl border border-emerald-100/50">
           <p className="text-[9px] font-black text-emerald-600/60 uppercase mb-1 font-mono">הגישו</p>
