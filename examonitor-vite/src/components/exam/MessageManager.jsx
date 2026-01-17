@@ -63,11 +63,11 @@ export default function MessageManager({ activeTab, userRole }) {
 
   const onSend = (text) => {
     if (!currentChat || !socket) return;
-    
     const message = {
       id: Date.now(),
       text: text.trim(),
-      sender: user.role, 
+      senderRole: user.role,
+      senderName: user.full_name,
       isMe: true,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
