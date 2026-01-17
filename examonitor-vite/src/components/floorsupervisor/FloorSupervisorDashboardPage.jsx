@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { classroomHandler } from '../../handlers/classroomHandlers';
 import { useAuth } from '../state/AuthContext';
+import { useSocket } from '../state/SocketContext';
 
 // רכיבי תשתית
 import Sidebar from '../../components/layout/Sidebar';
@@ -23,6 +24,7 @@ export default function FloorSupervisorDashboardPage() {
   const navigate = useNavigate();
   const { examData } = useExam();
   const { user } = useAuth();
+  const socket = useSocket();
 
   // --- ניהול ניווט עליון (החלפת תוכן מרכזי) ---
   const [activeMainTab, setActiveMainTab] = useState('dashboard');
@@ -35,6 +37,12 @@ export default function FloorSupervisorDashboardPage() {
   const [rooms, setRooms] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
+
+  const [messages, setMessages] = useState({
+    supervisor_floor_chat: [],
+    floor_lecturer_chat: []
+  });
+
 
   // טעינת נתונים
   useEffect(() => {
@@ -52,6 +60,37 @@ export default function FloorSupervisorDashboardPage() {
     return () => { isMounted = false; };
   }, [examId, user.role]);
 
+  useEffect(() => {
+  // 1. Safety check for socket and userRole
+  if (!socket || !user.role ) return;
+
+
+
+  // 2. Join rooms
+  Object.values(user.role).forEach(chat => {
+    socket.emit('join_room', chat.type);
+  });
+
+  const handleNewMessage = (message) => {
+    // 3. Safety check: does the message have a room and do we care about it?
+    if (!message || !message.room) return;
+
+    setMessages(prev => {
+      // Ensure the room exists in our state so we don't crash
+      const existingMessages = prev[message.room] || [];
+      return {
+        ...prev,
+        [message.room]: [...existingMessages, message]
+      };
+    });
+  };
+
+  socket.on('new_message', handleNewMessage);
+  
+  return () => {
+    socket.off('new_message', handleNewMessage);
+  };
+}, [socket, user.role]); // Added userRole to dependencies
   // חישוב סטטיסטיקות
   const stats = useMemo(() => {
     if (!rooms) return { activeRooms: 0, warnings: 0, totalStudents: 0, supervisorsOnFloor: 0 };
