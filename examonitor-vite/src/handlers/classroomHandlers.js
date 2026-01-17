@@ -14,24 +14,6 @@ export const classroomHandler = {
       setLoading(true);
       // If we have an examId, request server-side filtered classrooms for that exam
       const data = await classroomApi.getClassrooms(examId);
-      // let enrichedData = [];
-      // for (const room of data) {
-      //   // Fetch students for this specific room
-      //   const students = await attendanceApi.getStudentsForSupervisor(room.exam_id, room.supervisor_id);
-      //   console.log(students);
-      //   // Calculate counts
-      //   // Note: Assuming students is an array. If students is an object containing the list, 
-      //   // adjust to students.list.filter(...)
-      //   const studentLength = students?.length || 0;
-      //   const submittedCount = students?.filter(s => s.status === 'submitted').length || 0;
-
-      //   // Create the enriched room object
-      //   enrichedData.push({
-      //     ...room,
-      //     studentsCount: studentLength,
-      //     submittedCount: submittedCount
-      //   });
-      // }
       const enrichedData = await Promise.all(data.map(async (room) => {
           const students = await attendanceApi.getStudentsForSupervisor(room.exam_id, room.supervisor_id);
           const actualArray = Array.isArray(students) ? students : (students?.data || []);
