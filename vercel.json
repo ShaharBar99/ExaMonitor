@@ -1,27 +1,40 @@
 {
+  "//": "--- VERCEL CONFIG FOR EXAMONITOR ---",
+  "//": "NOTE: For this file to work, you MUST set the 'Root Directory' in your Vercel Project Settings to the main project root, NOT the 'examonitor-vite' folder.",
+
   "version": 2,
+
+  "//": "BUILDS: This section tells Vercel how to build the two separate parts of your project (backend and frontend).",
   "builds": [
     {
+      "//": "This builds your Node.js server from the 'server' directory.",
       "src": "/server/vercel.js",
       "use": "@vercel/node"
     },
     {
+      "//": "This builds your Vite frontend from the 'examonitor-vite' directory.",
       "src": "/examonitor-vite/package.json",
       "use": "@vercel/static-build",
       "options": {
+        "//": "Specifies that the build output for the frontend is in a 'dist' folder inside 'examonitor-vite'.",
         "distDir": "dist"
       }
     }
   ],
+
+  "//": "ROUTES: This section tells Vercel how to handle incoming requests.",
   "routes": [
     {
+      "//": "Rule 1: Any request starting with '/api/' is sent to your backend server.",
       "src": "/api/(.*)",
       "dest": "/server/vercel.js"
     },
     {
+      "//": "Rule 2: Vercel checks if a static file exists that matches the request (e.g., /assets/index.js). If so, it serves it.",
       "handle": "filesystem"
     },
     {
+      "//": "Rule 3: For any other request (like '/login' or '/'), serve the main 'index.html' file. This allows your React app to handle the routing.",
       "src": "/(.*)",
       "dest": "/index.html"
     }
