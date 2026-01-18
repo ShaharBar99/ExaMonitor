@@ -157,12 +157,6 @@ return (
               {activeMainTab === 'dashboard' ? 'Control Center' :
                 activeMainTab === 'rooms' ? 'Room Management' : 'Event History'}
             </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-[11px]">
-                קומה {examData?.floor || '03'} • {examData?.courseName || 'בחינה פעילה'}
-              </p>
-            </div>
           </div>
 
           {/* ה-Navbar המרכזי */}
