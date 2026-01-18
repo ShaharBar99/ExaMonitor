@@ -2,18 +2,21 @@
   "version": 2,
   "builds": [
     {
-      "src": "server/vercel.js",
+      "src": "/server/vercel.js",
       "use": "@vercel/node"
     },
     {
-      "src": "examonitor-vite/package.json",
-      "use": "@vercel/static-build"
+      "src": "/examonitor-vite/package.json",
+      "use": "@vercel/static-build",
+      "options": {
+        "distDir": "dist"
+      }
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server/vercel.js"
+      "dest": "/server/vercel.js"
     },
     {
       "handle": "filesystem"
