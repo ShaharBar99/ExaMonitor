@@ -8,4 +8,10 @@ export const incidentsApi = {
   callFloorManager: async (roomId, reason) => {
     return apiFetch('/incidents/call-manager', { method: 'POST', body: { roomId, reason } });
   },
+
+  //tk added
+  listByExam: async (examId) => {
+    return apiFetch(`/incidents?examId=${encodeURIComponent(examId)}`);
+  },
+
 };

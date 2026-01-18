@@ -15,6 +15,15 @@ export const ExamController = {
     }
   },
 
+  async listCourses(req, res, next) {
+    try {
+      const courses = await ExamService.listAllCourses();
+      res.json(courses);
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async getOne(req, res, next) {
     try {
       const exam = await ExamService.getExamById(req.params.id);

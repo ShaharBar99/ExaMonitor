@@ -29,4 +29,17 @@ export const IncidentService = {
     console.log(`Calling manager to room ${roomId} for: ${reason}`);
     return { success: true };
   },
+
+  //tk added
+  // func to get incidents by exam ID
+  async listByExam(examId) {
+    const { data, error } = await supabaseAdmin
+      .from('exam_incidents')
+      .select('id, severity')
+      .eq('exam_id', examId);
+
+    if (error) throw error;
+    return data || [];
+  }
+
 };

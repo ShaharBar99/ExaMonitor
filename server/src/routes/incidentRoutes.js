@@ -8,5 +8,6 @@ router.use(requireAuth);
 
 router.post('/', IncidentController.report);
 router.post('/call-manager', IncidentController.callManager);
+router.get('/', IncidentController.listByExam); //tk added
 
 export default router;

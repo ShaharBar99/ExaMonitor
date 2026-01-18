@@ -5,6 +5,76 @@ const ALLOWED_STATUS = new Set(['present', 'absent', 'exited_temporarily', 'subm
 
 export const AttendanceService = {
   
+  //tk added
+  async list({ classroomId = null, examId = null }) {
+    // Case 1: list by classroom
+    if (classroomId) {
+      const { data, error } = await supabaseAdmin
+        .from('attendance')
+        .select(`
+          id,
+          student_id,
+          classroom_id,
+          check_in_time,
+          check_out_time,
+          status,
+          profiles:student_id (personal_extra_time) // שליפת זמן נוסף אישי
+        `)
+        .eq('classroom_id', classroomId);
+      if (error) throw error;
+
+      return data || [];
+    }
+    
+    // Case 2: list by exam (via classrooms)
+    if (examId) {
+      const { data: rooms, error: roomsErr } = await supabaseAdmin
+        .from('classrooms')
+        .select('id')
+        .eq('exam_id', examId);
+      if (roomsErr) throw roomsErr;
+
+      const roomIds = (rooms || []).map(r => r.id);
+      if (roomIds.length === 0) return [];
+
+      const { data, error } = await supabaseAdmin
+        .from('attendance')
+        .select(`
+          id,
+          student_id,
+          classroom_id,
+          check_in_time,
+          check_out_time,
+          status,
+          profiles:student_id (personal_extra_time) // שליפת זמן נוסף אישי
+        `)
+        .in('classroom_id', roomIds);
+      if (error) throw error;
+
+      return data || [];
+    }
+
+    // If neither provided, return empty
+    return [];
+  },
+
+  //tk added
+  async countBreaksByExam(examId) {
+    const { count, error } = await supabaseAdmin
+      .from('student_breaks')
+      .select('id, attendance:attendance_id!inner(classrooms:classroom_id!inner(exam_id))', {
+        count: 'exact',
+        head: true,
+      })
+      .eq('attendance.classrooms.exam_id', examId);
+
+    if (error) throw error;
+    return count || 0;
+  },
+
+
+
+  
   async getStudentsForSupervisor(examId, supervisorId) {
     // 1. מציאת החדר הספציפי שהמשגיח הזה משובץ אליו עבור המבחן הזה
     const { data: classrooms, error: roomErr } = await supabaseAdmin

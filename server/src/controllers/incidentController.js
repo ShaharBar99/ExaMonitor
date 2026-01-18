@@ -19,4 +19,18 @@ export const IncidentController = {
       next(err);
     }
   },
+
+  //tk added
+  // function to get incidents by exam ID
+  async listByExam(req, res, next) {
+    try {
+      const { examId } = req.query;
+      const incidents = await IncidentService.listByExam(examId);
+      res.json({ incidents });
+    } catch (err) {
+      next(err);
+    }
+    //console.log('listByExam called with', examId);
+  }
+
 };
