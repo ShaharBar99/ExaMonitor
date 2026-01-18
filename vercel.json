@@ -2,15 +2,17 @@
   "version": 2,
   "builds": [
     {
-      "src": "/server/vercel.js",
-      "use": "@vercel/node"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "installCommand": "npm install-all",
+        "buildCommand": "npm run build",
+        "outputDirectory": "examonitor-vite/dist"
+      }
     },
     {
-      "src": "/examonitor-vite/package.json",
-      "use": "@vercel/static-build",
-      "options": {
-        "distDir": "dist"
-      }
+      "src": "server/vercel.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [

@@ -1,5 +1,15 @@
 {
-  "dependencies": {
-    "html5-qrcode": "^2.3.8"
+  "name": "examonitor",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "examonitor-vite",
+    "server"
+  ],
+  "scripts": {
+    "install-all": "npm install && npm run install --workspaces",
+    "build": "npm run build --workspace=examonitor-vite",
+    "start": "npm run start --workspace=server"
   }
 }
