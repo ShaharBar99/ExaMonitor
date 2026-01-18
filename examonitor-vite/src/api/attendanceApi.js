@@ -59,6 +59,14 @@ export const attendanceApi = {
       body: { student_id: studentId},
     });
   },
+
+  //tk added
+  getBreaksCountByExam: async (examId) => {
+    return apiFetch(`/attendance/breaks/count?examId=${encodeURIComponent(examId)}`);
+  },
+
+
+
   /**
    * הוספת סטודנט ידנית למבחן בחדר ספציפי
    */

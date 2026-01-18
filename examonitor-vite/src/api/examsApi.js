@@ -10,6 +10,11 @@ export const examsApi = {
     return apiFetch(`/exams${query}`);
   },
 
+  listCourses: async () => {
+    if (useMock) return [];
+    return apiFetch('/exams/courses'); // Note the path matches the route below
+  },
+
   getExamById: async (examId) => {
     if (useMock) {
       return {

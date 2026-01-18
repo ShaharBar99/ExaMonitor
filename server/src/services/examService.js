@@ -36,6 +36,21 @@ export const ExamService = {
     return data || [];
   },
 
+
+  async listAllCourses() {
+    const { data, error } = await supabaseAdmin
+      .from('courses')
+      .select('*');
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+    return data || [];
+  },
+
+
   // GET /exams/:id
   async getExamById(examId) {
     const { data, error } = await supabaseAdmin
@@ -162,6 +177,23 @@ export const ExamService = {
 
     return { exam: examData, report };
   },
+
+
+  // כנראה שמתי פה בטעות
+  // //tk added
+  // async countBreaksByExam(examId) {
+  //   const { count, error } = await supabaseAdmin
+  //     .from('student_breaks')
+  //     .select('id, attendance:attendance_id!inner(classrooms:classroom_id!inner(exam_id))', {
+  //       count: 'exact',
+  //       head: true,
+  //     })
+  //     .eq('attendance.classrooms.exam_id', examId);
+
+  //   if (error) throw error;
+  //   return count || 0;
+  // },
+
 
   getStudentWithMostExits(breaksData) {
     if (!breaksData || breaksData.length === 0) return null;

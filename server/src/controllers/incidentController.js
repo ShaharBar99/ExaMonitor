@@ -29,4 +29,17 @@ export const IncidentController = {
       next(err);
     }
   },
+
+  // function to get incidents by exam ID
+  async listByExam(req, res, next) {
+    try {
+      const examId = req.params.id;
+      console.log(`Fetching incidents for exam ID in listByExam: ${examId}`);
+      const incidents = await IncidentService.listByExam(examId);
+      res.json({ incidents });
+    } catch (err) {
+      next(err);
+    }
+
+  },
 };

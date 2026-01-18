@@ -87,6 +87,21 @@ export const AttendanceController = {
     }
   },
 
+  //tk added
+  // ספירת הפסקות לפי מבחן
+  async getBreaksCount(req, res, next) {
+    try {
+      const { examId } = req.query;
+      if (!examId) return res.status(400).json({ error: 'examId is required' });
+
+      const count = await AttendanceService.countBreaksByExam(examId);
+      res.json({ count });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+
   async getExamsOnFloor(req, res, next) {
     try {
       const { floorId } = req.params;

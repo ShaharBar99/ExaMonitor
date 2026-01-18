@@ -45,4 +45,18 @@ export const IncidentService = {
     if (error) throw error;
     return data;
   },
+  
+  // func to get incidents by exam ID
+  async listByExam(examId) {
+    console.log(`Fetching incidents for exam ID: ${examId}`);
+
+    const { data, error } = await supabaseAdmin
+      .from('exam_incidents')
+      .select('id, severity')
+      .eq('exam_id', examId);
+
+    if (error) throw error;
+    return data || [];
+  }
+
 };

@@ -11,6 +11,7 @@ router.post('/mark', AttendanceController.mark);
 
 router.post('/breaks/start', AttendanceController.startBreak);
 router.post('/breaks/end', AttendanceController.endBreak);
+router.get('/breaks/count', AttendanceController.getBreaksCount);
 
 router.patch('/students/:studentId/status', AttendanceController.updateStudentStatus);
 router.get('/exams/floor/:floorId', AttendanceController.getExamsOnFloor);

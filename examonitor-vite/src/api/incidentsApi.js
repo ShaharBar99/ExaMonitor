@@ -18,4 +18,8 @@ export const incidentsApi = {
     if (examId) params.set('examId', examId);
     return apiFetch(`/incidents?${params.toString()}`);
   },
+  
+  listByExam: async (examId) => {
+    return apiFetch(`/incidents/${encodeURIComponent(examId)}`);
+  },
 };
