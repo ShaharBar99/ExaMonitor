@@ -1,15 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "examonitor-vite/package.json",
-      "use": "@vercel/vite"
-    },
-    {
-      "src": "server/src/app.js",
-      "use": "@vercel/node"
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -17,7 +7,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/examonitor-vite/index.html"
     }
   ]
 }
