@@ -37,13 +37,12 @@ export default function AuditTrailPage() { // Audit trail page
   const filtered = useMemo(() => { // Filter memo
     return filterAuditEvents(events, { search }); // Apply search
   }, [events, search]); // Dependencies
-  const columns = useMemo(() => ([
+    const columns = useMemo(() => ([
     { key: "ts", header: "זמן" },
-    { key: "actor", header: "מבצע" },
     { key: "action", header: "פעולה" },
-    { key: "target", header: "יעד" },
-    { key: "meta", header: "פרטים" },
+    { key: "note", header: "הערה" },
   ]), []);
+
 
   return ( // Render
     <div>
@@ -63,7 +62,7 @@ export default function AuditTrailPage() { // Audit trail page
               name="auditSearch"
               type="text"
               label="חיפוש"
-              placeholder="חפש לפי משתמש / פעולה / יעד"
+              placeholder="חפש לפי פעולה / זמן / הערה"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               error=""
@@ -82,11 +81,9 @@ export default function AuditTrailPage() { // Audit trail page
                 {filtered.length === 0 ? null : (
                   filtered.map((e) => (
                     <tr key={e.id} className="bg-white">
-                      <td className="px-3 py-3 text-slate-700">{e.ts}</td>
-                      <td className="px-3 py-3 text-slate-900">{e.actor}</td>
+                      <td className="px-3 py-3 text-slate-700 whitespace-nowrap">{e.ts}</td>
                       <td className="px-3 py-3 text-slate-700">{e.action}</td>
-                      <td className="px-3 py-3 text-slate-700">{e.target}</td>
-                      <td className="px-3 py-3 text-slate-600">{JSON.stringify(e.meta)}</td>
+                      <td className="px-3 py-3 text-slate-600">{e.note || "-"}</td>
                     </tr>
                   ))
                 )}

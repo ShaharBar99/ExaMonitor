@@ -9,7 +9,7 @@ export const AuthController = {
         return res.status(400).json({ error: 'username, password, role are required' });
       }
 
-      const result = await AuthService.login(username, password, role);
+      const result = await AuthService.login(username, password, role, { ip: req.ip });
       return res.json(result);
     } catch (err) {
       next(err);

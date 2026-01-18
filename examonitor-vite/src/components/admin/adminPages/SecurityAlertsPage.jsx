@@ -38,8 +38,8 @@ export default function SecurityAlertsPage() { // Security alerts page
   }, []); // Mount only
 
   const filtered = useMemo(() => { // Filter memo
-    return filterSecurityAlerts(alerts, { severity, status }); // Apply filters
-  }, [alerts, severity, status]); // Dependencies
+    return filterSecurityAlerts(alerts, { status }); // Apply filters
+  }, [alerts, status]); // Dependencies
 
   const severityOptions = useMemo(() => ([
     { value: "", label: "כל החומרות" }, // All
@@ -54,13 +54,15 @@ export default function SecurityAlertsPage() { // Security alerts page
     { value: "resolved", label: "טופל" }, // Resolved
   ]), []); // Options
   const columns = useMemo(() => ([
-  { key: "ts", header: "זמן" },
-  { key: "severity", header: "חומרה" },
-  { key: "type", header: "סוג" },
-  { key: "message", header: "הודעה" },
-  { key: "status", header: "סטטוס" },
-  { key: "actions", header: "פעולות" },
+  { key: "ts", header: "זמן" }, // Time
+  { key: "username", header: "שם משתמש" }, // Username attempted
+  { key: "role", header: "תפקיד" }, // Role attempted
+  { key: "ip", header: "IP" }, // IP address
+  { key: "reason", header: "סיבה" }, // Failure reason
+  { key: "status", header: "סטטוס" }, // open/resolved
+  { key: "actions", header: "פעולות" }, // Resolve button
 ]), []);
+
 
 
   const onResolve = async (alertId) => { // Resolve click handler
@@ -136,9 +138,10 @@ export default function SecurityAlertsPage() { // Security alerts page
                 filtered.map((a) => (
                   <tr key={a.id} className="bg-white">
                     <td className="px-3 py-3 text-slate-700">{a.ts}</td>
-                    <td className="px-3 py-3 text-slate-700">{sevBadge(a.severity)}</td>
-                    <td className="px-3 py-3 text-slate-700">{a.type}</td>
-                    <td className="px-3 py-3 text-slate-900">{a.message}</td>
+                    <td className="px-3 py-3 text-slate-900">{a.username}</td>
+                    <td className="px-3 py-3 text-slate-700">{a.role || "-"}</td>
+                    <td className="px-3 py-3 text-slate-700">{a.ip || "-"}</td>
+                    <td className="px-3 py-3 text-slate-900">{a.reason || "-"}</td>
                     <td className="px-3 py-3 text-slate-700">{statusBadge(a.status)}</td>
                     <td className="px-3 py-3">
                       <button
