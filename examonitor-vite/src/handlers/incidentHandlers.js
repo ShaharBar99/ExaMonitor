@@ -69,5 +69,20 @@ export const incidentHandlers = {
       console.error("Failed to resolve incident:", error);
       alert("עדכון סטטוס האירוע נכשל.");
     }
+  },
+
+  /**
+   * טעינת רשימת אירועים למבחן
+   * Route: GET /incidents?examId=:id
+   */
+  loadIncidents: async (examId, setIncidents) => {
+    try {
+      const response = await incidentsApi.getIncidents(examId);
+      const data = Array.isArray(response) ? response : (response?.incidents || response?.data || []);
+      setIncidents(data);
+    } catch (error) {
+      console.error("Failed to load incidents:", error);
+      setIncidents([]);
+    }
   }
 };

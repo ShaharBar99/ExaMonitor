@@ -15,7 +15,7 @@ import ViewClassroomsPage from '../classroom/ViewClassroomsPage';
 
 // לוגיקה ונתונים
 import { notificationHandlers } from '../../handlers/notificationHandlers';
-import { INITIAL_ROOMS, AVAILABLE_SUPERVISORS } from '../../mocks/floorSupervisor_MockData';
+import { incidentHandlers } from '../../handlers/incidentHandlers';
 import { useExam } from '../state/ExamContext';
 
 export default function FloorSupervisorDashboardPage() {
@@ -34,23 +34,27 @@ export default function FloorSupervisorDashboardPage() {
   // נתונים
   const [rooms, setRooms] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [incidents, setIncidents] = useState([]);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
 
   // טעינת נתונים
   useEffect(() => {
-    let isMounted = true;
     notificationHandlers.loadNotifications('floor_3',
-      (data) => { if (isMounted) setNotifications(data); },
-      (loading) => { if (isMounted) setIsLoadingNotifications(loading); }
+      (data) => { setNotifications(data); },
+      (loading) => { setIsLoadingNotifications(loading); }
     );
 
     // Load classrooms data
     classroomHandler.loadDisplayData(user.role, null, null, (data) => {
-      if (isMounted) setRooms(data);
+      setRooms(data);
     });
 
-    return () => { isMounted = false; };
-  }, [examId, user.role]);
+    // Load incidents data
+    const currentExamId = examId || examData?.id;
+    incidentHandlers.loadIncidents(currentExamId, setIncidents);
+
+    return () => {};
+  }, [examId, examData, user.role]);
 
   // חישוב סטטיסטיקות
   const stats = useMemo(() => {
@@ -59,7 +63,6 @@ export default function FloorSupervisorDashboardPage() {
       activeRooms: rooms.filter(r => r.status === 'active').length,
       warnings: rooms.filter(r => r.status === 'warning').length,
       totalStudents: rooms.reduce((acc, curr) => acc + (curr.studentsCount || 0), 0),
-      supervisorsOnFloor: AVAILABLE_SUPERVISORS.length
     };
   }, [rooms]);
 
@@ -153,7 +156,7 @@ return (
       )}
 
       {activeMainTab === 'logs' && (
-        <LogsTab notifications={notifications} stats={stats} />
+        <LogsTab notifications={notifications} incidents={incidents} stats={stats} />
       )}
     </div>
   </DashboardLayout>

@@ -7,6 +7,7 @@ const router = Router();
 router.use(requireAuth);
 
 router.post('/', IncidentController.report);
+router.get('/', IncidentController.list);
 router.post('/call-manager', IncidentController.callManager);
 
 export default router;

@@ -19,4 +19,14 @@ export const IncidentController = {
       next(err);
     }
   },
+
+  async list(req, res, next) {
+    try {
+      const { examId } = req.query;
+      const incidents = await IncidentService.list(examId);
+      res.json({ incidents });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

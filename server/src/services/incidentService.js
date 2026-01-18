@@ -29,4 +29,20 @@ export const IncidentService = {
     console.log(`Calling manager to room ${roomId} for: ${reason}`);
     return { success: true };
   },
+
+  async list(examId) {
+    let query = supabaseAdmin
+      .from('exam_incidents')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (examId) {
+      query = query.eq('exam_id', examId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data;
+  },
 };
