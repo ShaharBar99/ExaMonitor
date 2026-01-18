@@ -29,16 +29,8 @@ export default function ViewClassroomsPage() {
         classroomHandler.loadDisplayData(userRole, examData.id, examData?.courseName || null, setClassrooms, setLoading);
         console.log(classrooms);
       } else if (user?.id) {
-        setLoading(true);
-        try {
-          const classes = await classroomApi.getClassrooms(null, user.id);
-          setClassrooms(classes);
-        } catch (err) {
-          console.error('Failed to load lecturer classrooms:', err);
-          setClassrooms([]);
-        } finally {
-          setLoading(false);
-        }
+        // Use handler to get enriched data (studentsCount, submittedCount)
+        classroomHandler.loadDisplayData(userRole, null, null, setClassrooms, setLoading, user.id);
       } else {
         setClassrooms([]);
         setLoading(false);

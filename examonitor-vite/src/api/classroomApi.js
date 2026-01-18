@@ -7,13 +7,6 @@ export const classroomApi = {
   // examId: filter classrooms for a specific exam
   // lecturerId: filter classrooms for exams whose course.lecturer_id == lecturerId
   getClassrooms: async (examId = null, lecturerId = null) => {
-    if (useMock) {
-      return [
-        { id: "301", examName: "מבוא למדעי המחשב", status: "active", supervisor: "ישראל ישראלי", floor: 3 },
-        { id: "302", examName: "אלגוריתמים", status: "warning", supervisor: null, floor: 3 },
-        { id: "404", examName: "מבוא למדעי המחשב", status: "active", supervisor: "שרה כהן", floor: 4 },
-      ];
-    }
     const params = new URLSearchParams();
     if (examId) params.set('exam_id', examId);
     if (lecturerId) params.set('lecturer_id', lecturerId);

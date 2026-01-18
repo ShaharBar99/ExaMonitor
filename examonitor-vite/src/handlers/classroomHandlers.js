@@ -9,11 +9,11 @@ export const classroomHandler = {
    * @param {Function} setClassrooms - State setter for classrooms.
    * @param {Function} setLoading - State setter for loading status.
    */
-  loadDisplayData: async (userRole, examId = null, courseName = null, setClassrooms, setLoading = () => {}) => {
+  loadDisplayData: async (userRole, examId = null, courseName = null, setClassrooms, setLoading = () => {}, lecturerId = null) => {
     try {
       setLoading(true);
       // If we have an examId, request server-side filtered classrooms for that exam
-      const data = await classroomApi.getClassrooms(examId);
+      const data = await classroomApi.getClassrooms(examId, lecturerId);
       const enrichedData = await Promise.all(data.map(async (room) => {
           const students = await attendanceApi.getStudentsForSupervisor(room.exam_id, room.supervisor_id);
           const actualArray = Array.isArray(students) ? students : (students?.data || []);
@@ -25,7 +25,7 @@ export const classroomHandler = {
       }));
       if (userRole === 'lecturer') {
         // If backend returned filtered data (examId provided) just use it
-        if (examId) {
+        if (examId || lecturerId) {
           setClassrooms(enrichedData);
         } else if (courseName) {
           // Fallback: filter by course name matching the room's examName
