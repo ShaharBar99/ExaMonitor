@@ -98,12 +98,15 @@ export default function FloorSupervisorDashboardPage() {
   // חישוב סטטיסטיקות
   const stats = useMemo(() => {
     if (!rooms) return { activeRooms: 0, warnings: 0, totalStudents: 0, supervisorsOnFloor: 0 };
+
+    const criticalIncidentsCount = incidents.filter(log => log.severity === 'high' || log.severity === 'critical').length;
+
     return {
       activeRooms: rooms.filter(r => r.status === 'active').length,
-      warnings: rooms.filter(r => r.status === 'warning').length,
+      warnings: criticalIncidentsCount,
       totalStudents: rooms.reduce((acc, curr) => acc + (curr.studentsCount || 0), 0),
     };
-  }, [rooms]);
+  }, [rooms, incidents]);
 
 const sidebarTabs = [
   { id: 'chat', icon: '👥', label: "צ'אט צוות" },
