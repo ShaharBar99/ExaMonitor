@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { incidentHandlers } from '../../handlers/incidentHandlers';
 import { useAuth } from '../state/AuthContext';
+import { useSocket } from '../state/SocketContext';
 
 export default function IncidentReportPage() {
   const navigate = useNavigate();
   const { examId } = useParams(); // שליפת ה-ID של המבחן מהכתובת
   const { user } = useAuth();
+  const socket = useSocket();
 
   const [formData, setFormData] = useState({
     examId: examId || '',
@@ -37,6 +39,7 @@ export default function IncidentReportPage() {
     e.preventDefault();
     // כאן תבוא הלוגיקה של שליחת הדיווח ל-DB
     await incidentHandlers.submitReport(formData, user.id); // העברת ה-ID של המדווח
+    socket.emit('new_incident', formData);
     goBackToExam();
   };
 

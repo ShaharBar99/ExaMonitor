@@ -43,6 +43,12 @@ export default function ChatInterface({ title, messages = [], onSendMessage, acc
             key={msg.id || `msg-${index}-${Math.random()}`} 
             className={`flex flex-col ${msg.isMe ? 'items-start' : 'items-end'}`}
           >
+            {/* הצגת שם השולח מעל ההודעה - רק אם זה לא אני */}
+            {!msg.isMe && (
+              <span className="text-[10px] text-slate-500 font-bold mb-1 px-2">
+                {msg.senderName}
+              </span>
+            )}
             <div className={`max-w-[80%] p-3 rounded-2xl text-sm font-bold shadow-sm ${
               msg.isMe 
                 ? `${colors[accentColor] || colors.blue} text-white rounded-tl-none` 

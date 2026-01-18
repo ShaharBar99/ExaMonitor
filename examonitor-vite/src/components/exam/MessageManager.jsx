@@ -1,101 +1,96 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom'; 
 import ChatInterface from './ChatInterface';
-import { messageHandlers } from '../../handlers/messageHandlers';
+import { useSocket } from '../state/SocketContext';
+import { useAuth } from '../state/AuthContext';
 
 export default function MessageManager({ activeTab, userRole }) {
-  const { examId } = useParams();
+  const socket = useSocket();
+  const { user } = useAuth();
   
-  // 1. אתחול ה-State כאובייקט עם מערכים ריקים למניעת undefined
-  const [messages, setMessages] = useState({
-    supervisor_to_floor: [],
-    floor_to_supervisor: [],
-    floor_to_lecturer: [],
-    lecturer_to_floor: []
+  // 1. אתחול ה-state מתוך ה-localStorage
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('chat_history');
+    return saved ? JSON.parse(saved) : {
+      supervisor_floor_chat: [],
+      floor_lecturer_chat: []
+    };
   });
   
-  const [loading, setLoading] = useState(true);
-
   const roleConfig = {
     supervisor: {
-      chat: { type: 'supervisor_to_floor', title: "קשר למשגיח קומה", color: "blue" }
+      chat: { type: 'supervisor_floor_chat', title: "קשר למשגיח קומה", color: "blue" }
     },
     floor_manager: {
-      chat: { type: 'floor_to_supervisor', title: "הודעות לצוות המשגיחים", color: "blue" },
-      lecturer: { type: 'floor_to_lecturer', title: "קשר ישיר למרצה", color: "indigo" }
+      chat: { type: 'supervisor_floor_chat', title: "קשר למשגיחים", color: "blue" },
+      lecturer: { type: 'floor_lecturer_chat', title: "קשר ישיר למרצה", color: "indigo" }
     },
     lecturer: {
-      floor_chat: { type: 'lecturer_to_floor', title: "קשר למשגיח קומה", color: "rose" }
+      floor_chat: { type: 'floor_lecturer_chat', title: "קשר למשגיח קומה", color: "rose" }
     }
   };
 
   const currentChat = roleConfig[userRole]?.[activeTab];
 
+  // 2. שמירת הודעות לזיכרון המקומי בכל שינוי
   useEffect(() => {
-    let isMounted = true;
-    if (!currentChat) return;
+    localStorage.setItem('chat_history', JSON.stringify(messages));
+  }, [messages]);
 
-    const load = async () => {
-      setLoading(true);
-      try {
-        await messageHandlers.initChat(examId, currentChat.type, (data) => {
-          if (isMounted) {
-            // 2. תיקון קריטי: מוודאים ש-data הוא מערך ומשלבים אותו בתוך האובייקט הקיים
-            const validatedData = Array.isArray(data) ? data : [];
-            setMessages(prev => ({
-              ...prev,
-              [currentChat.type]: validatedData
-            }));
-          }
-        });
-      } catch (error) {
-        console.error("Error loading chat:", error);
-      } finally {
-        if (isMounted) setLoading(false);
+  useEffect(() => {
+    if (!socket || !userRole) return;
+
+    const myRooms = roleConfig[userRole] || {};
+    Object.values(myRooms).forEach(chat => {
+      socket.emit('join_room', chat.type);
+    });
+
+    const handleNewMessage = (incoming) => {
+      if (incoming.room) {
+        setMessages(prev => ({
+          ...prev,
+          [incoming.room]: [...(prev[incoming.room] || []), incoming]
+        }));
       }
     };
 
-    load();
-    return () => { isMounted = false; };
-  }, [examId, currentChat?.type]);
-
-  const onSend = async (text) => {
-    if (!currentChat) return;
+    socket.on('new_message', handleNewMessage);
     
-    // פונקציית עדכון ששומרת על מבנה האובייקט
-    const updater = (newData) => {
-      setMessages(prev => ({
-        ...prev,
-        [currentChat.type]: typeof newData === 'function' ? newData(prev[currentChat.type]) : newData
-      }));
+    return () => {
+      socket.off('new_message', handleNewMessage);
     };
+  }, [socket, userRole]);
 
-    await messageHandlers.handleSend(text, userRole, updater);
+  const onSend = (text) => {
+    if (!currentChat || !socket) return;
+    const message = {
+      id: Date.now(),
+      text: text.trim(),
+      senderRole: user.role,
+      senderName: user.full_name,
+      isMe: true,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    setMessages(prev => ({
+      ...prev,
+      [currentChat.type]: [...(prev[currentChat.type] || []), message]
+    }));
+
+    socket.emit('send_message', { 
+      room: currentChat.type, 
+      message: { ...message, isMe: false } 
+    });
   };
 
-  // 3. הגנה לפני רינדור
-  if (loading) {
-    return (
-      <div className="h-full flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">טוען הודעות...</p>
-        </div>
-      </div>
-    );
-  }
-
   if (!currentChat) return null;
-
-  // 4. שליחת המערך הספציפי עם "רשת ביטחון" של מערך ריק
-  const currentMessages = messages[currentChat.type] || [];
 
   return (
     <ChatInterface 
       key={currentChat.type}
       title={currentChat.title}
       accentColor={currentChat.color}
-      messages={currentMessages}
+      messages={messages[currentChat.type] || []}
       onSendMessage={onSend}
     />
   );
