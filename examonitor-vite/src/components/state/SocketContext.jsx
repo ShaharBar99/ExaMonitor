@@ -9,12 +9,15 @@ export const useSocket = () => {
 
 export const SocketProvider = ({ children }) => {
     // 1. Remove the transports restriction to allow standard handshake
-    const socket = useMemo(() => io('http://localhost:5000', {
-        withCredentials: true,
-        autoConnect: true,
-        // Using both ensures better stability on localhost
-        transports: ['polling', 'websocket'] 
-    }), []);
+    const socket = useMemo(() => {
+        const socketUrl = import.meta.env.VITE_API_BASE || '';
+        return io(socketUrl, {
+            withCredentials: true,
+            autoConnect: true,
+            // Using both ensures better stability on localhost
+            transports: ['polling', 'websocket']
+        });
+    }, []);
 
     useEffect(() => {
         socket.on('connect', () => {
