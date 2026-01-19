@@ -110,8 +110,7 @@ export default function FloorSupervisorDashboardPage() {
 
 const sidebarTabs = [
   { id: 'chat', icon: '👥', label: "צ'אט צוות" },
-  { id: 'lecturer', icon: '👨‍🏫', label: "קשר למרצה" },
-  { id: 'notifications', icon: '📋', label: "יומן קומה" }
+  { id: 'lecturer', icon: '👨‍🏫', label: "קשר למרצה" }
 ];
 
 // רכיב כפתור ל-Navbar העליון
