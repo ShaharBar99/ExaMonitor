@@ -515,7 +515,7 @@ export default function SupervisorDashboard() {
             </div>
           ) : (
             <div className="max-w-6xl mx-auto animate-in zoom-in-95 duration-500">
-                <IncidentReportPage examId={examId} classrooms={classrooms} />
+                <IncidentReportPage examId={examId} classrooms={classrooms} onBack={() => setDashboardTab('attendance')} />
             </div>
           )}
         </main>
