@@ -187,7 +187,7 @@ export default function IncidentReportPage({ examId, classrooms, onBack } ) {
             <div className="flex flex-col md:flex-row gap-8 pt-10">
               <button 
                 type="submit"
-                className={`flex-[2] py-10 rounded-[30px] font-black text-2xl uppercase tracking-[0.2em] transition-all active:scale-[0.98] shadow-2xl flex items-center justify-center gap-6 ${
+                className={`flex-2 py-10 rounded-[30px] font-black text-2xl uppercase tracking-[0.2em] transition-all active:scale-[0.98] shadow-2xl flex items-center justify-center gap-6 ${
                   isDark ? 'bg-white text-slate-900 hover:bg-rose-500 hover:text-white' : 'bg-slate-900 text-white hover:bg-rose-600'
                 }`}
               >

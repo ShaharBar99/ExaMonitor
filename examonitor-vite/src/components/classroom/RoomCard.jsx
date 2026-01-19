@@ -1,93 +1,127 @@
 import React from 'react';
 
-export default function RoomCard({ room, supervisors, onSupervisorChange, readOnly }) {
-  // סטטוסים וצבעים לעיצוב מהיר
+export default function RoomCard({ room, supervisors, onSupervisorChange, readOnly, isDark }) {
+  // סטטוסים וצבעים מותאמים אישית לשני המצבים
   const statusTheme = {
-    active: { dot: 'bg-emerald-500', bg: 'border-slate-50', text: 'text-emerald-600' },
-    warning: { dot: 'bg-rose-500 animate-pulse', bg: 'border-rose-200 shadow-rose-50', text: 'text-rose-600' },
-    completed: { dot: 'bg-slate-300', bg: 'border-slate-100', text: 'text-slate-400' }
+    active: { 
+      dot: 'bg-emerald-500', 
+      border: isDark ? 'border-slate-800' : 'border-slate-50', 
+      text: 'text-emerald-500' 
+    },
+    warning: { 
+      dot: 'bg-rose-500 animate-pulse', 
+      border: isDark ? 'border-rose-500/30' : 'border-rose-200 shadow-rose-50', 
+      text: 'text-rose-500' 
+    },
+    completed: { 
+      dot: 'bg-slate-500', 
+      border: isDark ? 'border-slate-800' : 'border-slate-100', 
+      text: 'text-slate-400' 
+    }
   };
 
   const currentTheme = statusTheme[room.status] || statusTheme.active;
 
   return (
-    <div className={`bg-white rounded-[35px] p-8 border-2 transition-all shadow-sm flex flex-col h-full ${currentTheme.bg}`}>
+    <div className={`rounded-[35px] p-8 border-2 transition-all flex flex-col h-full ${
+      isDark 
+        ? `bg-slate-900/40 ${currentTheme.border} shadow-none` 
+        : `bg-white ${currentTheme.bg} border-2 shadow-sm`
+    }`}>
       
       {/* חלק עליון: זיהוי חדר וסטטוס */}
       <div className="flex justify-between items-start mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-2xl font-black text-slate-800 tabular-nums">חדר {room.room_number}</h3>
+            <h3 className={`text-2xl font-black tabular-nums ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+              חדר {room.room_number}
+            </h3>
             {room.status === 'warning' && <span className="text-xl">⚠️</span>}
           </div>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+          <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
             {room.examName}
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border transition-colors ${
+          isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'
+        }`}>
           <span className={`w-2 h-2 rounded-full ${currentTheme.dot}`}></span>
-          <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight">
+          <span className={`text-[9px] font-black uppercase tracking-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
             {room.status === 'warning' ? 'אירוע חריג' : 'בזמן אמת'}
           </span>
         </div>
       </div>
 
-      {/* מדדי נוכחות - קריטי לשני התפקידים */}
+      {/* מדדי נוכחות */}
       <div className="grid grid-cols-2 gap-3 mb-8">
-        <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-          <p className="text-[9px] font-black text-slate-400 uppercase mb-1">נבחנים בחדר</p>
-          <p className="text-xl font-black text-slate-800">{room.studentsCount || 0}</p>
+        <div className={`p-4 rounded-2xl border transition-colors ${
+          isDark ? 'bg-slate-800/30 border-slate-700/50' : 'bg-slate-50/50 border-slate-100'
+        }`}>
+          <p className={`text-[9px] font-black uppercase mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>נבחנים</p>
+          <p className={`text-xl font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{room.studentsCount || 0}</p>
         </div>
-        <div className="p-4 bg-emerald-50/30 rounded-2xl border border-emerald-100/50">
-          <p className="text-[9px] font-black text-emerald-600/60 uppercase mb-1 font-mono">הגישו</p>
-          <p className="text-xl font-black text-emerald-600">{room.submittedCount || 0}</p>
+        <div className={`p-4 rounded-2xl border transition-colors ${
+          isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/30 border-emerald-100/50'
+        }`}>
+          <p className={`text-[9px] font-black uppercase mb-1 font-mono ${isDark ? 'text-emerald-500/60' : 'text-emerald-600/60'}`}>הגישו</p>
+          <p className={`text-xl font-black ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{room.submittedCount || 0}</p>
         </div>
       </div>
 
-      {/* ניהול צוות השגחה - ההבדל בין מרצה למנהל קומה */}
+      {/* ניהול צוות השגחה */}
       <div className="mt-auto">
         <div className="flex items-center justify-between mb-3 px-1">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">צוות השגחה פעיל</p>
-            {readOnly && <span className="text-[9px] font-bold text-slate-300 italic">צפייה בלבד</span>}
+            <p className={`text-[10px] font-black uppercase tracking-tighter ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>צוות השגחה פעיל</p>
+            {readOnly && <span className="text-[9px] font-bold text-slate-500 italic">צפייה בלבד</span>}
         </div>
         
         <div className={`relative ${!readOnly ? 'group' : ''}`}>
           {readOnly ? (
-            /* מבט מרצה: כרטיס סטטי עם פרטי המשגיח */
-            <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-lg border border-slate-100">
+            <div className={`flex items-center gap-3 p-4 rounded-2xl border transition-colors ${
+              isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'
+            }`}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg border ${
+                isDark ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-100'
+              }`}>
                 👤
               </div>
               <div className="overflow-hidden">
-                <p className="text-sm font-black text-slate-700 truncate">
+                <p className={`text-sm font-black truncate ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
                   {room.supervisor || 'טרם שובץ משגיח'}
                 </p>
               </div>
             </div>
           ) : (
-            /* מבט מנהל קומה: Dropdown לניהול ושיבוץ */
             <>
               <select 
                 value={room.supervisor_id || ''}
                 onChange={(e) => onSupervisorChange(room.id, e.target.value)}
-                className="w-full bg-indigo-50/50 border-2 border-transparent focus:border-indigo-200 group-hover:bg-indigo-50 rounded-2xl py-4 px-4 font-bold text-sm text-indigo-900 outline-none appearance-none cursor-pointer transition-all"
+                className={`w-full border-2 border-transparent rounded-2xl py-4 px-4 font-bold text-sm outline-none appearance-none cursor-pointer transition-all ${
+                  isDark 
+                    ? 'bg-indigo-500/10 text-indigo-300 focus:border-indigo-500/50 group-hover:bg-indigo-500/20' 
+                    : 'bg-indigo-50/50 text-indigo-900 focus:border-indigo-200 group-hover:bg-indigo-50'
+                }`}
               >
-                <option value="" disabled>שבץ משגיח לחדר...</option>
+                <option value="" disabled className={isDark ? 'bg-slate-900' : ''}>שבץ משגיח לחדר...</option>
                 {supervisors.map(sup => (
-                  <option key={sup.id} value={sup.id}>{sup.name}</option>
+                  <option key={sup.id} value={sup.id} className={isDark ? 'bg-slate-900' : ''}>{sup.name}</option>
                 ))}
               </select>
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-indigo-400 text-[10px]">
-                CHANGE ⇅
+              <div className={`absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none text-[10px] font-black ${
+                isDark ? 'text-indigo-400/50' : 'text-indigo-400'
+              }`}>
+                ⇅
               </div>
             </>
           )}
         </div>
       </div>
 
-      {/* חיווי חריגה למרצה/מנהל */}
+      {/* חיווי חריגה */}
       {room.status === 'warning' && (
-        <div className="mt-4 p-4 bg-rose-600 rounded-2xl shadow-lg shadow-rose-100 flex items-center gap-3 animate-bounce cursor-pointer">
+        <div className={`mt-4 p-4 rounded-2xl shadow-lg flex items-center gap-3 animate-bounce cursor-pointer transition-colors ${
+          isDark ? 'bg-rose-500 shadow-rose-900/20' : 'bg-rose-600 shadow-rose-100'
+        }`}>
           <span className="text-white font-black text-xs uppercase tracking-widest flex-1 text-center">
             לצפייה בדיווח חריג
           </span>
