@@ -13,6 +13,10 @@ export default function ExamBotPanel({
   const { isDark } = useTheme(); 
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  
+  // ניהול גודל גופן דינמי (מתחיל ב-24px כפי שביקשת)
+  const [fontSize, setFontSize] = useState(24); 
+
   const [chat, setChat] = useState([
     { 
       role: "bot", 
@@ -27,12 +31,16 @@ export default function ExamBotPanel({
   const lastMsgRef = useRef(null); 
   const alertedThresholds = useRef(new Set());
 
-  // גלילה אוטומטית לתחתית
+  // פונקציות לשינוי גודל הגופן
+  const increaseFont = () => setFontSize(prev => Math.min(prev + 2, 60));
+  const decreaseFont = () => setFontSize(prev => Math.max(prev - 2, 12));
+
+  // גלילה אוטומטית לתחתית (מופעל גם בשינוי גודל גופן)
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [chat, isTyping]);
+  }, [chat, isTyping, fontSize]);
 
   // לוגיקת התראות אוטומטיות מהבוט
   useEffect(() => {
@@ -62,7 +70,7 @@ export default function ExamBotPanel({
 
   }, [liveStats, userRole]);
 
-  // קבלת הודעות חיצוניות (למשל מה-Sidebar)
+  // קבלת הודעות חיצוניות
   useEffect(() => {
     if (externalMessage && externalMessage.text !== lastMsgRef.current) {
       const systemMsg = {
@@ -92,7 +100,6 @@ export default function ExamBotPanel({
     setChat(prev => [...prev, userMsg]);
     setInput("");
 
-    // מענה מהיר לסטטיסטיקה (מקומי)
     const lowerInput = userText.toLowerCase();
     let quickReply = null;
 
@@ -115,7 +122,6 @@ export default function ExamBotPanel({
       return;
     }
 
-    // פנייה ל-AI Handler
     await botHandlers.handleSendMessage(
       userText,
       { role: userRole, examId },
@@ -128,9 +134,9 @@ export default function ExamBotPanel({
   return (
     <div className={`flex flex-col h-full transition-colors font-sans ${isDark ? 'bg-slate-900 shadow-none' : 'bg-white shadow-inner'}`} dir="rtl">
       
-      {/* Header */}
-      <div className={`p-8 border-b-2 flex items-center justify-between sticky top-0 z-10 transition-colors ${
-        isDark ? 'bg-slate-900 border-slate-800' : 'bg-white/50 border-slate-100 backdrop-blur-sm'
+      {/* Header עם כפתורי נגישות */}
+      <div className={`p-8 border-b-2 flex items-center justify-between sticky top-0 z-20 transition-colors ${
+        isDark ? 'bg-slate-900 border-slate-800 shadow-xl' : 'bg-white border-slate-100 backdrop-blur-sm shadow-sm'
       }`}>
         <div className="flex items-center gap-4">
           <div className={`w-4 h-4 rounded-full ${isTyping ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></div>
@@ -138,10 +144,31 @@ export default function ExamBotPanel({
             {userRole === 'supervisor' ? 'ExamBot - עוזר משגיח' : 'ExamBot AI'}
           </h2>
         </div>
-        <div className={`px-4 py-2 rounded-xl text-xl font-black ${
-          isTyping ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
-        }`}>
-          {isTyping ? 'מנתח...' : 'מחובר'}
+
+        <div className="flex items-center gap-6">
+          {/* כלי שינוי גודל גופן */}
+          <div className={`flex items-center border-2 rounded-2xl overflow-hidden transition-all shadow-sm ${isDark ? 'border-slate-700 bg-slate-800' : 'border-slate-200 bg-slate-50'}`}>
+            <button 
+              type="button" 
+              onClick={decreaseFont}
+              className={`px-5 py-2 font-black transition-all active:scale-90 border-l-2 ${isDark ? 'hover:bg-slate-700 border-slate-700 text-slate-400' : 'hover:bg-slate-200 border-slate-200 text-slate-600'}`}
+            >
+              A-
+            </button>
+            <button 
+              type="button" 
+              onClick={increaseFont}
+              className={`px-5 py-2 font-black transition-all active:scale-90 ${isDark ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-slate-200 text-slate-600'}`}
+            >
+              A+
+            </button>
+          </div>
+
+          <div className={`px-4 py-2 rounded-xl text-xl font-black ${
+            isTyping ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
+          }`}>
+            {isTyping ? 'מנתח...' : 'מחובר'}
+          </div>
         </div>
       </div>
 
@@ -155,26 +182,33 @@ export default function ExamBotPanel({
               {msg.role === 'user' ? (userRole === 'lecturer' ? 'המרצה' : 'המשגיח') : 'ExamBot'}
             </span>
             
-            <div className={`max-w-[92%] p-6 rounded-[30px] shadow-md transition-all ${
-              msg.role === 'user' 
-                ? (isDark ? 'bg-slate-800 border-2 border-slate-700 text-white rounded-tl-none text-2xl font-bold' : 'bg-white border-2 border-slate-100 text-slate-700 rounded-tl-none text-2xl font-bold')
-                : msg.isAlert 
-                  ? (isDark ? 'bg-amber-950/40 border-4 border-amber-600 text-amber-100 rounded-tr-none text-2xl font-black' : 'bg-amber-50 border-4 border-amber-500 text-slate-900 rounded-tr-none text-2xl font-black')
-                  : (isDark ? 'bg-emerald-600 text-white rounded-tr-none text-2xl font-medium' : 'bg-[#1e293b] text-white rounded-tr-none text-2xl font-medium')
-            }`}>
+            <div 
+              style={{ fontSize: `${fontSize}px`, lineHeight: '1.4' }} 
+              className={`max-w-[92%] p-6 rounded-[30px] shadow-md transition-all ${
+                msg.role === 'user' 
+                  ? (isDark ? 'bg-slate-800 border-2 border-slate-700 text-white rounded-tl-none font-bold' : 'bg-white border-2 border-slate-100 text-slate-700 rounded-tl-none font-bold')
+                  : msg.isAlert 
+                    ? (isDark ? 'bg-amber-950/40 border-4 border-amber-600 text-amber-100 rounded-tr-none font-black' : 'bg-amber-50 border-4 border-amber-500 text-slate-900 rounded-tr-none font-black')
+                    : (isDark ? 'bg-emerald-600 text-white rounded-tr-none font-medium' : 'bg-[#1e293b] text-white rounded-tr-none font-medium')
+              }`}
+            >
               <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
 
-              {/* רכיב ה-Options המעודכן עם תמיכה ב-Dark Mode */}
+              {/* כפתורי Protocol Steps מותאמים לגודל הגופן */}
               {msg.options && (
-                <div className="mt-6 flex flex-wrap gap-4">
+                <div className={`mt-6 flex flex-wrap gap-4 ${fontSize > 30 ? 'flex-col' : 'flex-row'}`}>
                   {msg.options.map((opt, i) => (
                     <button
                       key={i}
                       onClick={() => onAction && onAction(opt.action)}
-                      className={`px-8 py-4 rounded-2xl text-xl font-black transition-all active:scale-95 shadow-lg border-b-4 ${
+                      style={{ 
+                        fontSize: `${Math.max(fontSize * 0.85, 16)}px`,
+                        padding: `${fontSize / 1.5}px ${fontSize}px`
+                      }}
+                      className={`rounded-2xl font-black transition-all active:scale-95 shadow-lg border-b-4 text-center ${
                         isDark 
-                          ? 'bg-white text-slate-900 border-slate-300 hover:bg-slate-100' // כפתור לבן ב-Dark Mode
-                          : 'bg-emerald-500 text-white border-emerald-700 hover:bg-emerald-600' // כפתור ירוק ב-Light Mode
+                          ? 'bg-white text-slate-900 border-slate-300 hover:bg-slate-100' 
+                          : 'bg-emerald-500 text-white border-emerald-700 hover:bg-emerald-600'
                       }`}
                     >
                       {opt.label}
@@ -209,8 +243,9 @@ export default function ExamBotPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isTyping}
+            style={{ fontSize: `${Math.max(fontSize * 0.8, 18)}px` }} 
             placeholder={isTyping ? "מעבד..." : "שאל אותי על מצב הכיתה או נהלים..."}
-            className={`w-full pl-6 pr-6 py-6 border-4 focus:bg-transparent rounded-[25px] text-2xl transition-all outline-none font-bold disabled:opacity-50 ${
+            className={`w-full pl-6 pr-6 py-6 border-4 focus:bg-transparent rounded-[25px] transition-all outline-none font-bold disabled:opacity-50 ${
               isDark 
                 ? 'bg-slate-800 border-transparent focus:border-emerald-500/40 text-white placeholder:text-slate-500' 
                 : 'bg-slate-100 border-transparent focus:border-emerald-500/20 text-slate-700'
@@ -223,7 +258,17 @@ export default function ExamBotPanel({
               isDark ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-[#1e293b] text-white hover:bg-emerald-600'
             }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              style={{ 
+                height: `${Math.max(fontSize * 1.2, 28)}px`, 
+                width: `${Math.max(fontSize * 1.2, 28)}px` 
+              }}
+              className="rotate-180" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </button>
