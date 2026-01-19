@@ -94,7 +94,6 @@ export default function FloorSupervisorDashboardPage() {
   const sidebarTabs = [
     { id: 'chat', icon: '👥', label: "צ'אט צוות" },
     { id: 'lecturer', icon: '👨‍🏫', label: "קשר למרצה" },
-    { id: 'notifications', icon: '📋', label: "יומן קומה" }
   ];
 
   // רכיב כפתור ל-Navbar העליון - מותאם Theme
@@ -152,7 +151,6 @@ export default function FloorSupervisorDashboardPage() {
             }`}>
               <NavButton id="dashboard" label="ראשי" icon="📊" />
               <NavButton id="rooms" label="כיתות" icon="🏫" />
-              <NavButton id="logs" label="יומן" icon="📋" />
             </nav>
           </div>
 
