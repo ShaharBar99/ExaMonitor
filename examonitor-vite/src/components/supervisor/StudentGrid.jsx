@@ -26,7 +26,7 @@ const StudentGrid = ({ students, onStatusChange, onMoveClass }) => {
           className={`w-full pr-16 pl-8 py-7 rounded-[30px] border-4 outline-none transition-all font-black text-2xl shadow-xl ${
             isDark 
             ? 'bg-slate-800 border-white/5 focus:border-emerald-500/40 text-white placeholder:text-slate-500' 
-            : 'bg-slate-50 border-slate-100 focus:border-emerald-500/20 text-slate-700 placeholder:text-slate-300'
+            : 'bg-slate-100 text-slate-700 placeholder:text-slate-400'
           }`}
           onChange={(e) => setSearch(e.target.value)}
         />

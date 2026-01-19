@@ -495,9 +495,9 @@ export default function SupervisorDashboard() {
                   <div className="relative">
                     <input 
                       type="text" placeholder="חיפוש או הוספת סטודנט..." 
-                      className={`w-full py-8 px-10 rounded-[30px] font-black text-3xl shadow-inner outline-none transition-all border-4 border-transparent focus:border-emerald-500 ${
+                      className={`w-full py-8 px-10 rounded-[30px] font-black text-3xl shadow-inner outline-none transition-all border-4 ${
                         isDark 
-                          ? 'bg-slate-800 text-white placeholder:text-slate-500' 
+                          ? 'bg-slate-800 border-transparent text-white focus:border-emerald-500/40 placeholder:text-slate-500' 
                           : 'bg-slate-100 text-slate-700 placeholder:text-slate-400'
                       }`}
                       value={searchQuery} onChange={handleSearchChange}
