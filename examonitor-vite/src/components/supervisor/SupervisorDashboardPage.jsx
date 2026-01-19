@@ -13,6 +13,7 @@ import StatCard from '../exam/StatCard';
 import AdmissionScanner from './AdmissionScanner';
 import IncidentReportPage from './IncidentReportPage';
 import { classroomHandler } from '../../handlers/classroomHandlers';
+import { useTheme } from '../state/ThemeContext';
 
 const PROTOCOL_STEPS = [
   { 
@@ -35,6 +36,7 @@ const PROTOCOL_STEPS = [
 export default function SupervisorDashboard() {
   const { examId } = useParams();
   const { user } = useAuth();
+  const { isDark } = useTheme(); 
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -64,9 +66,9 @@ export default function SupervisorDashboard() {
   const [timers, setTimers] = useState([]);
   const [selectedTimerId, setSelectedTimerId] = useState('reg');
 
-  const [studentToMove, setStudentToMove] = useState(null); // מחזיק אובייקט סטודנט או null
-  const [otherClassrooms, setOtherClassrooms] = useState([]); // רשימת כיתות זמינות
-  // --- לוגיקת טעינה ראשונית ---
+  const [studentToMove, setStudentToMove] = useState(null); 
+  const [otherClassrooms, setOtherClassrooms] = useState([]); 
+
   useEffect(() => {
     attendanceHandlers.initSupervisorConsole(examId, user.id, setStudents, setLoading, setExamData);
   }, [examId, user.id, setExamData]);
@@ -81,42 +83,39 @@ export default function SupervisorDashboard() {
     }
   }, [location.state]);
 
- useEffect(() => {
-  const syncTime = async () => {
-    const timingData = await timerHandlers.getTimeDataByExamId(examId);
-    
-    if (timingData?.start_time && examData?.status === 'active') {
-      const startTime = new Date(timingData.start_time).getTime();
-      const now = Date.now();
+  useEffect(() => {
+    const syncTime = async () => {
+      const timingData = await timerHandlers.getTimeDataByExamId(examId);
       
-      // משך הבסיס בדקות (כולל הארכות גורפות שניתנו לכולם ב-extra_time)
-      const baseDurationMin = (timingData.original_duration || 0) + (timingData.extra_time || 0);
-      
-      const calculateRemaining = (percent) => {
-        // חישוב סך הדקות לסטודנט ספציפי: (בסיס + הארכה לכולם) + (אחוז מהמקור)
-        const totalStudentDurationMin = baseDurationMin + (timingData.original_duration * percent);
-        const targetEndTime = startTime + (totalStudentDurationMin * 60000);
-        return Math.max(0, Math.floor((targetEndTime - now) / 1000));
-      };
+      if (timingData?.start_time && examData?.status === 'active') {
+        const startTime = new Date(timingData.start_time).getTime();
+        const now = Date.now();
+        
+        const baseDurationMin = (timingData.original_duration || 0) + (timingData.extra_time || 0);
+        
+        const calculateRemaining = (percent) => {
+          const totalStudentDurationMin = baseDurationMin + (timingData.original_duration * percent);
+          const targetEndTime = startTime + (totalStudentDurationMin * 60000);
+          return Math.max(0, Math.floor((targetEndTime - now) / 1000));
+        };
 
-      const regSecs = calculateRemaining(0);
-      setRemainingTime(regSecs);
+        const regSecs = calculateRemaining(0);
+        setRemainingTime(regSecs);
 
-      setTimers([
-        { id: 'reg', label: "רגיל (0%)", secs: regSecs, color: "#34d399" },
-        { id: '25', label: "תוספת 25%", secs: calculateRemaining(0.25), color: "#818cf8" },
-        { id: '50', label: "תוספת 50%", secs: calculateRemaining(0.50), color: "#c084fc" }
-      ]);
-    } else {
-      setTimers([]);
-    }
-  };
+        setTimers([
+          { id: 'reg', label: "רגיל (0%)", secs: regSecs, color: "#34d399" },
+          { id: '25', label: "תוספת 25%", secs: calculateRemaining(0.25), color: "#818cf8" },
+          { id: '50', label: "תוספת 50%", secs: calculateRemaining(0.50), color: "#c084fc" }
+        ]);
+      } else {
+        setTimers([]);
+      }
+    };
 
-  syncTime();
-  const interval = setInterval(syncTime, 1000); // דיוק של שנייה אחת
-  return () => clearInterval(interval);
-}, [examId, examData?.status]);
-  // הסרנו את ה-useEffect הקודם של ה-setTimers כי הוא עכשיו בתוך ה-syncTime
+    syncTime();
+    const interval = setInterval(syncTime, 1000);
+    return () => clearInterval(interval);
+  }, [examId, examData?.status]);
 
   useEffect(() => {
     if (examData?.status === 'pending' && currentStep === 0 && !botMsg) {
@@ -144,50 +143,36 @@ export default function SupervisorDashboard() {
         }
       });
       if (remainingTime <= 600 && remainingTime > 540) {
-         setBotMsg({
-           text: "📢 שימו לב: נותרו 10 דקות לסיום המבחן. נא להכריז על כך בכיתה.",
-           isAlert: true
-         });
+          setBotMsg({
+            text: "📢 שימו לב: נותרו 10 דקות לסיום המבחן. נא להכריז על כך בכיתה.",
+            isAlert: true
+          });
       }
     }, 15000);
     return () => clearInterval(monitorInterval);
   }, [students, remainingTime]);
 
-    // הוסף את ה-Effect הזה בתוך הקומפוננטה SupervisorDashboard
   useEffect(() => {
-    // אם המבחן לא פעיל או שאין טיימרים, אל תבצע בדיקה
     if (examData?.status !== 'active' || timers.length === 0) return;
 
     const autoSubmitCheck = async () => {
-      // מצא את הטיימרים הספציפיים
       const regTimer = timers.find(t => t.id === 'reg');
       const t25Timer = timers.find(t => t.id === '25');
       const t50Timer = timers.find(t => t.id === '50');
 
-      // רשימה של סטודנטים שצריך להגיש להם אוטומטית
       const studentsToSubmit = students.filter(student => {
-        // רק סטודנטים שכרגע "במבחן" או "בחוץ זמנית"
         if (student.status !== 'present' && student.status !== 'exited_temporarily') return false;
-
         const extraTimePercent = student.personalExtra || 0;
-        console.log(`Checking student ${student.name} with extra time ${extraTimePercent}%`);
-        // בדיקה לפי אחוז ההארכה של הסטודנט
         if (extraTimePercent === 0 && regTimer?.secs <= 0) return true;
         if (extraTimePercent === 25 && t25Timer?.secs <= 0) return true;
         if (extraTimePercent === 50 && t50Timer?.secs <= 0) return true;
-
         return false;
       });
 
       if (studentsToSubmit.length > 0) {
-        console.log(`Auto-submitting for ${studentsToSubmit.length} students`);
-        
-        // ביצוע הגשה עבור כל סטודנט שזמנו עבר
         for (const student of studentsToSubmit) {
           try {
             await attendanceHandlers.changeStudentStatus(student.id, 'submitted', setStudents);
-            
-            // הוספת הודעה לבוט כדי שהמשגיח ידע שזה קרה
             setBotMsg({
               text: `⏰ זמן הבחינה הסתיים עבור ${student.name}. הטופס הוגש אוטומטית.`,
               isAlert: true
@@ -198,37 +183,30 @@ export default function SupervisorDashboard() {
         }
       }
     };
-
     autoSubmitCheck();
-  }, [timers, students, examData?.status]); // רץ בכל פעם שהטיימרים או רשימת הסטודנטים מתעדכנים
-  // בתוך SupervisorDashboard.jsx, לפני ה-return
+  }, [timers, students, examData?.status]);
+
   const liveStats = useMemo(() => {
-    // בדיקה לפי הסטטוסים המדויקים שמופיעים ב-StudentCard.jsx
     const out = students.filter(s => s.status === 'exited_temporarily').length;
     const submitted = students.filter(s => s.status === 'submitted' || s.status === 'סיים').length;
     const total = students.length;
     const present = total - submitted - out;
-
     const studentsOut = students.filter(s => s.status === 'exited_temporarily');
-    // מיון לפי זמן יציאה (וודא שיש שדה כזה ב-DB)
     const longestOutStudent = [...studentsOut].sort((a, b) => 
       new Date(a.last_exit_time) - new Date(b.last_exit_time)
     )[0];
 
     return {
-      present,
-      out,
-      submitted,
-      total,
+      present, out, submitted, total,
       percentFinished: total > 0 ? Math.round((submitted / total) * 100) : 0,
       longestOutName: longestOutStudent?.name || null
     };
   }, [students]);
+
   const handleScanResult = async (scannedId) => {
     if (scanLock.current || scannedId === lastScannedId.current) return;
     scanLock.current = true;
     lastScannedId.current = scannedId;
-
     const student = students.find(s => s.student_id === scannedId || s.id === scannedId || s.studentId === scannedId);
     
     if (student) {
@@ -257,10 +235,8 @@ export default function SupervisorDashboard() {
   const handleOpenMoveModal = async (studentId) => {
     const student = students.find(s => s.id === studentId);
     setStudentToMove(student);
-    // כאן קוראים ל-API שמביא את כל הכיתות של המבחן הזה
     try {
       const allRooms = await classroomHandler.getClassrooms(examId);
-      // מסננים את הכיתה הנוכחית שבה המשגיח נמצא
       const filteredRooms = allRooms.filter(room => room.id !== classrooms.id);
       setOtherClassrooms(filteredRooms);
     } catch (err) {
@@ -331,43 +307,33 @@ export default function SupervisorDashboard() {
     }
   };
 
- const handleExecuteMove = async (targetRoomId) => {
-  if (!studentToMove) return;
-  try {
-    // 1. הסרה מהכיתה הנוכחית (שימוש ב-Handler הקיים)
-    // אנחנו מעבירים את ה-ID הפנימי של הרישום לבחינה
-    await attendanceHandlers.handleRemoveStudent(studentToMove.id, setStudents);
-
-    // 2. הוספה לכיתה החדשה (שימוש ב-Handler הקיים)
-    // הפונקציה הזו בדרך כלל מקבלת classroomId ו-student_id
-    await attendanceHandlers.handleAddStudent(targetRoomId, null, (newStudents) => {
-      // אנחנו לא באמת רוצים לעדכן את הסטייט המקומי שלנו עם הסטודנט החדש, 
-      // כי הוא עבר לכיתה אחרת. לכן נעביר פונקציה ריקה או פשוט לא נעדכן.
-      console.log(`Student ${studentToMove.name} added to room ${targetRoomId}`);
-    }, studentToMove.studentId);
-
-    // 3. עדכון הבוט וסגירת המודל
-    setBotMsg({
-      text: `🔄 הסטודנט ${studentToMove.name} הועבר בהצלחה לחדר אחר.`,
-      isAlert: false
-    });
-    
-    setStudentToMove(null);
-  } catch (err) {
-    console.error("Transfer failed:", err);
-    alert("ההעברה נכשלה. אנא נסה שוב.");
-  }
-};
+  const handleExecuteMove = async (targetRoomId) => {
+    if (!studentToMove) return;
+    try {
+      await attendanceHandlers.handleRemoveStudent(studentToMove.id, setStudents);
+      await attendanceHandlers.handleAddStudent(targetRoomId, null, (newStudents) => {
+        console.log(`Student ${studentToMove.name} added to room ${targetRoomId}`);
+      }, studentToMove.studentId);
+      setBotMsg({
+        text: `🔄 הסטודנט ${studentToMove.name} הועבר בהצלחה לחדר אחר.`,
+        isAlert: false
+      });
+      setStudentToMove(null);
+    } catch (err) {
+      console.error("Transfer failed:", err);
+      alert("ההעברה נכשלה. אנא נסה שוב.");
+    }
+  };
 
   const filteredForRemoval = useMemo(() => {
     if (!removeSearchQuery || removeSearchQuery.length < 2) return [];
     return students.filter(s => s.id?.includes(removeSearchQuery) || s.name.toLowerCase().includes(removeSearchQuery.toLowerCase())).slice(0, 3);
   }, [students, removeSearchQuery]);
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-[#0f172a] text-white font-black text-4xl">טוען מערכת...</div>;
+  if (loading) return <div className={`h-screen flex items-center justify-center font-black text-4xl ${isDark ? 'bg-[#0f172a] text-white' : 'bg-slate-50 text-slate-900'}`}>טוען מערכת...</div>;
 
   return (
-    <div className="h-screen flex bg-[#0f172a] overflow-hidden text-right font-sans" dir="rtl">
+    <div className={`h-screen flex overflow-hidden text-right font-sans transition-colors duration-500 ${isDark ? 'bg-[#0f172a]' : 'bg-slate-50'}`} dir="rtl">
       
       <Sidebar 
         tabs={[{ id: 'bot', icon: '🤖', label: 'עוזר' }, { id: 'chat', icon: '🏢', label: "קשר" }]} 
@@ -380,14 +346,16 @@ export default function SupervisorDashboard() {
 
       <div className="flex-1 flex flex-col overflow-hidden relative">
         
-        <header className="bg-white/10 border-b-2 border-white/10 px-10 py-8 flex justify-between items-center z-30 backdrop-blur-md">
-          <div className="flex items-center gap-10 text-white">
-            <div>
+        <header className={`border-b-2 px-10 py-8 flex justify-between items-center z-30 backdrop-blur-md transition-colors ${
+          isDark ? 'bg-white/10 border-white/10' : 'bg-white/80 border-slate-200'
+        }`}>
+          <div className="flex items-center gap-10">
+            <div className={isDark ? 'text-white' : 'text-slate-900'}>
               <h1 className="text-4xl font-black uppercase">ניהול בחינה</h1>
-              <p className="text-xl text-emerald-400 font-bold mt-1">כיתה {classrooms.room_number || '---'}</p>
+              <p className="text-xl text-emerald-500 font-bold mt-1">כיתה {classrooms.room_number || '---'}</p>
             </div>
 
-            <nav className="flex bg-black/40 p-2 rounded-[25px] border border-white/20">
+            <nav className={`flex p-2 rounded-[25px] border ${isDark ? 'bg-black/40 border-white/20' : 'bg-slate-200/50 border-slate-300'}`}>
               <button 
                 onClick={() => setDashboardTab('attendance')} 
                 className={`px-14 py-5 rounded-[20px] text-3xl font-black transition-all ${dashboardTab === 'attendance' ? 'bg-emerald-600 text-white shadow-xl' : 'text-slate-400 hover:text-white'}`}
@@ -405,9 +373,8 @@ export default function SupervisorDashboard() {
 
           <div className="flex items-center gap-8">
             {timers.length > 0 ? (
-            <div className="flex flex-col items-center bg-black/30 p-4 rounded-[30px] border border-white/10 shadow-2xl min-w-70">
+            <div className={`flex flex-col items-center p-4 rounded-[30px] border shadow-2xl min-w-70 ${isDark ? 'bg-black/30 border-white/10' : 'bg-white border-slate-200'}`}>
       
-                {/* הטיימר הגדול - מציג את הטיימר שנבחר */}
                 <div className="scale-125 transform mb-4">
                   {timers.filter(t => t.id === selectedTimerId).map(t => (
                     <div key={t.id} className="flex flex-col items-center animate-in zoom-in duration-300">
@@ -420,27 +387,26 @@ export default function SupervisorDashboard() {
                   ))}
                 </div>
 
-                {/* כפתורי המעבר (Selector) */}
-                <div className="flex gap-2 bg-white/5 p-1 rounded-2xl border border-white/10">
+                <div className={`flex gap-2 p-1 rounded-2xl border ${isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
                   {timers.map((t) => (
                     <button
                       key={t.id}
                       onClick={() => setSelectedTimerId(t.id)}
                       className={`px-4 py-2 rounded-xl text-xs font-black transition-all duration-300 ${
                         selectedTimerId === t.id 
-                          ? 'bg-white text-slate-900 shadow-lg scale-105' 
-                          : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                          ? 'shadow-lg scale-105 text-white' 
+                          : isDark ? 'text-white/40 hover:text-white/70' : 'text-slate-400 hover:text-slate-600'
                       }`}
                       style={selectedTimerId === t.id ? { backgroundColor: t.color } : {}}
                     >
-                      {t.label} {/* מציג "רגיל", "תוספת" וכו' */}
+                      {t.label}
                     </button>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="bg-black/20 px-8 py-6 rounded-[30px] border border-white/5">
-                <span className="text-white/40 font-bold text-lg animate-pulse">
+              <div className={`px-8 py-6 rounded-[30px] border ${isDark ? 'bg-black/20 border-white/5 text-white/40' : 'bg-white border-slate-200 text-slate-400'}`}>
+                <span className="font-bold text-lg animate-pulse">
                   {examData?.status === 'pending' ? 'הטיימר יופעל עם תחילת המבחן' : 'מחשב זמן...'}
                 </span>
               </div>
@@ -455,7 +421,7 @@ export default function SupervisorDashboard() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-12 bg-[#0f172a] space-y-10">
+        <main className={`flex-1 overflow-y-auto p-12 space-y-10 transition-colors ${isDark ? 'bg-[#0f172a]' : 'bg-slate-50'}`}>
           
           {dashboardTab === 'attendance' ? (
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -485,7 +451,10 @@ export default function SupervisorDashboard() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-[50px] shadow-2xl flex flex-col relative overflow-hidden min-h-125 border-8 border-white/5">
+              {/* Attendance Section */}
+              <div className={`rounded-[50px] shadow-2xl flex flex-col relative overflow-hidden min-h-125 border-8 transition-all duration-500 ${
+                isDark ? 'bg-slate-900 border-white/5' : 'bg-white border-white'
+              }`}>
                 
                 <div className={`absolute top-0 left-0 w-full z-40 transition-all duration-500 bg-rose-600 ${isRemoveBarOpen ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
                     <div className="px-12 py-8 flex items-center gap-8">
@@ -507,22 +476,30 @@ export default function SupervisorDashboard() {
 
                 <div className="p-12 flex flex-col gap-10">
                   <div className="flex justify-between items-center">
-                    <h2 className="text-5xl font-black text-slate-900 italic">Attendance</h2>
+                    <h2 className={`text-5xl font-black italic transition-colors ${isDark ? 'text-white' : 'text-slate-900'}`}>Attendance</h2>
                     <button onClick={() => setIsRemoveBarOpen(true)} className="text-rose-600 font-black text-2xl underline decoration-4 underline-offset-8">✖ הסרה מהירה</button>
                   </div>
 
                   <div className="relative">
                     <input 
                       type="text" placeholder="חיפוש או הוספת סטודנט..." 
-                      className="w-full bg-slate-100 border-4 border-transparent focus:border-emerald-500 py-8 px-10 rounded-[30px] font-black text-3xl shadow-inner outline-none transition-all placeholder:text-slate-400"
+                      className={`w-full py-8 px-10 rounded-[30px] font-black text-3xl shadow-inner outline-none transition-all border-4 border-transparent focus:border-emerald-500 ${
+                        isDark 
+                          ? 'bg-slate-800 text-white placeholder:text-slate-500' 
+                          : 'bg-slate-100 text-slate-700 placeholder:text-slate-400'
+                      }`}
                       value={searchQuery} onChange={handleSearchChange}
                     />
                     {searchResults.length > 0 && (
-                      <ul className="absolute z-50 w-full mt-4 bg-white rounded-[30px] shadow-2xl border-4 border-slate-100 overflow-hidden">
+                      <ul className={`absolute z-50 w-full mt-4 rounded-[30px] shadow-2xl border-4 overflow-hidden transition-colors ${
+                        isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'
+                      }`}>
                         {searchResults.map(result => (
-                          <li key={result.id} onClick={() => { attendanceHandlers.handleAddStudent(classrooms.id, result.id, setStudents); setSearchQuery(''); setSearchResults([]); }}
-                              className="px-10 py-7 hover:bg-emerald-50 cursor-pointer flex justify-between items-center border-b last:border-0 border-slate-100">
-                            <span className="font-black text-3xl text-slate-800">{result.full_name} ({result.student_id})</span>
+                          <li key={result.id} onClick={() => { attendanceHandlers.handleAddStudent(classrooms.id, result.id, setStudents, result.student_id); setSearchQuery(''); setSearchResults([]); }}
+                              className={`px-10 py-7 cursor-pointer flex justify-between items-center border-b last:border-0 transition-colors ${
+                                isDark ? 'hover:bg-slate-700 border-slate-700' : 'hover:bg-emerald-50 border-slate-100'
+                              }`}>
+                            <span className={`font-black text-3xl ${isDark ? 'text-white' : 'text-slate-800'}`}>{result.full_name} ({result.student_id})</span>
                             <span className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-black text-xl">הוסף +</span>
                           </li>
                         ))}
@@ -556,16 +533,17 @@ export default function SupervisorDashboard() {
       )}
       
       {studentToMove && (
-        /* תיקון כאן: הסרתי את ה-div הכפול */
         <div className="fixed inset-0 z-110 flex items-center justify-center p-4">
           <div 
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" 
             onClick={() => setStudentToMove(null)} 
           />
 
-          <div className="relative bg-white rounded-[40px] p-10 w-full max-w-lg shadow-2xl animate-in zoom-in duration-200 text-right">
-            <h3 className="text-3xl font-black text-slate-900 mb-2">העברת כיתה</h3>
-            <p className="text-slate-500 font-bold mb-8">
+          <div className={`relative rounded-[40px] p-10 w-full max-w-lg shadow-2xl animate-in zoom-in duration-200 text-right ${
+            isDark ? 'bg-slate-900' : 'bg-white'
+          }`}>
+            <h3 className={`text-3xl font-black mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>העברת כיתה</h3>
+            <p className={`font-bold mb-8 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               לאיזו כיתה תרצה להעביר את <span className="text-emerald-600">{studentToMove.name}</span>?
             </p>
             
@@ -575,13 +553,17 @@ export default function SupervisorDashboard() {
                   <button
                     key={room.id}
                     onClick={() => handleExecuteMove(room.id)}
-                    className="w-full flex justify-between items-center p-6 bg-slate-50 hover:bg-emerald-50 border-2 border-transparent hover:border-emerald-200 rounded-3xl transition-all group"
+                    className={`w-full flex justify-between items-center p-6 border-2 border-transparent rounded-3xl transition-all group ${
+                      isDark ? 'bg-slate-800 hover:bg-slate-700 hover:border-emerald-500/30' : 'bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200'
+                    }`}
                   >
                     <div className="text-right">
-                      <span className="block font-black text-xl text-slate-800">חדר {room.room_number}</span>
+                      <span className={`block font-black text-xl ${isDark ? 'text-white' : 'text-slate-800'}`}>חדר {room.room_number}</span>
                       <span className="text-sm text-slate-400 font-bold">{room.building || 'בניין מרכזי'}</span>
                     </div>
-                    <span className="bg-white text-emerald-600 px-4 py-2 rounded-xl font-black shadow-sm group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                    <span className={`px-4 py-2 rounded-xl font-black shadow-sm transition-all ${
+                      isDark ? 'bg-slate-700 text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white' : 'bg-white text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white'
+                    }`}>
                       העבר לכאן ←
                     </span>
                   </button>
@@ -603,5 +585,5 @@ export default function SupervisorDashboard() {
         </div>
       )}
     </div>
-    )
+  );
 }

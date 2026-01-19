@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from "html5-qrcode";
+import { useTheme } from '../state/ThemeContext'; // ייבוא ה-Theme
 
 export default function AdmissionScanner({ onScan, onClose }) {
+  const { isDark } = useTheme();
   const scannerRef = useRef(null);
   const fileInputRef = useRef(null);
-  const [view, setView] = useState('camera'); // 'camera' | 'file'
+  const [view, setView] = useState('camera');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [lastScanned, setLastScanned] = useState(""); // להצגת פידבק מהיר על הסריקה האחרונה
+  const [lastScanned, setLastScanned] = useState("");
   
-  // נעילה פנימית למניעת הצפה של קריאות ל-onScan
   const scanLock = useRef(false);
 
   useEffect(() => {
@@ -35,7 +36,6 @@ export default function AdmissionScanner({ onScan, onClose }) {
     setLastScanned(decodedText);
     onScan(decodedText);
 
-    // שחרור הנעילה לאחר 1.5 שניות כדי לאפשר סריקה של הסטודנט הבא
     setTimeout(() => {
       scanLock.current = false;
     }, 1500);
@@ -72,9 +72,7 @@ export default function AdmissionScanner({ onScan, onClose }) {
     
     setIsProcessing(true);
     try {
-      // פענוח הקובץ
       const result = await scannerRef.current.scanFileV2(file, true);
-      
       if (result && result.decodedText) {
         handleScanSuccess(result.decodedText);
       }
@@ -83,35 +81,43 @@ export default function AdmissionScanner({ onScan, onClose }) {
       alert("לא נמצא ברקוד בתמונה. נא לוודא שהתמונה ברורה וכוללת ברקוד תקין.");
     } finally {
       setIsProcessing(false);
-      // איפוס ה-input מאפשר להעלות קובץ נוסף מיד
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
-      {/* Overlay */}
+      {/* Overlay - תמיד כהה כדי לתת פוקוס לסורק */}
       <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xl" onClick={onClose} />
       
-      <div className="relative bg-white rounded-[40px] p-8 w-full max-w-md shadow-2xl flex flex-col min-h-137.5 animate-in zoom-in duration-300">
+      <div className={`relative rounded-[40px] p-8 w-full max-w-md shadow-2xl flex flex-col min-h-137.5 animate-in zoom-in duration-300 transition-colors ${
+        isDark ? 'bg-slate-900 border border-white/5' : 'bg-white'
+      }`}>
+        
         <button onClick={onClose} className="absolute top-6 left-8 text-slate-400 hover:text-rose-500 text-3xl transition-colors">✕</button>
         
         <div className="text-center mb-6">
-          <div className="bg-emerald-50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border-2 border-emerald-100">
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border-2 transition-colors ${
+            isDark ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-emerald-50 border-emerald-100'
+          }`}>
             <span className="text-2xl">{view === 'camera' ? '📸' : '📁'}</span>
           </div>
-          <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">סריקה רציפה</h3>
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-1">
+          <h3 className={`text-2xl font-black uppercase tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+            סריקה רציפה
+          </h3>
+          <p className={`text-xs font-bold uppercase tracking-widest mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
             {view === 'camera' ? 'השאר את המצלמה מול הברקוד' : 'ניתן להעלות מספר תמונות ברצף'}
           </p>
         </div>
 
         {/* מצב מצלמה */}
-        <div className={`relative rounded-[30px] overflow-hidden border-4 border-slate-100 bg-black aspect-square mb-6 shadow-inner ${view === 'camera' ? 'block' : 'hidden'}`}>
+        <div className={`relative rounded-[30px] overflow-hidden border-4 bg-black aspect-square mb-6 shadow-inner transition-colors ${
+          isDark ? 'border-slate-800' : 'border-slate-100'
+        } ${view === 'camera' ? 'block' : 'hidden'}`}>
           <div id="reader" className="w-full h-full"></div>
           <div className="absolute inset-x-0 top-0 h-1 bg-emerald-500 shadow-[0_0_20px_#10b981] z-20 animate-scan-line"></div>
           
-          {/* חיווי ויזואלי לסריקה מוצלחת */}
+          {/* חיווי הצלחה */}
           {scanLock.current && (
             <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center z-30 backdrop-blur-sm animate-in fade-in">
                 <div className="bg-white rounded-full p-4 shadow-2xl scale-110 animate-bounce">
@@ -129,23 +135,26 @@ export default function AdmissionScanner({ onScan, onClose }) {
             onDrop={(e) => { e.preventDefault(); setIsDragging(false); processFile(e.dataTransfer.files[0]); }}
             onClick={() => !isProcessing && fileInputRef.current.click()}
             className={`relative rounded-[30px] border-4 border-dashed aspect-square mb-6 flex flex-col items-center justify-center transition-all cursor-pointer group ${
-              isDragging ? 'border-emerald-500 bg-emerald-50 scale-[1.02]' : 'border-slate-200 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50/30'
+              isDragging 
+                ? 'border-emerald-500 bg-emerald-500/10 scale-[1.02]' 
+                : isDark 
+                  ? 'border-slate-700 bg-slate-800/50 hover:border-emerald-500/40 hover:bg-emerald-500/5' 
+                  : 'border-slate-200 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50/30'
             }`}
           >
             {isProcessing ? (
               <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-                <span className="font-black text-slate-800 text-lg">מנתח תמונה...</span>
+                <span className={`font-black text-lg ${isDark ? 'text-white' : 'text-slate-800'}`}>מנתח תמונה...</span>
               </div>
             ) : (
               <div className="text-center p-6 transition-transform group-hover:scale-110">
                 <div className="text-5xl mb-4 drop-shadow-md">📥</div>
-                <p className="font-black text-slate-700 text-xl">לחץ לסריקה נוספת</p>
+                <p className={`font-black text-xl ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>לחץ לסריקה נוספת</p>
                 <p className="text-[11px] text-slate-400 mt-2 font-bold uppercase">או גרור קובץ לכאן</p>
               </div>
             )}
             
-            {/* חיווי אחרון שנסרק בקובץ */}
             {lastScanned && !isProcessing && (
                 <div className="absolute bottom-4 bg-emerald-600 text-white px-4 py-1 rounded-full text-[10px] font-black">
                     נסרק לאחרונה: {lastScanned}
@@ -158,16 +167,20 @@ export default function AdmissionScanner({ onScan, onClose }) {
           <input type="file" ref={fileInputRef} onChange={(e) => processFile(e.target.files[0])} accept="image/*" className="hidden" />
           
           {view === 'camera' ? (
-            <button onClick={switchToUpload} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase hover:bg-slate-800 transition-all flex items-center justify-center gap-3 shadow-lg">
+            <button onClick={switchToUpload} className={`w-full py-5 rounded-2xl font-black uppercase transition-all flex items-center justify-center gap-3 shadow-lg ${
+              isDark ? 'bg-slate-800 text-white hover:bg-slate-700' : 'bg-slate-900 text-white hover:bg-slate-800'
+            }`}>
               <span>📂</span> העלאת קבצים
             </button>
           ) : (
-            <button onClick={switchToCamera} className="w-full border-4 border-emerald-500 text-emerald-600 py-4 rounded-2xl font-black uppercase hover:bg-emerald-50 transition-all flex items-center justify-center gap-3">
+            <button onClick={switchToCamera} className="w-full border-4 border-emerald-500 text-emerald-600 py-4 rounded-2xl font-black uppercase hover:bg-emerald-500/10 transition-all flex items-center justify-center gap-3">
               <span>📸</span> חזרה למצלמה
             </button>
           )}
           
-          <button onClick={onClose} className="w-full text-slate-400 py-2 font-bold hover:text-slate-600 transition-colors">
+          <button onClick={onClose} className={`w-full py-2 font-bold transition-colors ${
+            isDark ? 'text-slate-500 hover:text-slate-300' : 'text-slate-400 hover:text-slate-600'
+          }`}>
             סיום עבודה
           </button>
         </div>
