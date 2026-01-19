@@ -358,13 +358,25 @@ export default function SupervisorDashboard() {
             <nav className={`flex p-2 rounded-[25px] border ${isDark ? 'bg-black/40 border-white/20' : 'bg-slate-200/50 border-slate-300'}`}>
               <button 
                 onClick={() => setDashboardTab('attendance')} 
-                className={`px-14 py-5 rounded-[20px] text-3xl font-black transition-all ${dashboardTab === 'attendance' ? 'bg-emerald-600 text-white shadow-xl' : 'text-slate-400 hover:text-white'}`}
+                className={`px-14 py-5 rounded-[20px] text-3xl font-black transition-all ${
+                  dashboardTab === 'attendance' 
+                    ? 'bg-emerald-600 text-white shadow-xl' 
+                    : isDark 
+                      ? 'text-slate-400 hover:text-white' 
+                      : 'text-slate-400 hover:text-slate-800 hover:bg-black/5'
+                }`}
               >
                 👥 נוכחות
               </button>
               <button 
                 onClick={() => setDashboardTab('incident')} 
-                className={`px-14 py-5 rounded-[20px] text-3xl font-black transition-all ${dashboardTab === 'incident' ? 'bg-rose-600 text-white shadow-xl' : 'text-slate-400 hover:text-white'}`}
+                className={`px-14 py-5 rounded-[20px] text-3xl font-black transition-all ${
+                  dashboardTab === 'incident' 
+                    ? 'bg-rose-600 text-white shadow-xl' 
+                    : isDark 
+                      ? 'text-slate-400 hover:text-white' 
+                      : 'text-slate-400 hover:text-slate-800 hover:bg-black/5'
+                }`}
               >
                 ⚠️ דיווח
               </button>
