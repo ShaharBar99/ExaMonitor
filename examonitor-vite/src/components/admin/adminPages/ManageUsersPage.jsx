@@ -1,49 +1,50 @@
 // src/pages/admin/ManageUsersPage.jsx
 
-import React, { useEffect, useMemo, useState } from "react"; // React + hooks
-import FormField from "../../shared/FormField"; // Input
-import SelectField from "../../shared/SelectField"; // Select
-import AdminTable from "../../admin/adminComponents/AdminTable"; // Table wrapper
-import { changeUserRole, changeUserStatus, fetchUsers, filterUsers } from "../../../handlers/adminUserHandlers"; // Handlers
-import { useAuth } from "../../state/AuthContext"; // Auth context
-import { useNavigate } from "react-router-dom"; // Navigation
-export default function ManageUsersPage() { // Page component
+import React, { useEffect, useMemo, useState } from "react"; 
+import FormField from "../../shared/FormField"; 
+import SelectField from "../../shared/SelectField"; 
+import AdminTable from "../../admin/adminComponents/AdminTable"; 
+import { changeUserRole, changeUserStatus, fetchUsers, filterUsers } from "../../../handlers/adminUserHandlers"; 
+import { useAuth } from "../../state/AuthContext"; 
+import { useTheme } from "../../state/ThemeContext"; // ייבוא ה-Theme
+import { useNavigate } from "react-router-dom"; 
+
+export default function ManageUsersPage() { 
   const navigate = useNavigate();
-  const [users, setUsers] = useState([]); // Users list
-  const [loading, setLoading] = useState(false); // Loading
-  const [error, setError] = useState(""); // Error
-  const { user } = useAuth(); // Current user
-  const [search, setSearch] = useState(""); // Search
-  const [role, setRole] = useState(""); // Role filter
-  const [status, setStatus] = useState(""); // Status filter
+  const { isDark } = useTheme(); // שימוש בערכת הנושא
+  const [users, setUsers] = useState([]); 
+  const [loading, setLoading] = useState(false); 
+  const [error, setError] = useState(""); 
+  const { user } = useAuth(); 
+  const [search, setSearch] = useState(""); 
+  const [role, setRole] = useState(""); 
+  const [status, setStatus] = useState(""); 
+  const [rowBusyId, setRowBusyId] = useState(""); 
 
-  const [rowBusyId, setRowBusyId] = useState(""); // Busy row
+  useEffect(() => { 
+    let mounted = true; 
+    const run = async () => { 
+      setLoading(true); 
+      setError(""); 
+      try { 
+        const res = await fetchUsers({}, {}, user?.id); 
+        if (!mounted) return; 
+        if (res.ok) setUsers(res.data.users || []); 
+        else setError("Failed to load users"); 
+      } catch (e) { 
+        if (!mounted) return; 
+        setError(e?.message || "Failed to load users"); 
+        navigate("/login"); 
+      } finally { 
+        if (!mounted) return; 
+        setLoading(false); 
+      } 
+    }; 
+    run(); 
+    return () => { mounted = false; }; 
+  }, [user?.id, navigate]); 
 
-  useEffect(() => { // Load on mount
-    let mounted = true; // Guard
-    const run = async () => { // Fetch users
-      setLoading(true); // Loading on
-      setError(""); // Clear error
-      try { // Fetch
-        const res = await fetchUsers({}, {}, user?.id); // Mock/REST handled inside
-        console.log('ManageUsersPage: fetchUsers res.data', res?.data); // Debug log
-        if (!mounted) return; // Guard
-        if (res.ok) setUsers(res.data.users || []); // Store
-        else setError("Failed to load users"); // Fallback
-      } catch (e) { // Error
-        if (!mounted) return; // Guard
-        setError(e?.message || "Failed to load users"); // Show
-        navigate("/login"); // Navigate away on error
-      } finally { // Done
-        if (!mounted) return; // Guard
-        setLoading(false); // Loading off
-      } // End
-    }; // End run
-    run(); // Execute
-    return () => { mounted = false; }; // Cleanup
-  }, [user?.id]); // Once
-
-  const filtered = useMemo(() => filterUsers(users, { search, role, status }), [users, search, role, status]); // Filter
+  const filtered = useMemo(() => filterUsers(users, { search, role, status }), [users, search, role, status]);
 
   const roleOptions = useMemo(() => ([
     { value: "", label: "כל התפקידים" },
@@ -52,160 +53,166 @@ export default function ManageUsersPage() { // Page component
     { value: "floor_supervisor", label: "משגיח קומה" },
     { value: "lecturer", label: "מרצה" },
     { value: "admin", label: "מנהל מערכת" },
-  ]), []); // Role options
+  ]), []);
 
   const statusOptions = useMemo(() => ([
     { value: "", label: "כל הסטטוסים" },
     { value: "active", label: "פעיל" },
     { value: "inactive", label: "לא פעיל" },
-  ]), []); // Status options
+  ]), []);
 
   const columns = useMemo(() => ([
-    { key: "name", header: "שם" },
+    { key: "name", header: "שם מלא" },
     { key: "username", header: "שם משתמש" },
-    { key: "role", header: "תפקיד" },
+    { key: "role", header: "שינוי תפקיד" },
     { key: "status", header: "סטטוס" },
-    { key: "actions", header: "פעולות" },
-  ]), []); // Columns
+    { key: "actions", header: "ניהול" },
+  ]), []);
 
-  const roleLabel = (r) => { // Role label helper
-    if (r === "student") return "סטודנט";
-    if (r === "supervisor") return "משגיח";
-    if (r === "floor_supervisor") return "משגיח קומה";
-    if (r === "lecturer") return "מרצה";
-    if (r === "admin") return "מנהל מערכת";
-    return r;
-  }; // End
+  // ... (המשך פונקציות העזר onChangeRowRole ו-onToggleStatus ללא שינוי לוגי)
 
-  const statusLabel = (s) => { // Status label helper
-    if (s === "active") return "פעיל";
-    if (s === "inactive") return "לא פעיל";
-    return s;
-  }; // End
+  const onChangeRowRole = async (userId, nextRole) => {
+    setRowBusyId(userId);
+    setError("");
+    try {
+      const res = await changeUserRole(userId, nextRole, {});
+      const updated = res?.data?.user;
+      if (!updated) throw new Error("Update failed");
+      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
+    } catch (e) {
+      setError(e?.message || "Failed to update role");
+    } finally {
+      setRowBusyId("");
+    }
+  };
 
-  const onChangeRowRole = async (userId, nextRole) => { // Change role
-    setRowBusyId(userId); // Busy
-    setError(""); // Clear
-    try { // Update
-      const res = await changeUserRole(userId, nextRole, {}); // Call handler
-      const updated = res?.data?.user; // Updated user
-      if (!updated) throw new Error("Update failed"); // Guard
-      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u))); // Update local
-    } catch (e) { // Error
-      setError(e?.message || "Failed to update role"); // Set
-    } finally { // Done
-      setRowBusyId(""); // Clear busy
-    } // End
-  }; // End
+  const onToggleStatus = async (userId, currentStatus) => {
+    const next = currentStatus === "active" ? "inactive" : "active";
+    setRowBusyId(userId);
+    setError("");
+    try {
+      const res = await changeUserStatus(userId, next, {});
+      const updated = res?.data?.user;
+      if (!updated) throw new Error("Update failed");
+      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
+    } catch (e) {
+      setError(e?.message || "Failed to update status");
+    } finally {
+      setRowBusyId("");
+    }
+  };
 
-  const onToggleStatus = async (userId, currentStatus) => { // Toggle status
-    const next = currentStatus === "active" ? "inactive" : "active"; // Next
-    setRowBusyId(userId); // Busy
-    setError(""); // Clear
-    try { // Update
-      const res = await changeUserStatus(userId, next, {}); // Call handler
-      const updated = res?.data?.user; // Updated user
-      if (!updated) throw new Error("Update failed"); // Guard
-      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u))); // Update local
-    } catch (e) { // Error
-      setError(e?.message || "Failed to update status"); // Set
-    } finally { // Done
-      setRowBusyId(""); // Clear busy
-    } // End
-  }; // End
-
-  return ( // Render page (AdminLayout provides outer background/container)
-    <div>
-      <div className="mb-6"> {/* Header */}
-        <h1 className="text-2xl font-extrabold text-white tracking-tight">ניהול משתמשים</h1>
-        <p className="text-sm text-slate-300 mt-1">סינון, צפייה ועדכון משתמשים</p>
+  return ( 
+    <div className="animate-in fade-in duration-700">
+      <div className="mb-6 px-1">
+        <h1 className={`text-2xl font-black tracking-tight transition-colors ${isDark ? "text-white" : "text-slate-900"}`}>
+          ניהול משתמשים
+        </h1>
+        <p className={`text-sm mt-1 font-medium transition-colors ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+          ניהול הרשאות, עדכון תפקידים ובקרת גישה למערכת
+        </p>
       </div>
 
-      <div className="bg-white/95 backdrop-blur-md shadow-2xl rounded-2xl p-6 border border-slate-200">
+      <div className={`backdrop-blur-md shadow-2xl rounded-3xl p-6 border transition-all duration-300 ${
+        isDark ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200"
+      }`}>
+        
         {error ? (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 font-bold">
             {error}
           </div>
         ) : null}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <FormField
             id="search"
-            name="search"
-            type="text"
-            label="חיפוש"
-            placeholder="חפש לפי שם או שם משתמש"
+            label="חיפוש חופשי"
+            placeholder="שם או שם משתמש..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            error=""
             disabled={loading}
+            isDark={isDark}
             autoComplete="off"
           />
 
           <SelectField
             id="roleFilter"
-            name="roleFilter"
-            label="תפקיד"
+            label="סינון לפי תפקיד"
             value={role}
             onChange={(e) => setRole(e.target.value)}
             options={roleOptions}
-            error=""
             disabled={loading}
+            isDark={isDark}
           />
 
           <SelectField
             id="statusFilter"
-            name="statusFilter"
-            label="סטטוס"
+            label="סינון לפי סטטוס"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             options={statusOptions}
-            error=""
             disabled={loading}
+            isDark={isDark}
           />
         </div>
 
-        <AdminTable columns={columns} loading={loading} emptyText="לא נמצאו משתמשים" loadingText="טוען משתמשים...">
-          {filtered.length === 0 ? null : (
-            filtered.map((u) => (
-              <tr key={u.id} className="bg-white">
-                <td className="px-3 py-3 text-slate-900">{u.full_name}</td>
-                <td className="px-3 py-3 text-slate-700">{u.username}</td>
+        <AdminTable columns={columns} loading={loading} isDark={isDark} emptyText="לא נמצאו משתמשים">
+          {filtered.map((u) => (
+            <tr key={u.id} className={`transition-colors border-b last:border-0 ${
+              isDark ? "border-white/5 hover:bg-white/5" : "border-slate-100 hover:bg-slate-50"
+            }`}>
+              <td className={`px-4 py-4 font-bold text-sm ${isDark ? "text-white" : "text-slate-900"}`}>
+                {u.full_name}
+              </td>
+              <td className={`px-4 py-4 text-xs font-medium ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                {u.username}
+              </td>
 
-                <td className="px-3 py-3">
-                  <select
-                    className="px-2 py-1 rounded-lg border border-slate-300 text-sm"
-                    value={u.role}
-                    disabled={rowBusyId === u.id}
-                    onChange={(e) => onChangeRowRole(u.id, e.target.value)}
-                  >
-                    <option value="student">{roleLabel("student")}</option>
-                    <option value="supervisor">{roleLabel("supervisor")}</option>
-                    <option value="floor_supervisor">{roleLabel("floor_supervisor")}</option>
-                    <option value="lecturer">{roleLabel("lecturer")}</option>
-                    <option value="admin">{roleLabel("admin")}</option>
-                  </select>
-                </td>
+              <td className="px-4 py-4">
+                <select
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all outline-none ${
+                    isDark 
+                      ? "bg-slate-800 border-white/5 text-blue-400 focus:border-blue-500/50" 
+                      : "bg-slate-50 border-slate-200 text-blue-700 focus:border-blue-400"
+                  } disabled:opacity-50`}
+                  value={u.role}
+                  disabled={rowBusyId === u.id}
+                  onChange={(e) => onChangeRowRole(u.id, e.target.value)}
+                >
+                  <option value="student">סטודנט</option>
+                  <option value="supervisor">משגיח</option>
+                  <option value="floor_supervisor">משגיח קומה</option>
+                  <option value="lecturer">מרצה</option>
+                  <option value="admin">מנהל מערכת</option>
+                </select>
+              </td>
 
-                <td className="px-3 py-3">
-                  <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-medium">
-                   {u.is_active ? "פעיל" : "לא פעיל"}
-                  </span>
-                </td>
+              <td className="px-4 py-4">
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                  u.is_active 
+                    ? (isDark ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-700")
+                    : (isDark ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500")
+                }`}>
+                  {u.is_active ? "פעיל" : "לא פעיל"}
+                </span>
+              </td>
 
-                <td className="px-3 py-3">
-                  <button
-                    type="button"
-                    disabled={rowBusyId === u.id}
-                    onClick={() => onToggleStatus(u.id, u.is_active ? "active" : "inactive")}
-                    className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-xs font-semibold transition"
-                  >
-                    {u.is_active ? "השבת" : "הפעל"}
-                  </button>
-                </td>
-              </tr>
-            ))
-          )}
+              <td className="px-4 py-4">
+                <button
+                  type="button"
+                  disabled={rowBusyId === u.id}
+                  onClick={() => onToggleStatus(u.id, u.is_active ? "active" : "inactive")}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${
+                    u.is_active
+                      ? "bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white"
+                      : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white"
+                  } disabled:opacity-50`}
+                >
+                  {rowBusyId === u.id ? "מעדכן..." : (u.is_active ? "השבת חשבון" : "הפעל חשבון")}
+                </button>
+              </td>
+            </tr>
+          ))}
         </AdminTable>
       </div>
     </div>

@@ -17,6 +17,7 @@ import OverviewTab from '../floorsupervisor/OverviewTab';
 
 // לוגיקה ו-Context
 import { useExam } from '../state/ExamContext';
+import { useTheme } from '../state/ThemeContext'; // הוספת הקונטקסט של העיצוב
 import { examHandlers } from '../../handlers/examHandlers';
 import { timerHandlers } from '../../handlers/timerHandlers';
 import { notificationHandlers } from '../../handlers/notificationHandlers';
@@ -27,6 +28,7 @@ import ViewClassroomsPage from '../classroom/ViewClassroomsPage';
 export default function LecturerDashboardPage() {
   const { examId } = useParams();
   const { examData, setExamData } = useExam();
+  const { isDark } = useTheme(); // שימוש במשתנה ה-Theme
   const { user } = useAuth();
   
   // ניהול מצב
@@ -49,7 +51,9 @@ export default function LecturerDashboardPage() {
       className={`px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-3
         ${activeMainTab === id
           ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-          : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'}`}
+          : isDark 
+            ? 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
+            : 'bg-slate-100 text-slate-500 hover:bg-white hover:text-indigo-600 border border-slate-200'}`}
     >
       <span>{icon}</span> {label}
     </button>
@@ -213,7 +217,7 @@ export default function LecturerDashboardPage() {
 
   const tabs = [
     { id: 'floor_chat', icon: '🏢', label: 'משגיח קומה' },
-    { id: 'notifications', icon: '🔔', label: 'התראות ויומן' },
+
   ];
 
   return (
@@ -227,8 +231,9 @@ export default function LecturerDashboardPage() {
           setIsSidebarOpen={setIsSidebarOpen}
           logoText="מרצה"
           logoColor="bg-rose-600"
+          isDark={isDark}
         >
-          <SidebarPanel key={activeTab} activeTab={activeTab} userRole="lecturer" />
+          <SidebarPanel key={activeTab} activeTab={activeTab} userRole="lecturer" isDark={isDark} />
         </Sidebar>
       )}
 
@@ -237,10 +242,9 @@ export default function LecturerDashboardPage() {
           {/* Left: title + tabs */}
           <div className="flex items-center gap-12">
             <div>
-              <h1 className="text-3xl font-bold text-white leading-none tracking-tight">
+              <h1 className={`text-3xl font-bold leading-none tracking-tight transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}>
                 {activeMainTab === 'dashboard' && 'מסך נתונים למרצה'}
                 {activeMainTab === 'rooms' && 'ניהול כיתות'}
-                {activeMainTab === 'logs' && 'יומן אירועים'}
               </h1>
               <div className="flex items-center gap-3 mt-3">
                 <span className={`w-2.5 h-2.5 rounded-full animate-pulse ${
@@ -248,20 +252,22 @@ export default function LecturerDashboardPage() {
                     ? 'bg-amber-500'
                     : 'bg-rose-500'
                 }`} />
-                <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">
+                <p className={`font-black uppercase tracking-widest text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                   {examData?.name || 'בחינה כללית'} • קוד קורס: {examData?.courseId} • מזהה: {examId}
                 </p>
               </div>
             </div>
 
             {/* Main tabs (same idea as FloorSupervisor) */}
-            <div className="flex gap-2 bg-black/20 p-1.5 rounded-3xl border border-white/5 backdrop-blur-md">
+            <div className={`flex gap-2 p-1.5 rounded-3xl border backdrop-blur-md transition-all ${
+              isDark ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200 shadow-sm'
+            }`}>
               <button
                 onClick={() => setActiveMainTab('dashboard')}
-                className={`px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest
+                className={`px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all
                   ${activeMainTab === 'dashboard'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-400 hover:text-white'}
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}
                 `}
               >
                 📊 ראשי
@@ -269,10 +275,10 @@ export default function LecturerDashboardPage() {
 
               <button
                 onClick={() => setActiveMainTab('rooms')}
-                className={`px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest
+                className={`px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all
                   ${activeMainTab === 'rooms'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-400 hover:text-white'}
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}
                 `}
               >
                 🏫 כיתות
@@ -280,10 +286,10 @@ export default function LecturerDashboardPage() {
 
               <button
                 onClick={() => setActiveMainTab('logs')}
-                className={`px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest
+                className={`px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all
                   ${activeMainTab === 'logs'
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-slate-400 hover:text-white'}
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}
                 `}
               >
                 📊 סטטיסטיקות
@@ -297,6 +303,7 @@ export default function LecturerDashboardPage() {
               <ExamTimer
                 initialSeconds={remainingTime}
                 isPaused={examData?.status === 'paused'}
+                isDark={isDark}
               />
             )}
           </div>
@@ -307,39 +314,56 @@ export default function LecturerDashboardPage() {
       {/* ================= MAIN CONTENT ================= */}
 
       {activeMainTab === 'dashboard' && (
-        <main className="flex-1 overflow-y-auto p-12 bg-[#0f172a] space-y-10" dir="rtl">
-
-          {/* ---- EVERYTHING BELOW IS YOUR EXISTING DASHBOARD UI ---- */}
+        <main className={`flex-1 overflow-y-auto p-12 space-y-10 transition-colors ${isDark ? 'bg-[#0f172a]' : 'bg-slate-50'}`} dir="rtl">
 
           {/* מטריקות מהירות */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <StatCard label="סטודנטים רשומים לבחינה" value={stats.totalStudents} icon="👥" />
-            <StatCard label="טפסי בחינה שהוגשו" value={stats.submitted} icon="📝" />
-            <StatCard label="חדרי בחינה פעילים" value={stats.activeRooms} icon="🏠" />
-            <StatCard label="דיווחים חריגים" value={stats.flaggedIncidents} icon="⚠️" />
+            <StatCard label="סטודנטים רשומים לבחינה" value={stats.totalStudents} icon="👥" isDark={isDark} />
+            <StatCard label="טפסי בחינה שהוגשו" value={stats.submitted} icon="📝" isDark={isDark} />
+            <StatCard label="חדרי בחינה פעילים" value={stats.activeRooms} icon="🏠" isDark={isDark} />
+            <StatCard label="דיווחים חריגים" value={stats.flaggedIncidents} icon="⚠️" isDark={isDark} />
           </div>
 
           {/* לוח ניתוח נתונים מרכזי */}
-          {/* ⬇️ your big white analytics card stays EXACTLY as-is ⬇️ */}
-          {/* (I did not change it at all) */}
-          {/* keep your existing JSX here */}
+          <div className={`rounded-[50px] p-12 border transition-all ${
+            isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-100 shadow-2xl shadow-slate-200/50'
+          }`}>
+             {/* כאן נמצא הקוד של הניתוח הגרפי שלך - הוספתי תמיכה ב-isDark לצבעים */}
+             <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
+                <div className="space-y-12">
+                   <ProgressRow label="שיעור נוכחות בפועל" percent={stats.attendanceRate} color="bg-emerald-500" isDark={isDark} />
+                   <ProgressRow label="שיעור הגשה כולל" percent={stats.submittingPct} color="bg-indigo-600" isDark={isDark} />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-6">
+                   <div className={`p-8 rounded-[40px] transition-colors ${isDark ? 'bg-slate-800/40' : 'bg-slate-50'}`}>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">זמן הגשה ממוצע</p>
+                      <p className={`text-4xl font-black ${isDark ? 'text-white' : 'text-[#0f172a]'}`}>{stats.avgCompletionTime}</p>
+                   </div>
+                   <div className={`p-8 rounded-[40px] transition-colors ${isDark ? 'bg-slate-800/40' : 'bg-slate-50'}`}>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">סה"כ יציאות</p>
+                      <p className={`text-4xl font-black ${isDark ? 'text-white' : 'text-[#0f172a]'}`}>{stats.breaksCount}</p>
+                   </div>
+                </div>
+             </div>
+          </div>
 
         </main>
       )}
 
       {activeMainTab === 'rooms' && (
-        <ViewClassroomsPage />
+        <ViewClassroomsPage isDark={isDark} />
       )}
 
 
       {activeMainTab === 'logs' && (
         <div
-          className="flex-1 overflow-y-auto p-12 bg-[#0f172a] space-y-10"
+          className={`flex-1 overflow-y-auto p-12 space-y-10 transition-colors ${isDark ? 'bg-[#0f172a]' : 'bg-slate-50'}`}
           dir="rtl"
         >
 
           <div className="flex justify-between items-center">
-            <h2 className="text-3xl font-black text-white tracking-tight">
+            <h2 className={`text-3xl font-black tracking-tight ${isDark ? 'text-white' : 'text-[#0f172a]'}`}>
               סטטיסטיקות הבחינה
             </h2>
 
@@ -359,30 +383,35 @@ export default function LecturerDashboardPage() {
               icon="📈"
               label="שיעור נוכחות"
               value={`${stats.attendanceRate}%`}
+              isDark={isDark}
             />
 
             <SummaryBox
               icon="✅"
               label="שיעור נבחנים שסיימו"
               value={`${stats.submittingPct}%`}
+              isDark={isDark}
             />
 
             <SummaryBox
               icon="⏱️"
               label="זמן הגשה ממוצע"
               value={stats.avgCompletionTime}
+              isDark={isDark}
             />
 
             <SummaryBox
               icon="🚪"
               label="יציאות לשירותים"
               value={stats.breaksCount}
+              isDark={isDark}
             />
 
             <SummaryBox
               icon="🧊"
               label="בעלי תוספת זמן"
               value={stats.extraTimeRequests}
+              isDark={isDark}
             />
 
           </div>
@@ -397,21 +426,29 @@ export default function LecturerDashboardPage() {
 
 // --- רכיבי עזר פנימיים ---
 
-const SummaryBox = ({ icon, label, value }) => (
-  <div className="bg-slate-50 p-10 rounded-[40px] flex flex-col items-center justify-center text-center border border-slate-100 group hover:bg-white hover:shadow-2xl hover:scale-[1.05] transition-all duration-500">
+const SummaryBox = ({ icon, label, value, isDark }) => (
+  <div className={`p-10 rounded-[40px] flex flex-col items-center justify-center text-center border group transition-all duration-500 ${
+    isDark 
+      ? 'bg-slate-800/40 border-white/5 hover:bg-slate-800/60 shadow-xl shadow-black/20' 
+      : 'bg-white border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl'
+  }`}>
     <span className="text-4xl mb-4 group-hover:scale-125 transition-transform duration-500">{icon}</span>
-    <p className="text-[15px] font-black text-[#0f172a] uppercase mb-2 tracking-widest">{label}</p>
-    <p className="text-3xl font-black text-[#0f172a]  leading-none tabular-nums">{value}</p>
+    <p className={`text-[15px] font-black uppercase mb-2 tracking-widest ${isDark ? 'text-slate-400' : 'text-[#0f172a]'}`}>{label}</p>
+    <p className={`text-3xl font-black leading-none tabular-nums ${isDark ? 'text-white' : 'text-[#0f172a]'}`}>{value}</p>
   </div>
 );
 
-const ProgressRow = ({ label, percent, color }) => (
+const ProgressRow = ({ label, percent, color, isDark }) => (
   <div className="space-y-4 group">
     <div className="flex justify-between items-end px-2">
-      <span className="text-[15px] font-black text-black uppercase tracking-widest group-hover:text-slate-800 transition-colors">{label}</span>
-      <span className="text-lg font-black text-black  tabular-nums">{percent}%</span>
+      <span className={`text-[15px] font-black uppercase tracking-widest transition-colors ${
+        isDark ? 'text-slate-300' : 'text-black group-hover:text-slate-800'
+      }`}>{label}</span>
+      <span className={`text-lg font-black tabular-nums ${isDark ? 'text-white' : 'text-black'}`}>{percent}%</span>
     </div>
-    <div className="h-6 bg-slate-100 rounded-full overflow-hidden p-1.5 shadow-inner">
+    <div className={`h-6 rounded-full overflow-hidden p-1.5 shadow-inner transition-colors ${
+      isDark ? 'bg-slate-800' : 'bg-slate-100'
+    }`}>
       <div className={`h-full ${color} rounded-full transition-all duration-1000 shadow-lg group-hover:brightness-110`} style={{ width: `${percent}%` }}></div>
     </div>
   </div>
