@@ -179,22 +179,6 @@ export const ExamService = {
   },
 
 
-  // כנראה שמתי פה בטעות
-  // //tk added
-  // async countBreaksByExam(examId) {
-  //   const { count, error } = await supabaseAdmin
-  //     .from('student_breaks')
-  //     .select('id, attendance:attendance_id!inner(classrooms:classroom_id!inner(exam_id))', {
-  //       count: 'exact',
-  //       head: true,
-  //     })
-  //     .eq('attendance.classrooms.exam_id', examId);
-
-  //   if (error) throw error;
-  //   return count || 0;
-  // },
-
-
   getStudentWithMostExits(breaksData) {
     if (!breaksData || breaksData.length === 0) return null;
 

@@ -27,6 +27,36 @@ export const attendanceHandlers = {
     }
   },
 
+  //tk added
+  /**
+   * טעינת סטטוס סטודנטים לפי מבחן
+   */
+  loadAttendanceByExam: async (examId, setAttendance, setIsLoading) => {
+    try {
+      if (setIsLoading) setIsLoading(true);
+      const data = await attendanceApi.list({ examId });
+      setAttendance(data?.attendance || []);
+    } catch (error) {
+      console.error("Failed to load attendance by exam:", error);
+    } finally {
+      if (setIsLoading) setIsLoading(false);
+    }
+  },
+
+
+  
+  /**
+   * טעינת ספירת הפסקות לפי מבחן
+   */
+  loadBreaksCountByExam: async (examId, setBreaksCount) => {
+    try {
+      const data = await attendanceApi.getBreaksCountByExam(examId);
+      setBreaksCount(data?.count || 0);
+    } catch (error) {
+      console.error("Failed to load breaks count by exam:", error);
+    }
+  },
+
   /**
    * שינוי סטטוס סטודנט (כולל עדכון UI מקומי)
    */

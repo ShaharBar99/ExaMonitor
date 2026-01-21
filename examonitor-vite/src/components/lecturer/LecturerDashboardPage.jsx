@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-
-//tk added
-import { attendanceApi } from '../../api/attendanceApi';
-import { classroomApi } from '../../api/classroomApi';
-import { incidentsApi } from '../../api/incidentsApi';
+import { attendanceHandlers } from '../../handlers/attendanceHandlers'; 
+import { classroomHandler } from '../../handlers/classroomHandlers';
+import { incidentHandlers } from '../../handlers/incidentHandlers'; 
+import { useAuth } from '../state/AuthContext';
+import { useSocket } from '../state/SocketContext';
 
 
 // רכיבי מערכת
@@ -27,6 +27,7 @@ import ViewClassroomsPage from '../classroom/ViewClassroomsPage';
 export default function LecturerDashboardPage() {
   const { examId } = useParams();
   const { examData, setExamData } = useExam();
+  const { user } = useAuth();
   
   // ניהול מצב
   const [activeTab, setActiveTab] = useState('notifications'); 
@@ -61,17 +62,20 @@ export default function LecturerDashboardPage() {
     const initLecturerConsole = async () => {
       setIsLoading(true);
       await notificationHandlers.loadNotifications(examId, setNotifications, setIsLoading);
-      const res = await attendanceApi.list({ examId }); //tk added
-      setAttendance(res?.attendance || []); //tk added
-      const rooms = await classroomApi.getClassrooms(); //tk added
-      setClassrooms((rooms || []).filter(r => r.exam_id === examId)); //tk added
-      const incidentRes = await incidentsApi.listByExam(examId); //tk added
-      setIncidents(incidentRes?.incidents || []); //tk added
 
-      const breaks = await attendanceApi.getBreaksCountByExam(examId);
-      console.log ("Breaks count for exam", examId, ":", breaks);
-      setBreaksCount(breaks?.count || 0);
+      await attendanceHandlers.loadAttendanceByExam(examId, setAttendance, setIsLoading);
+    
+      await attendanceHandlers.loadBreaksCountByExam(examId, setBreaksCount);
 
+      await classroomHandler.loadDisplayData(
+        user.role,
+        examId,           // filter by exam INSIDE handler
+        null,             // classroomId (not needed here)
+        setClassrooms//,    // success callback
+      );
+
+      await incidentHandlers.loadIncidents(examId, setIncidents);
+      
       const seconds = await timerHandlers.getRemainingSeconds(examId);
       setRemainingTime(seconds);
       setIsLoading(false);
