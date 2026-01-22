@@ -42,7 +42,7 @@ export default function Sidebar({
   // הגדרת רוחב ראשונית חכמה
   const getInitialWidth = () => {
     if (window.innerWidth < 768) return window.innerWidth - 80; // 80px זה רוחב ה-Nav
-    return 450;
+    return 350;
   };
 
   const [sidebarWidth, setSidebarWidth] = useState(getInitialWidth());
