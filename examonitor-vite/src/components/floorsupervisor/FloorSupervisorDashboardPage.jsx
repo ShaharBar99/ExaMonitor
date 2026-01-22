@@ -33,7 +33,7 @@ export default function FloorSupervisorDashboardPage() {
 
   // --- ניהול Sidebar ---
   const [activeSidebarTab, setActiveSidebarTab] = useState('chat');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Default false for mobile responsiveness
 
   // נתונים
   const [rooms, setRooms] = useState(null);
@@ -100,20 +100,20 @@ export default function FloorSupervisorDashboardPage() {
   const NavButton = ({ id, label, icon }) => (
     <button
       onClick={() => setActiveMainTab(id)}
-      className={`px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center gap-3
+      className={`px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all flex items-center gap-2 md:gap-3 whitespace-nowrap
           ${activeMainTab === id
           ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
           : isDark 
             ? 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
             : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 border border-slate-200'}`}
     >
-      <span className="text-base">{icon}</span> {label}
+      <span className="text-sm md:text-base">{icon}</span> {label}
     </button>
   );
 
   if (isLoadingNotifications && notifications.length === 0) {
     return (
-      <div className={`h-screen flex items-center justify-center font-black uppercase tracking-widest ${isDark ? 'bg-[#0f172a] text-white' : 'bg-slate-50 text-slate-900'}`}>
+      <div className={`h-screen flex items-center justify-center font-black uppercase tracking-widest p-6 text-center ${isDark ? 'bg-[#0f172a] text-white' : 'bg-slate-50 text-slate-900'}`}>
         מאתחל מערכת שליטה...
       </div>
     );
@@ -136,26 +136,44 @@ export default function FloorSupervisorDashboardPage() {
         </Sidebar>
       }
       header={
-        <div className="flex justify-between items-center w-full" dir="rtl">
-          <div className="flex items-center gap-12">
-            <div>
-              <h1 className={`text-2xl font-black uppercase tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                {activeMainTab === 'dashboard' ? 'Control Center' :
-                  activeMainTab === 'rooms' ? 'Room Management' : 'Event History'}
-              </h1>
+        <div className="flex flex-col lg:flex-row justify-between items-center w-full gap-4 md:gap-6" dir="rtl">
+          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 lg:gap-12 w-full lg:w-auto">
+            
+            {/* Title Section with Mobile Toggle */}
+            <div className="flex items-center justify-between w-full md:w-auto">
+               <button 
+                  onClick={() => setIsSidebarOpen(true)} 
+                  className="lg:hidden p-2 rounded-lg transition-colors bg-slate-200 text-slate-700 dark:bg-indigo-500/20 dark:text-indigo-100 dark:border dark:border-indigo-500/30 text-xl"
+                >
+                  ☰
+                </button>
+
+                <h1 className={`text-xl md:text-2xl font-black uppercase tracking-tighter px-4 lg:px-0 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  {activeMainTab === 'dashboard' ? 'Control' :
+                    activeMainTab === 'rooms' ? 'Rooms' : 'History'}
+                </h1>
+
+                {/* Mobile-only Stats */}
+                <div className="md:hidden">
+                    <div className={`px-4 py-1 rounded-lg border flex items-center gap-2 ${stats.warnings > 0 ? 'bg-rose-500/10 border-rose-500/20' : 'bg-transparent border-transparent'}`}>
+                       <span className="text-xs">⚠️</span>
+                       <span className={`font-black ${stats.warnings > 0 ? 'text-rose-500' : 'text-slate-400'}`}>{stats.warnings}</span>
+                    </div>
+                </div>
             </div>
 
-            {/* ה-Navbar המרכזי מותאם Theme */}
-            <nav className={`flex gap-2 p-1.5 rounded-3xl border backdrop-blur-md transition-colors ${
+            {/* Main Navigation Bar */}
+            <nav className={`flex gap-1 md:gap-2 p-1 md:p-1.5 rounded-2xl md:rounded-3xl border backdrop-blur-md transition-colors w-full md:w-auto overflow-x-auto no-scrollbar ${
               isDark ? 'bg-black/20 border-white/5' : 'bg-slate-200/50 border-slate-300/50'
             }`}>
               <NavButton id="dashboard" label="ראשי" icon="📊" />
               <NavButton id="rooms" label="כיתות" icon="🏫" />
+              <NavButton id="logs" label="יומן אירועים" icon="📜" />
             </nav>
           </div>
 
-          {/* סטטיסטיקה מהירה בצד שמאל */}
-          <div className="flex gap-4">
+          {/* Desktop Stats Section */}
+          <div className="hidden md:flex gap-4">
             <div className={`px-6 py-2 rounded-xl border flex flex-col items-center min-w-24 transition-all
                 ${stats.warnings > 0 
                   ? 'bg-rose-500/10 border-rose-500/20 animate-pulse' 
@@ -170,7 +188,7 @@ export default function FloorSupervisorDashboardPage() {
       }
     >
       {/* גוף העמוד - מותאם Theme */}
-      <div className={`w-full h-full animate-in fade-in duration-500 ${isDark ? 'text-white' : 'text-slate-900'}`} dir="rtl">
+      <div className={`w-full h-full animate-in fade-in duration-500 p-4 md:p-6 lg:p-0 ${isDark ? 'text-white' : 'text-slate-900'}`} dir="rtl">
         {activeMainTab === 'dashboard' && (
           <OverviewTab stats={stats} onNavigate={setActiveMainTab} isDark={isDark} />
         )}
@@ -183,8 +201,6 @@ export default function FloorSupervisorDashboardPage() {
           <LogsTab notifications={notifications} incidents={incidents} stats={stats} isDark={isDark} />
         )}
       </div>
-      isSidebarOpen={isSidebarOpen}
-      setIsSidebarOpen={setIsSidebarOpen}
     </DashboardLayout>
   );
 }
