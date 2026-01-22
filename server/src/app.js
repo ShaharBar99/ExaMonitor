@@ -14,14 +14,18 @@ import notificationRoutes from './routes/notificationRoutes.js';
 
 const app = express();
 
-/**
- * Allow frontend to call backend
- */
-app.use(cors({
-  origin: true,
-  credentials: true,
-}));
+const allowedOriginPrefix = 'https://examonitor-t11n';
 
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || origin.startsWith(allowedOriginPrefix) || origin.startsWith('http://localhost')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 /**
  * Parse JSON bodies
  */

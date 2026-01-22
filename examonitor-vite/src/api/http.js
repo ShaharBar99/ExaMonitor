@@ -1,7 +1,7 @@
 // src/api/http.js
 
 // Read API base URL from Vite env. // Vite exposes env vars via import.meta.env
-const API_BASE = import.meta.env.VITE_API_BASE || ""; // Example: "http://localhost:5000"
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000"; // Example: "http://localhost:5000"
 
 // Custom error type for API failures. // Lets UI/handlers handle status/messages cleanly
 export class ApiError extends Error { // ApiError extends Error
