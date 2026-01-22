@@ -1,17 +1,15 @@
-// src/pages/admin/ManageUsersPage.jsx
-
 import React, { useEffect, useMemo, useState } from "react"; 
 import FormField from "../../shared/FormField"; 
 import SelectField from "../../shared/SelectField"; 
 import AdminTable from "../../admin/adminComponents/AdminTable"; 
 import { changeUserRole, changeUserStatus, fetchUsers, filterUsers } from "../../../handlers/adminUserHandlers"; 
 import { useAuth } from "../../state/AuthContext"; 
-import { useTheme } from "../../state/ThemeContext"; // ייבוא ה-Theme
+import { useTheme } from "../../state/ThemeContext"; 
 import { useNavigate } from "react-router-dom"; 
 
 export default function ManageUsersPage() { 
   const navigate = useNavigate();
-  const { isDark } = useTheme(); // שימוש בערכת הנושא
+  const { isDark } = useTheme(); 
   const [users, setUsers] = useState([]); 
   const [loading, setLoading] = useState(false); 
   const [error, setError] = useState(""); 
@@ -46,41 +44,22 @@ export default function ManageUsersPage() {
 
   const filtered = useMemo(() => filterUsers(users, { search, role, status }), [users, search, role, status]);
 
-  const roleOptions = useMemo(() => ([
-    { value: "", label: "כל התפקידים" },
-    { value: "student", label: "סטודנט" },
-    { value: "supervisor", label: "משגיח" },
-    { value: "floor_supervisor", label: "משגיח קומה" },
-    { value: "lecturer", label: "מרצה" },
-    { value: "admin", label: "מנהל מערכת" },
-  ]), []);
-
-  const statusOptions = useMemo(() => ([
-    { value: "", label: "כל הסטטוסים" },
-    { value: "active", label: "פעיל" },
-    { value: "inactive", label: "לא פעיל" },
-  ]), []);
-
   const columns = useMemo(() => ([
     { key: "name", header: "שם מלא" },
     { key: "username", header: "שם משתמש" },
-    { key: "role", header: "שינוי תפקיד" },
+    { key: "role", header: "תפקיד" },
     { key: "status", header: "סטטוס" },
     { key: "actions", header: "ניהול" },
   ]), []);
 
-  // ... (המשך פונקציות העזר onChangeRowRole ו-onToggleStatus ללא שינוי לוגי)
-
   const onChangeRowRole = async (userId, nextRole) => {
     setRowBusyId(userId);
-    setError("");
     try {
       const res = await changeUserRole(userId, nextRole, {});
       const updated = res?.data?.user;
-      if (!updated) throw new Error("Update failed");
-      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
+      if (updated) setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
     } catch (e) {
-      setError(e?.message || "Failed to update role");
+      setError("עדכון תפקיד נכשל");
     } finally {
       setRowBusyId("");
     }
@@ -89,92 +68,108 @@ export default function ManageUsersPage() {
   const onToggleStatus = async (userId, currentStatus) => {
     const next = currentStatus === "active" ? "inactive" : "active";
     setRowBusyId(userId);
-    setError("");
     try {
       const res = await changeUserStatus(userId, next, {});
       const updated = res?.data?.user;
-      if (!updated) throw new Error("Update failed");
-      setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
+      if (updated) setUsers((prev) => prev.map((u) => (u.id === userId ? updated : u)));
     } catch (e) {
-      setError(e?.message || "Failed to update status");
+      setError("עדכון סטטוס נכשל");
     } finally {
       setRowBusyId("");
     }
   };
 
   return ( 
-    <div className="animate-in fade-in duration-700">
+    <div className="animate-in fade-in duration-700 p-4 md:p-0">
       <div className="mb-6 px-1">
-        <h1 className={`text-2xl font-black tracking-tight transition-colors ${isDark ? "text-white" : "text-slate-900"}`}>
+        <h1 className={`text-xl md:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
           ניהול משתמשים
         </h1>
-        <p className={`text-sm mt-1 font-medium transition-colors ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-          ניהול הרשאות, עדכון תפקידים ובקרת גישה למערכת
+        <p className={`text-xs md:text-sm mt-1 font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+          ניהול הרשאות, עדכון תפקידים ובקרת גישה
         </p>
       </div>
 
-      <div className={`backdrop-blur-md shadow-2xl rounded-3xl p-6 border transition-all duration-300 ${
+      <div className={`backdrop-blur-md shadow-2xl rounded-[30px] md:rounded-3xl p-4 md:p-8 border transition-all ${
         isDark ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200"
       }`}>
         
-        {error ? (
-          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 font-bold">
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700 font-bold">
             {error}
           </div>
-        ) : null}
+        )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Responsive Filter Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-8">
           <FormField
             id="search"
             label="חיפוש חופשי"
             placeholder="שם או שם משתמש..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            disabled={loading}
             isDark={isDark}
-            autoComplete="off"
           />
-
           <SelectField
             id="roleFilter"
             label="סינון לפי תפקיד"
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            options={roleOptions}
-            disabled={loading}
+            options={[
+              { value: "", label: "כל התפקידים" },
+              { value: "student", label: "סטודנט" },
+              { value: "supervisor", label: "משגיח" },
+              { value: "floor_supervisor", label: "משגיח קומה" },
+              { value: "lecturer", label: "מרצה" },
+              { value: "admin", label: "מנהל מערכת" },
+            ]}
             isDark={isDark}
           />
-
           <SelectField
             id="statusFilter"
             label="סינון לפי סטטוס"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            options={statusOptions}
-            disabled={loading}
+            options={[
+              { value: "", label: "כל הסטטוסים" },
+              { value: "active", label: "פעיל" },
+              { value: "inactive", label: "לא פעיל" },
+            ]}
             isDark={isDark}
           />
         </div>
 
         <AdminTable columns={columns} loading={loading} isDark={isDark} emptyText="לא נמצאו משתמשים">
           {filtered.map((u) => (
-            <tr key={u.id} className={`transition-colors border-b last:border-0 ${
+            <tr key={u.id} className={`flex flex-col md:table-row transition-colors border-b last:border-0 p-4 md:p-0 ${
               isDark ? "border-white/5 hover:bg-white/5" : "border-slate-100 hover:bg-slate-50"
             }`}>
-              <td className={`px-4 py-4 font-bold text-sm ${isDark ? "text-white" : "text-slate-900"}`}>
-                {u.full_name}
-              </td>
-              <td className={`px-4 py-4 text-xs font-medium ${isDark ? "text-slate-400" : "text-slate-600"}`}>
-                {u.username}
+              
+              {/* Full Name */}
+              <td className="px-0 md:px-4 py-2 md:py-4 block md:table-cell">
+                <span className="md:hidden block text-[9px] font-black uppercase text-slate-400 mb-1">שם מלא</span>
+                <div className={`font-bold text-sm ${isDark ? "text-white" : "text-slate-900"}`}>
+                  {u.full_name}
+                </div>
               </td>
 
-              <td className="px-4 py-4">
+              {/* Username */}
+              <td className="px-0 md:px-4 py-2 md:py-4 block md:table-cell">
+                <span className="md:hidden block text-[9px] font-black uppercase text-slate-400 mb-1">שם משתמש</span>
+                <div className={`text-xs font-medium ${isDark ? "text-slate-400" : "text-slate-600"}`}>
+                  {u.username}
+                </div>
+              </td>
+
+              {/* Role Change - Full width on mobile */}
+              <td className="px-0 md:px-4 py-2 md:py-4 block md:table-cell">
+                <span className="md:hidden block text-[9px] font-black uppercase text-slate-400 mb-1">שינוי תפקיד</span>
                 <select
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all outline-none ${
+                  className={`w-full md:w-auto px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all outline-none ${
                     isDark 
                       ? "bg-slate-800 border-white/5 text-blue-400 focus:border-blue-500/50" 
                       : "bg-slate-50 border-slate-200 text-blue-700 focus:border-blue-400"
-                  } disabled:opacity-50`}
+                  }`}
                   value={u.role}
                   disabled={rowBusyId === u.id}
                   onChange={(e) => onChangeRowRole(u.id, e.target.value)}
@@ -187,7 +182,9 @@ export default function ManageUsersPage() {
                 </select>
               </td>
 
-              <td className="px-4 py-4">
+              {/* Status Badge */}
+              <td className="px-0 md:px-4 py-2 md:py-4 block md:table-cell">
+                <span className="md:hidden block text-[9px] font-black uppercase text-slate-400 mb-1">סטטוס</span>
                 <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
                   u.is_active 
                     ? (isDark ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-700")
@@ -197,12 +194,13 @@ export default function ManageUsersPage() {
                 </span>
               </td>
 
-              <td className="px-4 py-4">
+              {/* Action Button - Full width on mobile */}
+              <td className="px-0 md:px-4 py-4 block md:table-cell">
                 <button
                   type="button"
                   disabled={rowBusyId === u.id}
                   onClick={() => onToggleStatus(u.id, u.is_active ? "active" : "inactive")}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${
+                  className={`w-full md:w-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
                     u.is_active
                       ? "bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white"
                       : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white"
