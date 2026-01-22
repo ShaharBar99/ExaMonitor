@@ -242,7 +242,10 @@ export default function LecturerDashboardPage() {
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 lg:gap-12 w-full lg:w-auto">
             <div className="flex items-center justify-between w-full md:w-auto">
                 {/* Mobile Sidebar Toggle */}
-                <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 rounded-lg bg-slate-100 dark:bg-white/10 text-xl">
+                <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 rounded-lg transition-colors
+                bg-slate-200 text-slate-700 
+                dark:bg-indigo-500/20 dark:text-indigo-100 dark:border dark:border-indigo-500/30 
+                hover:bg-slate-300 dark:hover:bg-indigo-500/40 text-xl">
                   ☰
                 </button>
                 <div className="text-right md:text-right flex-1 md:flex-none px-4 md:px-0">
