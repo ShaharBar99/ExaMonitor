@@ -183,6 +183,8 @@ export default function FloorSupervisorDashboardPage() {
           <LogsTab notifications={notifications} incidents={incidents} stats={stats} isDark={isDark} />
         )}
       </div>
+      isSidebarOpen={isSidebarOpen}
+      setIsSidebarOpen={setIsSidebarOpen}
     </DashboardLayout>
   );
 }

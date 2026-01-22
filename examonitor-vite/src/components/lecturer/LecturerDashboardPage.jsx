@@ -418,7 +418,8 @@ export default function LecturerDashboardPage() {
         </div>
       )}
 
-
+      isSidebarOpen={isSidebarOpen}
+      setIsSidebarOpen={setIsSidebarOpen}
     </DashboardLayout>
   );
 

@@ -7,116 +7,77 @@ const StudentCard = ({ student, onStatusChange, onMoveClass }) => {
   const isFinished = student.status === 'submitted' || student.status === 'finished';
   const personalExtra = student.personalExtra || 0;
 
-  const getStatusConfig = () => {
-    if (isFinished) {
-      return isDark 
-        ? { bg: 'bg-slate-800', text: 'text-slate-400', label: 'הגיש מבחן', dot: 'bg-slate-500' }
-        : { bg: 'bg-slate-100', text: 'text-slate-500', label: 'הגיש מבחן', dot: 'bg-slate-400' };
-    }
-    if (isOut) {
-      return isDark
-        ? { bg: 'bg-amber-500/10', text: 'text-amber-400', label: 'יצא מהחדר', dot: 'bg-amber-500' }
-        : { bg: 'bg-amber-100', text: 'text-amber-700', label: 'יצא מהחדר', dot: 'bg-amber-500' };
-    }
-    return isDark
-      ? { bg: 'bg-emerald-500/10', text: 'text-emerald-400', label: 'במבחן פעיל', dot: 'bg-emerald-500' }
-      : { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'במבחן פעיל', dot: 'bg-emerald-500' };
-  };
-
-  const config = getStatusConfig();
+  const config = (isFinished) 
+    ? (isDark ? { bg: 'bg-slate-800', text: 'text-slate-400', label: 'הגיש', dot: 'bg-slate-500' } : { bg: 'bg-slate-100', text: 'text-slate-500', label: 'הגיש', dot: 'bg-slate-400' })
+    : (isOut)
+    ? (isDark ? { bg: 'bg-amber-500/10', text: 'text-amber-400', label: 'בחוץ', dot: 'bg-amber-500' } : { bg: 'bg-amber-100', text: 'text-amber-700', label: 'בחוץ', dot: 'bg-amber-500' })
+    : (isDark ? { bg: 'bg-emerald-500/10', text: 'text-emerald-400', label: 'פעיל', dot: 'bg-emerald-500' } : { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'פעיל', dot: 'bg-emerald-500' });
 
   return (
-    <div className={`group relative rounded-[40px] p-10 border-4 transition-all duration-300 text-right
-      ${isDark ? 'bg-slate-900' : 'bg-white'}
-      ${isOut 
-        ? (isDark ? 'border-amber-500/30 shadow-2xl shadow-amber-900/20' : 'border-amber-300 shadow-2xl shadow-amber-500/10') 
-        : (isDark ? 'border-slate-800 hover:border-emerald-500/30 hover:shadow-emerald-900/20' : 'border-slate-50 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-slate-300/50')
-      } 
-      ${isFinished ? 'opacity-60 grayscale-[0.3]' : ''}`} dir="rtl">
+    <div className={`group relative rounded-[20px] sm:rounded-[30px] p-3 sm:p-5 border-2 transition-all duration-300 text-right flex flex-col min-w-0 overflow-hidden
+      ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}
+      ${isOut && (isDark ? 'border-amber-500/40 shadow-lg' : 'border-amber-300 shadow-lg')}
+      ${isFinished ? 'opacity-60' : ''}`} dir="rtl">
       
-      {/* סטטוס עליון */}
-      <div className="flex justify-between items-center mb-8">
-        <div className={`flex items-center gap-3 px-6 py-2 rounded-full ${config.bg} ${config.text} border-2 border-current/5`}>
-          <span className={`w-3 h-3 rounded-full ${config.dot} ${!isFinished && 'animate-pulse'}`}></span>
-          <span className="text-sm font-black uppercase tracking-wider">{config.label}</span>
+      {/* Status Badge - Ultra Small for SM screens */}
+      <div className="flex justify-between items-center mb-2 sm:mb-4">
+        <div className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-0.5 rounded-full ${config.bg} ${config.text}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${config.dot} ${!isFinished && 'animate-pulse'}`}></span>
+          <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-tighter truncate">{config.label}</span>
         </div>
       </div>
 
-      {/* פרטי הסטודנט */}
-      <div className="mb-10">
-        <h3 className={`text-4xl font-black tracking-tighter leading-tight group-hover:text-emerald-500 transition-colors ${
-          isDark ? 'text-white' : 'text-slate-900'
-        }`}>
+      {/* Info Section */}
+      <div className="mb-3 sm:mb-6 min-w-0">
+        <h3 className={`text-sm sm:text-lg md:text-xl font-black truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
           {student.name}
         </h3>
-        <p className={`text-lg font-black mt-3 uppercase tracking-widest ${
-          isDark ? 'text-slate-500' : 'text-slate-400'
-        }`}>
-          ת.ז • {student.studentId ? student.studentId : student.student_id}
+        <p className={`text-[9px] sm:text-xs font-bold mt-0.5 opacity-60 truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>
+          ID • {student.studentId || student.student_id}
         </p>
         
-        {/* תג הארכה אישית */}
         {personalExtra > 0 && (
-          <div className={`mt-4 px-4 py-2 rounded-xl items-center gap-2 shadow-lg inline-flex ${
-            isDark ? 'bg-purple-900/50 text-purple-300 shadow-none' : 'bg-purple-600 text-white shadow-purple-200'
-          }`}>
-            <span className="text-lg">⏱️</span>
-            <span className="font-black text-sm">+{personalExtra}% זמן</span>
+          <div className={`mt-1.5 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1 ${isDark ? 'bg-purple-900/40 text-purple-300' : 'bg-purple-100 text-purple-700'}`}>
+            <span className="text-[9px] sm:text-xs font-black">+{personalExtra}% זמן</span>
           </div>
         )}
       </div>
 
-      {/* אזור פעולות */}
-      <div className="space-y-4">
-        <div className="flex gap-4">
+      {/* Actions Section - Optimized for SM width */}
+      <div className="space-y-1.5 sm:space-y-3 mt-auto">
+        <div className="flex gap-1.5">
           <button 
             onClick={() => onStatusChange(student.id, isOut ? 'במבחן' : 'שירותים')}
             disabled={isFinished}
-            className={`flex-2 py-6 rounded-[25px] text-xl font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg
-              ${isOut 
-                ? 'bg-emerald-500 text-white shadow-emerald-200 hover:bg-emerald-600' 
-                : 'bg-amber-500 text-white shadow-amber-200 hover:bg-amber-600'} 
-              disabled:bg-slate-100 disabled:text-slate-300 disabled:shadow-none
-              ${isDark && 'shadow-none'}`}
+            className={`flex-[1.5] py-2 sm:py-4 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-black uppercase transition-all active:scale-95
+              ${isOut ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'} 
+              disabled:opacity-30 min-w-0 truncate`}
           >
-            {isOut ? 'חזר לחדר' : 'שירותים'}
+            {isOut ? 'חזר' : 'שירותים'}
           </button>
 
           <button 
             onClick={() => onStatusChange(student.id, 'סיים')}
             disabled={isFinished}
-            className={`flex-1 py-6 rounded-[25px] text-lg font-black uppercase tracking-widest transition-all active:scale-95 shadow-xl ${
-              isDark 
-                ? 'bg-slate-800 text-white hover:bg-rose-600 shadow-none' 
-                : 'bg-slate-900 text-white hover:bg-rose-600'
+            className={`flex-1 py-2 sm:py-4 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-black uppercase transition-all ${
+              isDark ? 'bg-slate-800 text-white' : 'bg-slate-900 text-white'
             }`}
           >
-            הגשה
+            סיום
           </button>
         </div>
 
         {!isFinished && (
           <button 
             onClick={() => onMoveClass && onMoveClass(student.id)}
-            className={`w-full py-5 rounded-2xl text-sm font-black transition-all flex items-center justify-center gap-3 uppercase tracking-widest border-2 ${
-              isDark 
-                ? 'bg-slate-800/50 text-slate-500 border-transparent hover:bg-indigo-900/30 hover:text-indigo-400 hover:border-indigo-500/20' 
-                : 'bg-slate-50 text-slate-400 border-transparent hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100'
+            className={`w-full py-1.5 sm:py-2.5 rounded-lg text-[8px] sm:text-[10px] font-bold transition-all border-2 border-transparent hover:bg-indigo-50/10 ${
+              isDark ? 'text-slate-500' : 'text-slate-400 bg-slate-50'
             }`}
           >
-            <span className="text-xl">🔄</span> העברת כיתה
+            🔄 העברה
           </button>
         )}
       </div>
-
-      {/* פס התקדמות תחתון */}
-      {!isFinished && (
-          <div className={`absolute bottom-0 left-12 right-12 h-2 rounded-full overflow-hidden ${
-            isDark ? 'bg-slate-800' : 'bg-slate-100'
-          }`}>
-            <div className={`h-full transition-all duration-1000 ${isOut ? 'bg-amber-500 w-full' : 'bg-emerald-500 w-1/3'}`}></div>
-          </div>
-      )}
     </div>
   );
 };
