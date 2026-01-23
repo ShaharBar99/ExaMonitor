@@ -39,6 +39,7 @@ io.on('connection', (socket) => {
         console.log('user disconnected');
     });
 });
+app.set("trust proxy", true);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

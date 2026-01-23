@@ -155,17 +155,6 @@ export const AdminService = {
   },
 
 
-  async resolveSecurityAlert(id) {
-    // Placeholder: no table yet.
-    // Return the shape the frontend expects.
-    return {
-      alert: {
-        id,
-        status: 'resolved',
-      },
-    };
-  },
-
   async createUser({ full_name, username, email, password, role }) {
     // 1. Check if user already exists in profiles (optional, but good for custom error)
     const { data: existingUser } = await supabaseAdmin

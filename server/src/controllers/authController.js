@@ -9,7 +9,13 @@ export const AuthController = {
         return res.status(400).json({ error: 'username, password, role are required' });
       }
 
-      const result = await AuthService.login(username, password, role, { ip: req.ip });
+      const forwarded = req.headers["x-forwarded-for"];
+      const ip =
+        (typeof forwarded === "string" ? forwarded.split(",")[0].trim() : "") ||
+        req.socket?.remoteAddress ||
+        req.ip;
+
+      const result = await AuthService.login(username, password, role, { ip });
       return res.json(result);
     } catch (err) {
       next(err);
