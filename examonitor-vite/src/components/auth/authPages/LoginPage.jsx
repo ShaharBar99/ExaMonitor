@@ -160,16 +160,7 @@ export default function LoginPage() { // Login page component
               {isSubmitting ? "מתחבר..." : "כניסה למערכת"}
             </button>
 
-            <button
-              type="button"
-              onClick={() => navigate("/register")}
-              className="w-full mt-3 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-md shadow-emerald-500/30 transition"
-            >
-              <span>הרשמה</span>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 2a1 1 0 011 1v6h6a1 1 0 110 2h-6v6a1 1 0 11-2 0v-6H3a1 1 0 110-2h6V3a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-            </button>
+            
           </form>
 
           <p className={`mt-4 text-[11px] text-center transition-colors ${isDark ? "text-slate-500" : "text-slate-400"}`}>

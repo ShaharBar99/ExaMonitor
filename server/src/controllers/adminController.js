@@ -92,4 +92,25 @@ export const AdminController = {
       next(err);
     }
   },
+
+  async createUser(req, res, next) {
+    try {
+      const user = await AdminService.createUser(req.body);
+      res.status(201).json({ user });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async bulkCreateUsers(req, res, next) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      const result = await AdminService.bulkUsersFromExcel(req.file.buffer);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
 };

@@ -12,7 +12,7 @@ export function filterUsers(users, filters = {}) { // Filter users by search/rol
 
   return list.filter((u) => { // Filter predicate
     const name = String(u?.full_name || "").toLowerCase();
-    const uStatus = u?.is_active ? "active" : "inactive"; 
+    const uStatus = u?.is_active ? "active" : "inactive";
     const username = String(u?.username || "").toLowerCase(); // Normalize username
     const uRole = normalizeRole(u?.role); // Normalize role
 
@@ -63,3 +63,17 @@ export async function changeUserPermissions(userId, permissions, deps = {}) { //
   const data = await usersApi.updateUserPermissions(String(userId), perms, token); // Call api
   return { ok: true, data }; // Return updated user
 } // End changeUserPermissions
+
+export async function createNewUser(userData, deps = {}) {
+  const usersApi = deps.usersApi || usersApiDefault;
+  const token = deps.token ?? (localStorage.getItem("token") || sessionStorage.getItem("token"));
+  const data = await usersApi.createUser(userData, token);
+  return { ok: true, data };
+}
+
+export async function importUsers(formData, deps = {}) {
+  const usersApi = deps.usersApi || usersApiDefault;
+  const token = deps.token ?? (localStorage.getItem("token") || sessionStorage.getItem("token"));
+  const data = await usersApi.bulkCreateUsers(formData, token);
+  return { ok: true, data };
+}

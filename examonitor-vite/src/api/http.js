@@ -22,7 +22,12 @@ export async function apiFetch(path, options = {}) { // Main REST function
 
   const headers = new Headers(); // Create headers object
   headers.set("Accept", "application/json"); // Expect JSON responses
-  if (body !== null) headers.set("Content-Type", "application/json"); // Send JSON when body exists
+
+  const isFormData = body instanceof FormData;
+  if (body !== null && !isFormData) {
+    headers.set("Content-Type", "application/json"); // Send JSON when body exists and not FormData
+  }
+
   if (token) headers.set("Authorization", `Bearer ${token}`); // Attach Bearer token when available
 
 
@@ -31,7 +36,7 @@ export async function apiFetch(path, options = {}) { // Main REST function
   const res = await fetch(url, { // Perform HTTP request
     method, // HTTP method
     headers, // Headers
-    body: body !== null ? JSON.stringify(body) : undefined, // Serialize JSON body only if needed
+    body: (body !== null && !isFormData) ? JSON.stringify(body) : body, // Serialize JSON body unless FormData
     signal, // Optional cancel signal
     credentials: "include", // Include cookies if backend uses them
   }); // End fetch
@@ -49,7 +54,7 @@ export async function apiFetch(path, options = {}) { // Main REST function
     const message = (data && (data.message || data.error)) || res.statusText || "Request failed"; // Pick best message
     throw new ApiError(message, res.status, data); // Throw typed error with details
   } // End error case
-  if (data?.token!==undefined)
+  if (data?.token !== undefined)
     localStorage.setItem('token', data?.token); // Store token in local storage
 
   return data; // Return parsed JSON data

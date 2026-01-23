@@ -60,3 +60,27 @@ export async function setUserRole(userId, role, token) { // PATCH /admin/users/:
     token, // Auth token
   }); // End apiFetch
 } // End setUserRole
+
+export async function createUser(userData, token) {
+  if (useMock) {
+    return { user: { ...userData, id: "mock-new-id" } };
+  }
+  return apiFetch("/admin/users", {
+    method: "POST",
+    body: userData,
+    token,
+  });
+}
+
+export async function bulkCreateUsers(formData, token) {
+  if (useMock) {
+    return { success: 1, failed: 0, errors: [] };
+  }
+  // Note: ensure apiFetch handles FormData correctly (does not set Content-Type to json)
+  // For now assuming apiFetch checks if body is FormData
+  return apiFetch("/admin/users/bulk", {
+    method: "POST",
+    body: formData,
+    token,
+  });
+}

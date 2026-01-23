@@ -1,46 +1,82 @@
-import React, { useEffect, useMemo, useState } from "react"; 
-import FormField from "../../shared/FormField"; 
-import SelectField from "../../shared/SelectField"; 
-import AdminTable from "../../admin/adminComponents/AdminTable"; 
-import { changeUserRole, changeUserStatus, fetchUsers, filterUsers } from "../../../handlers/adminUserHandlers"; 
-import { useAuth } from "../../state/AuthContext"; 
-import { useTheme } from "../../state/ThemeContext"; 
-import { useNavigate } from "react-router-dom"; 
+import React, { useEffect, useMemo, useState,useRef  } from "react";
+import FormField from "../../shared/FormField";
+import SelectField from "../../shared/SelectField";
+import AdminTable from "../../admin/adminComponents/AdminTable";
+import { changeUserRole, changeUserStatus, fetchUsers, filterUsers } from "../../../handlers/adminUserHandlers";
+import { useAuth } from "../../state/AuthContext";
+import { useTheme } from "../../state/ThemeContext";
+import { useNavigate } from "react-router-dom";
+import CreateUserModal from "../adminComponents/CreateUserModal";
+import { importUsers } from "../../../handlers/adminUserHandlers";
 
-export default function ManageUsersPage() { 
+export default function ManageUsersPage() {
   const navigate = useNavigate();
-  const { isDark } = useTheme(); 
-  const [users, setUsers] = useState([]); 
-  const [loading, setLoading] = useState(false); 
-  const [error, setError] = useState(""); 
-  const { user } = useAuth(); 
-  const [search, setSearch] = useState(""); 
-  const [role, setRole] = useState(""); 
-  const [status, setStatus] = useState(""); 
-  const [rowBusyId, setRowBusyId] = useState(""); 
+  const { isDark } = useTheme();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const { user } = useAuth();
+  const [search, setSearch] = useState("");
+  const [role, setRole] = useState("");
+  const [status, setStatus] = useState("");
+  const [rowBusyId, setRowBusyId] = useState("");
+  const fileInputRef = useRef(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
-  useEffect(() => { 
-    let mounted = true; 
-    const run = async () => { 
-      setLoading(true); 
-      setError(""); 
-      try { 
-        const res = await fetchUsers({}, {}, user?.id); 
-        if (!mounted) return; 
-        if (res.ok) setUsers(res.data.users || []); 
-        else setError("Failed to load users"); 
-      } catch (e) { 
-        if (!mounted) return; 
-        setError(e?.message || "Failed to load users"); 
-        navigate("/login"); 
-      } finally { 
-        if (!mounted) return; 
-        setLoading(false); 
-      } 
-    }; 
-    run(); 
-    return () => { mounted = false; }; 
-  }, [user?.id, navigate]); 
+const loadUsers = async () => {
+  setLoading(true);
+  try {
+    const res = await fetchUsers({}, {}, user?.id);
+    if (res.ok) setUsers(res.data.users || []);
+  } catch (e) {
+    setError("Failed to load users");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleFileUpload = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    setLoading(true);
+    await importUsers(formData);
+    await loadUsers(); // refresh table
+  } catch (err) {
+    setError(err.message || "ייבוא נכשל");
+  } finally {
+    setLoading(false);
+    e.target.value = ""; // reset input
+  }
+};
+
+
+  useEffect(() => {
+    let mounted = true;
+    const run = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const res = await fetchUsers({}, {}, user?.id);
+        if (!mounted) return;
+        if (res.ok) setUsers(res.data.users || []);
+        else setError("Failed to load users");
+      } catch (e) {
+        if (!mounted) return;
+        setError(e?.message || "Failed to load users");
+        navigate("/login");
+      } finally {
+        if (!mounted) return;
+        setLoading(false);
+      }
+    };
+    run();
+    return () => { mounted = false; };
+  }, [user?.id, navigate]);
 
   const filtered = useMemo(() => filterUsers(users, { search, role, status }), [users, search, role, status]);
 
@@ -79,21 +115,58 @@ export default function ManageUsersPage() {
     }
   };
 
-  return ( 
+  return (
     <div className="animate-in fade-in duration-700 p-4 md:p-0">
-      <div className="mb-6 px-1">
-        <h1 className={`text-xl md:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
-          ניהול משתמשים
-        </h1>
-        <p className={`text-xs md:text-sm mt-1 font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-          ניהול הרשאות, עדכון תפקידים ובקרת גישה
-        </p>
+      <div className="mb-6 px-1 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className={`text-xl md:text-2xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
+            ניהול משתמשים
+          </h1>
+          <p className={`text-xs md:text-sm mt-1 font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
+            ניהול הרשאות, עדכון תפקידים ובקרת גישה
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+        <div className="flex gap-3">
+          <input
+            type="file"
+            hidden
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept=".xlsx,.xls,.csv"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={loading}
+            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${isDark
+              ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+          >
+            📥 ייבוא מאקסל
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+          >
+            + הוסף משתמש
+          </button>
+        </div>
+
+        <div className="text-[11px] text-slate-500">
+          פורמט קובץ Excel:
+          <span className="font-mono ml-1">
+            username | email | password | role | full_name
+          </span>
+        </div>
       </div>
 
-      <div className={`backdrop-blur-md shadow-2xl rounded-[30px] md:rounded-3xl p-4 md:p-8 border transition-all ${
-        isDark ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200"
-      }`}>
-        
+    </div>
+
+      <div className={`backdrop-blur-md shadow-2xl rounded-[30px] md:rounded-3xl p-4 md:p-8 border transition-all ${isDark ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200"
+        }`}>
+
         {error && (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700 font-bold">
             {error}
@@ -141,10 +214,9 @@ export default function ManageUsersPage() {
 
         <AdminTable columns={columns} loading={loading} isDark={isDark} emptyText="לא נמצאו משתמשים">
           {filtered.map((u) => (
-            <tr key={u.id} className={`flex flex-col md:table-row transition-colors border-b last:border-0 p-4 md:p-0 ${
-              isDark ? "border-white/5 hover:bg-white/5" : "border-slate-100 hover:bg-slate-50"
-            }`}>
-              
+            <tr key={u.id} className={`flex flex-col md:table-row transition-colors border-b last:border-0 p-4 md:p-0 ${isDark ? "border-white/5 hover:bg-white/5" : "border-slate-100 hover:bg-slate-50"
+              }`}>
+
               {/* Full Name */}
               <td className="px-0 md:px-4 py-2 md:py-4 block md:table-cell">
                 <span className="md:hidden block text-[9px] font-black uppercase text-slate-400 mb-1">שם מלא</span>
@@ -165,11 +237,10 @@ export default function ManageUsersPage() {
               <td className="px-0 md:px-4 py-2 md:py-4 block md:table-cell">
                 <span className="md:hidden block text-[9px] font-black uppercase text-slate-400 mb-1">שינוי תפקיד</span>
                 <select
-                  className={`w-full md:w-auto px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all outline-none ${
-                    isDark 
-                      ? "bg-slate-800 border-white/5 text-blue-400 focus:border-blue-500/50" 
-                      : "bg-slate-50 border-slate-200 text-blue-700 focus:border-blue-400"
-                  }`}
+                  className={`w-full md:w-auto px-3 py-1.5 rounded-xl text-xs font-bold border-2 transition-all outline-none ${isDark
+                    ? "bg-slate-800 border-white/5 text-blue-400 focus:border-blue-500/50"
+                    : "bg-slate-50 border-slate-200 text-blue-700 focus:border-blue-400"
+                    }`}
                   value={u.role}
                   disabled={rowBusyId === u.id}
                   onChange={(e) => onChangeRowRole(u.id, e.target.value)}
@@ -185,11 +256,10 @@ export default function ManageUsersPage() {
               {/* Status Badge */}
               <td className="px-0 md:px-4 py-2 md:py-4 block md:table-cell">
                 <span className="md:hidden block text-[9px] font-black uppercase text-slate-400 mb-1">סטטוס</span>
-                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
-                  u.is_active 
-                    ? (isDark ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-700")
-                    : (isDark ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500")
-                }`}>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${u.is_active
+                  ? (isDark ? "bg-emerald-500/10 text-emerald-400" : "bg-emerald-50 text-emerald-700")
+                  : (isDark ? "bg-slate-700 text-slate-400" : "bg-slate-100 text-slate-500")
+                  }`}>
                   {u.is_active ? "פעיל" : "לא פעיל"}
                 </span>
               </td>
@@ -200,11 +270,10 @@ export default function ManageUsersPage() {
                   type="button"
                   disabled={rowBusyId === u.id}
                   onClick={() => onToggleStatus(u.id, u.is_active ? "active" : "inactive")}
-                  className={`w-full md:w-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                    u.is_active
-                      ? "bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white"
-                      : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white"
-                  } disabled:opacity-50`}
+                  className={`w-full md:w-auto px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${u.is_active
+                    ? "bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white"
+                    : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white"
+                    } disabled:opacity-50`}
                 >
                   {rowBusyId === u.id ? "מעדכן..." : (u.is_active ? "השבת חשבון" : "הפעל חשבון")}
                 </button>
@@ -213,6 +282,14 @@ export default function ManageUsersPage() {
           ))}
         </AdminTable>
       </div>
+
+      {showCreateModal && (
+        <CreateUserModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={loadUsers}
+          isDark={isDark}
+        />
+      )}
     </div>
   );
 }

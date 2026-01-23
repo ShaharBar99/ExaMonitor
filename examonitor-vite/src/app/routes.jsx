@@ -11,7 +11,6 @@ import StudentPage from "../components/student/StudentPage";
 import IncidentReportPage from "../components/supervisor/IncidentReportPage";
 
 import LoginPage from "../components/auth/authPages/LoginPage"; // Login route page
-import RegisterPage from "../components/auth/authPages/RegisterPage"; // Register route page
 import AdminLayout from "../components/admin/adminComponents/AdminLayout"; // Admin layout wrapper
 import ManageUsersPage from "../components/admin/adminPages/ManageUsersPage"; // Admin route page
 import AuditTrailPage from "../components/admin/adminPages/AuditTrailPage"; // Admin route page
@@ -22,7 +21,7 @@ export default function AppRoutes() { // Export a component that holds the route
   return ( // Return the routing tree
     <Routes> {/* Route switch (React Router v6) */}
       <Route path="/login" element={<LoginPage />} /> {/* Login screen */}
-      <Route path="/register" element={<RegisterPage />} /> {/* Register screen */}
+
 
       <Route path="/admin" element={<AdminLayout />}> {/* Admin area wrapper */}
         <Route index element={<Navigate to="/admin/users" replace />} /> {/* Default admin route */}
