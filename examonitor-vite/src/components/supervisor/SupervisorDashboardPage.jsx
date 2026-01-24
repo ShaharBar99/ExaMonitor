@@ -40,7 +40,7 @@ export default function SupervisorDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { examData, setExamData } = useExam();
+  const { examData, setExamData, updateExamStatus, clearExam } = useExam();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('bot');
@@ -48,6 +48,7 @@ export default function SupervisorDashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [remainingTime, setRemainingTime] = useState(null);
   const [classrooms, setClassrooms] = useState([]);
+  const [examName, setExamName] = useState('');
   
   const [botMsg, setBotMsg] = useState(null);
   const [currentStep, setCurrentStep] = useState(0);
@@ -69,9 +70,25 @@ export default function SupervisorDashboard() {
   const [studentToMove, setStudentToMove] = useState(null); 
   const [otherClassrooms, setOtherClassrooms] = useState([]); 
 
+  // Initial setup
   useEffect(() => {
     attendanceHandlers.initSupervisorConsole(examId, user.id, setStudents, setLoading, setExamData);
   }, [examId, user.id, setExamData]);
+
+  // Fetch examData if null
+  useEffect(() => {
+    const fetchExamData = async () => {
+      if (!examData && examId) {
+        try {
+          const fetchedExam = await examHandlers.getExam(examId);
+          setExamData(fetchedExam);
+        } catch (error) {
+          console.error('Failed to fetch exam data:', error);
+        }
+      }
+    };
+    fetchExamData();
+  }, [examData, examId, setExamData]);
 
   useEffect(() => {
     if(user.role !== 'supervisor') navigate('/login');
@@ -79,10 +96,13 @@ export default function SupervisorDashboard() {
 
   useEffect(() => {
     if (location.state?.classrooms) {
+      console.log(location.state.classrooms);
       setClassrooms(location.state.classrooms[0]);
+      setExamName(location.state.classrooms[0].examName);
     }
   }, [location.state]);
 
+  // Sync Global Timers
   useEffect(() => {
     const syncTime = async () => {
       const timingData = await timerHandlers.getTimeDataByExamId(examId);
@@ -90,7 +110,6 @@ export default function SupervisorDashboard() {
       if (timingData?.start_time && examData?.status === 'active') {
         const startTime = new Date(timingData.start_time).getTime();
         const now = Date.now();
-        
         const baseDurationMin = (timingData.original_duration || 0) + (timingData.extra_time || 0);
         
         const calculateRemaining = (percent) => {
@@ -117,22 +136,33 @@ export default function SupervisorDashboard() {
     return () => clearInterval(interval);
   }, [examId, examData?.status]);
 
-  useEffect(() => {
-    if (examData?.status === 'pending' && currentStep === 0 && !botMsg) {
+ useEffect(() => {
+  // Only act once examData is actually loaded from the server
+  if (!loading && examData) {
+    if (examData.status === 'active' || examData.status === 'finished') {
+      // If exam is already active/done, skip protocol entirely
+      setBotMsg({ text: "המבחן פעיל. אני כאן לכל שאלה על סטטיסטיקות או נהלים." });
+      setCurrentStep(PROTOCOL_STEPS.length);
+    } else if (examData.status === 'pending' && currentStep === 0) {
+      // Only show step 1 if we are truly in pending mode
       setBotMsg(PROTOCOL_STEPS[0]);
     }
-  }, [examData, currentStep, botMsg]);
+  }
+}, [examData, loading]); // Added loading to dependencies
 
+  // MONITORING: Safety Alerts & 10 Minute Warning
   useEffect(() => {
     const monitorInterval = setInterval(() => {
       const now = new Date();
+      
+      // 1. Safety Check: Students out for > 15 mins
       students.forEach(student => {
         if (student.status === 'exited_temporarily' && student.last_exit_time) {
           const exitTime = new Date(student.last_exit_time);
           const diffInMinutes = (now - exitTime) / 60000;
           if (diffInMinutes > 15 && !alertedStudents.current.has(student.id)) {
             setBotMsg({
-              text: `⚠️ אזהרת בטיחות: הסטודנט ${student.name} (ת"ז: ${student.id}) נמצא בחוץ מעל 15 דקות! נא לבדוק את מצבו.`,
+              text: `⚠️ אזהרת בטיחות: הסטודנט ${student.name} (ת"ז: ${student.student_id}) נמצא בחוץ מעל 15 דקות! נא לבדוק את מצבו.`,
               isAlert: true
             });
             alertedStudents.current.add(student.id);
@@ -142,6 +172,8 @@ export default function SupervisorDashboard() {
           alertedStudents.current.delete(student.id);
         }
       });
+
+      // 2. 10 Minute Warning
       if (remainingTime <= 600 && remainingTime > 540) {
           setBotMsg({
             text: "📢 שימו לב: נותרו 10 דקות לסיום המבחן. נא להכריז על כך בכיתה.",
@@ -152,6 +184,7 @@ export default function SupervisorDashboard() {
     return () => clearInterval(monitorInterval);
   }, [students, remainingTime]);
 
+  // AUTOMATION: Auto-submit students when their specific time is up
   useEffect(() => {
     if (examData?.status !== 'active' || timers.length === 0) return;
 
@@ -162,10 +195,13 @@ export default function SupervisorDashboard() {
 
       const studentsToSubmit = students.filter(student => {
         if (student.status !== 'present' && student.status !== 'exited_temporarily') return false;
+        
         const extraTimePercent = student.personalExtra || 0;
+        
         if (extraTimePercent === 0 && regTimer?.secs <= 0) return true;
         if (extraTimePercent === 25 && t25Timer?.secs <= 0) return true;
         if (extraTimePercent === 50 && t50Timer?.secs <= 0) return true;
+        
         return false;
       });
 
@@ -263,6 +299,7 @@ export default function SupervisorDashboard() {
 
   const handleStartExam = async () => {
     await examHandlers.handleChangeStatus(examId, 'active', setExamData);
+    updateExamStatus('active');
     setBotMsg({ text: "המבחן הופעל! אני כאן לכל שאלה על סטטיסטיקות או נהלים." });
   };
 
@@ -282,6 +319,7 @@ export default function SupervisorDashboard() {
   const handleFinishExam = async () => {
     if (window.confirm("לסיים את המבחן לכולם?")) {
       await examHandlers.handleChangeStatus(examId, 'finished', setExamData, user.id);
+      clearExam();
       navigate('/select-exam');
     }
   };
@@ -341,7 +379,7 @@ export default function SupervisorDashboard() {
         isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} 
         logoText="EX" logoColor="bg-emerald-600"
       >
-        <SidebarPanel activeTab={activeTab} userRole="supervisor" externalMessage={botMsg} liveStats={liveStats} onAction={handleBotAction} />
+        <SidebarPanel activeTab={activeTab} userRole="supervisor" externalMessage={botMsg} liveStats={liveStats} onAction={handleBotAction} userName={user.full_name} />
       </Sidebar>
 
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
@@ -351,7 +389,6 @@ export default function SupervisorDashboard() {
         }`}>
           <div className="flex flex-col md:flex-row items-center gap-4 md:gap-10 w-full lg:w-auto">
             <div className="flex items-center gap-4 w-full lg:w-auto">
-              {/* Hamburger Menu - Only visible on small/medium screens */}
               <button 
                 onClick={() => setIsSidebarOpen(true)}
                 className="lg:hidden p-3 rounded-xl bg-slate-100 dark:bg-white/10 text-2xl"
@@ -361,6 +398,7 @@ export default function SupervisorDashboard() {
 
               <div className={`text-right ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 <h1 className="text-xl md:text-3xl font-black uppercase leading-tight">ניהול בחינה</h1>
+                <p className="text-sm md:text-lg text-emerald-500 font-bold">{examName || '---'}</p>
                 <p className="text-sm md:text-lg text-emerald-500 font-bold">כיתה {classrooms.room_number || '---'}</p>
               </div>
             </div>
@@ -460,20 +498,9 @@ export default function SupervisorDashboard() {
                         <span className="text-3xl md:text-5xl">📷</span>
                         <span className="font-black text-lg md:text-2xl uppercase">סרוק סטודנט</span>
                     </button>
-                    <button 
-                        onClick={() => examHandlers.handleAddExtraTime(examId, setExamData)}
-                        className="flex-1 bg-indigo-600 text-white rounded-[25px] md:rounded-[35px] flex flex-col items-center justify-center gap-1 md:gap-2 hover:bg-indigo-500 shadow-2xl border-b-4 md:border-b-8 border-indigo-800 active:border-b-0 transition-all py-4 md:py-4"
-                    >
-                        <span className="text-3xl md:text-5xl">⏳</span>
-                        <div className="flex flex-col items-center">
-                            <span className="font-black text-lg md:text-2xl uppercase">הוסף הארכה</span>
-                            <span className="text-xs font-bold opacity-80">(15 דקות לכולם)</span>
-                        </div>
-                    </button>
                 </div>
               </div>
 
-              {/* Attendance Section */}
               <div className={`rounded-[30px] md:rounded-[50px] shadow-2xl flex flex-col relative overflow-hidden min-h-100 border-4 md:border-8 transition-all duration-500 ${
                 isDark ? 'bg-slate-900 border-white/5' : 'bg-white border-white'
               }`}>

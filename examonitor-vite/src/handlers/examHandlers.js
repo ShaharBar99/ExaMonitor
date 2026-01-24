@@ -41,10 +41,20 @@ export const examHandlers = {
                 ...exam,
                 classrooms: classrooms.filter(room => room.exam_id === exam.id)
             }));
-            
             return examsWithClassrooms || [];
         } catch (error) {
             console.error("Error fetching exams with classrooms:", error);
+            alert("שגיאה בטעינת המבחנים עם הכיתות.");
+        }
+    },
+
+    // טעינת מבחן ספציפי לפי ID
+    getExam: async (examId) => {
+        try {
+            const exam = await examsApi.getExamById(examId);
+            return exam;
+        } catch (error) {
+            console.error("Error fetching exam:", error);
             throw error;
         }
     },

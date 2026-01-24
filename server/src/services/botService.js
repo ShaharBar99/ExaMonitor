@@ -1,175 +1,96 @@
 import { supabaseAdmin } from '../lib/supabaseClient.js';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
 /**
- * פונקציית עזר לחישוב זמן נותר במבחן - כולל טיפול ב-Timezone
+ * פונקציה פנימית לשליפת נתונים קבועים מה-DB
  */
-const calculateExamTiming = (exam) => {
-    if (!exam || !exam.original_start_time) return { remaining: 0, isOver: true, status: 'אין נתונים' };
-
-    const startTime = new Date(exam.original_start_time);
-    const totalDurationMinutes = Number(exam.original_duration || 0) + Number(exam.extra_time || 0);
-    const endTime = new Date(startTime.getTime() + totalDurationMinutes * 60000);
-    const now = new Date();
-
-    const diffMs = endTime - now;
-    const diffMinutes = Math.floor(diffMs / 60000);
-
-    // טיפול במקרה של מספרים קיצוניים (כמו ה-10,000 שקיבלת)
-    // אם ההפרש גדול מ-12 שעות, כנראה שהתאריך ב-DB אינו להיום
-    const isReasonable = Math.abs(diffMinutes) < 720; 
-
-    return {
-        remaining: isReasonable ? diffMinutes : (diffMinutes > 0 ? "מעל 12 שעות" : "הסתיים מזמן"),
-        isOver: diffMinutes <= 0,
-        endTime: endTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }),
-        actualMinutes: diffMinutes
-    };
-};
-
-/**
- * פונקציית הגיבוי החכמה - מנתחת את ה-DB ומחזירה תשובות ספציפיות ללא AI
- */
-const getSmartResponse = async (message, role, examId, stats) => {
-    const msg = message.toLowerCase();
-
-    // אם יש לנו stats מהקליינט, נשתמש בהם מיד - זה הכי אמין
-    if (stats) {
-        if (msg.includes('סטטוס') || msg.includes('כמה') || msg.includes('מצב')) {
-            return [
-                `📊 *סיכום מצב (זמן אמת):*`,
-                `🏠 סטודנטים בכיתה: ${stats.liveStats.present}`,
-                `✅ סטודנטים סיימו: ${stats.liveStats.submitted}`,
-                `🚶 סטודנטים בחוץ: ${stats.liveStats.out}`,
-                `📈 אחוז הגשה: ${stats.liveStats.percentFinished}%`
-            ].join('\n'); // מחבר את המערך לירידות שורה נקיות
-        }
-
-        if (msg.includes('שירותים') || msg.includes('בחוץ')) {
-            return `🚶 כרגע יש ${stats.liveStats.out} סטודנטים מחוץ לכיתה.
-    ${stats.liveStats.longestOutName ? `⏳ הכי הרבה זמן בחוץ: ${stats.liveStats.longestOutName}.` : ''}`;
-        }
-    }
-
-    // אם אין stats, או ששואלים על זמן, נשאר עם הלוגיקה המקורית מה-DB
+const getExamContext = async (examId) => {
     try {
-        const { data: exam } = await supabaseAdmin
-            .from('exams')
-            .select('*, courses:course_id(course_name)')
-            .eq('id', examId)
-            .single();
-
-        const timing = calculateExamTiming(exam);
-
-        if (msg.includes('זמן') || msg.includes('נותר') || msg.includes('שעה')) {
-            if (timing.isOver) return "המבחן הסתיים רשמית.";
-            return `למבחן ב${exam?.courses?.course_name || 'קורס'} נותרו עוד ${timing.remaining} דקות.`;
-        }
-
-        return "אני פועל במצב נתונים משולב. שאל אותי על 'סטטוס כיתה' או 'זמן נותר'.";
-
-    } catch (error) {
-        console.error('SmartResponse Error:', error);
-        return "שגיאה בגישה לנתוני המבחן.";
-    }
-};
-
-/**
- * פנייה ל-API של Gemini
- */
-const callGeminiAPI = async (prompt) => {
-    if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not configured');
-
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
-        })
-    });
-
-    if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
-
-    const data = await response.json();
-    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) throw new Error('Invalid AI response');
-    
-    return data.candidates[0].content.parts[0].text;
-};
-
-/**
- * בניית הפרומפט ל-AI עם הקשר מלא מה-DB
- */
-const buildPrompt = async (message, role, examId) => {
-    try {
+        // שליפת נתוני המבחן והקורס
         const { data: exam } = await supabaseAdmin
             .from('exams')
             .select('*, courses:course_id(course_name, course_code)')
-            .eq('id', examId).single();
+            .eq('id', examId)
+            .single();
 
-        const { data: attendance } = await supabaseAdmin
-            .from('attendance')
-            .select('status, student_breaks(exit_time, return_time)')
-            .eq('classroom_id', examId);
+        // שליפת אירועים חריגים (כי הם לא תמיד נמצאים ב-liveStats של הפרונט)
+        const { data: incidents } = await supabaseAdmin
+            .from('exam_incidents')
+            .select('*')
+            .eq('exam_id', examId);
 
-        const timing = calculateExamTiming(exam);
-        const outNow = attendance?.filter(a => a.student_breaks?.some(b => !b.return_time)).length || 0;
-
-        return `אתה עוזר AI למשגיחי בחינות. ענה בעברית.
-        הקשר מבחן:
-        - קורס: ${exam?.courses?.course_name}
-        - זמן נותר: ${timing.remaining} דקות.
-        - סטודנטים בחוץ כעת: ${outNow}
-        - סטטוס מבחן: ${exam?.status}
-        
-        שאלת המשגיח: ${message}`;
+        return { 
+            exam: exam || {}, 
+            incidents: incidents || [] 
+        };
     } catch (e) {
-        return `ענה כעוזר כללי (נתוני DB לא זמינים). שאלה: ${message}`;
+        console.error("Database Fetch Error:", e);
+        return null;
     }
 };
 
 export const BotService = {
-    async getReply(message, role, examId, stats) {
+    async getReply(message, role, examId, currentStats) {
         try {
-            // ניסיון ראשון: AI
-            if (GEMINI_API_KEY) {
-                const prompt = await buildPrompt(message, role, examId);
-                return await callGeminiAPI(prompt);
-            }
-            // אם אין מפתח, עוברים לגיבוי
-            return await getSmartResponse(message, role, examId, stats);
-        } catch (error) {
-            console.error('Falling back to SmartResponse due to:', error.message);
-            return await getSmartResponse(message, role, examId, stats);
-        }
-    },
-
-    /**
-     * פונקציה לבדיקת התראות יזומות (זמן וחריגות)
-     */
-    async getProactiveAlerts(examId) {
-        try {
-            const { data: exam } = await supabaseAdmin.from('exams').select('*').eq('id', examId).single();
-            const { data: attendance } = await supabaseAdmin.from('attendance').select('*, student_breaks(*)').eq('classroom_id', examId);
+            // 1. קבלת הקשר מה-DB
+            const context = await getExamContext(examId);
             
-            const timing = calculateExamTiming(exam);
-            const alerts = [];
+            // 2. הכנת הנתונים החיים (עדיפות לנתונים מה-Frontend אם קיימים)
+            const stats = currentStats?.liveStats || currentStats || {};
+            
+            // 3. בניית ה-Prompt הדינמי
+            const prompt = `
+                אתה עוזר AI חכם ונחמד למשגיח בבחינה.
+                
+                פרטי המבחן מהמערכת:
+                - קורס: ${context?.exam?.courses?.course_name || 'לא ידוע'}
+                - אירועים חריגים רשומים: ${context?.incidents?.length || 0}
+                
+                תמונת מצב חיה מהכיתה (זמן אמת):
+                - נוכחים כרגע: ${stats.present || 0}
+                - סטודנטים בחוץ: ${stats.out || 0}
+                - הגישו את המבחן: ${stats.submitted || 0}
+                - הכי הרבה זמן בחוץ: ${stats.longestOutName || 'אין כרגע'}
 
-            // התראות זמן
-            if (timing.actualMinutes === 30) alerts.push("התראה: נותרו 30 דקות בדיוק לסיום המבחן.");
-            if (timing.actualMinutes === 10) alerts.push("התראה דחופה: 10 דקות אחרונות!");
+                שאלה מהמשגיח: "${message}"
 
-            // התראות שירותים
-            const longBreaks = attendance?.filter(a => a.student_breaks?.some(b => !b.return_time && (new Date() - new Date(b.exit_time)) > 15 * 60000));
-            if (longBreaks?.length > 0) alerts.push(`אזהרה: יש ${longBreaks.length} סטודנטים שחרגו מהזמן המותר בחוץ.`);
+                הנחיות לתשובה:
+                - אם השאלה היא "מה המצב" או בקשת דוח, תן סיכום נחמד עם אימוג'ים.
+                - אם השאלה ספציפית, ענה עליה ישירות ובקצרה.
+                - ענה בעברית טבעית ומקצועית.
+                - אל תעצור באמצע התשובה (יש לך עד 2048 tokens).
+            `;
 
-            return alerts;
-        } catch (e) { return []; }
-    },
+            // 4. פנייה ל-Gemini
+            const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { 
+                        temperature: 0.7, 
+                        maxOutputTokens: 2048,
+                        topP: 0.95
+                    }
+                })
+            });
 
-    async getStatus() {
-        return { online: true, ai_available: !!GEMINI_API_KEY, version: '2.5' };
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
+            const botReply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            return botReply || "אני רואה את הנתונים, אבל מתקשה לנסח תשובה כרגע. איך עוד אוכל לעזור?";
+
+        } catch (error) {
+            console.error("BotService Critical Error:", error);
+            return "חלה שגיאה בחיבור ל-AI. נתוני הכיתה מראים שיש כרגע " + 
+                   `${currentStats?.present || 0} סטודנטים בכיתה.`;
+        }
     }
 };

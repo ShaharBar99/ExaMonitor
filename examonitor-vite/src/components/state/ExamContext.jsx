@@ -1,17 +1,25 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ExamContext = createContext();
 
 export const ExamProvider = ({ children }) => {
-  // נתוני המבחן הפעיל
-  const [examData, setExamData] = useState({
-    id: null,
-    name: '',
-    room: '',
-    startTime: null,
-    duration: 0,
-    status: 'pending' // 'active', 'finished', 'paused'
+  // נתוני המבחן הפעיל - טעינה מ-localStorage
+  const [examData, setExamData] = useState(() => {
+    const saved = localStorage.getItem('examData');
+    return saved ? JSON.parse(saved) : {
+      id: null,
+      name: '',
+      room: '',
+      startTime: null,
+      duration: 0,
+      status: 'pending' // 'active', 'finished', 'paused'
+    };
   });
+
+  // שמירה ל-localStorage בכל שינוי
+  useEffect(() => {
+    localStorage.setItem('examData', JSON.stringify(examData));
+  }, [examData]);
 
   // עדכון סטטוס המבחן (למשל כשהמשגיח לוחץ על "סיום מבחן")
   const updateExamStatus = (newStatus) => {
@@ -23,11 +31,24 @@ export const ExamProvider = ({ children }) => {
     setExamData(data);
   };
 
+  // פונקציה לניקוי נתוני המבחן (למשל כשיוצאים מהדשבורד)
+  const clearExam = () => {
+    setExamData({
+      id: null,
+      name: '',
+      room: '',
+      startTime: null,
+      duration: 0,
+      status: 'pending'
+    });
+  };
+
   const value = {
     examData,
     setExamData,
     loadExam,
     updateExamStatus,
+    clearExam,
     examId: examData.id // קיצור דרך נוח
   };
 

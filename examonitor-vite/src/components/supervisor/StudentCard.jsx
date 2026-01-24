@@ -62,8 +62,7 @@ const StudentCard = ({ student, onStatusChange, onMoveClass }) => {
             className={`flex-1 py-2 sm:py-4 rounded-lg sm:rounded-xl text-[10px] sm:text-sm font-black uppercase transition-all ${
               isDark ? 'bg-slate-800 text-white' : 'bg-slate-900 text-white'
             }`}
-          >
-            סיום
+          >הגשה
           </button>
         </div>
 

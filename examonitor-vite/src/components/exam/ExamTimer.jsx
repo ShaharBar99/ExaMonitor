@@ -47,7 +47,14 @@ const ExamTimer = ({ initialSeconds, onTimeUp, isPaused }) => {
         ${isPaused ? 'bg-amber-500' : isUrgent ? 'bg-rose-600 opacity-40' : 'bg-emerald-500'}`}>
       </div>
 
-      <div className={`relative flex items-center backdrop-blur-md px-3 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl border-2 transition-all duration-500
+      <div className={`relative flex items-center justify-center
+        w-auto           /* נותן לתוכן להכתיב את הרוחב */
+        mx-auto          /* ממדכז את הטיימר בתוך הקונטיינר שלו */
+        backdrop-blur-md 
+        px-4 sm:px-8     /* ריווח צידי נעים במובייל */
+        py-3 sm:py-5     /* גובה מאוזן */
+        rounded-2xl sm:rounded-[30px] 
+        border-2 transition-all duration-500
         ${isDark ? 'bg-black/40 border-white/10' : 'bg-slate-900 border-slate-800 shadow-xl'}
         ${isPaused ? 'border-amber-500/50!' : isUrgent ? 'border-rose-500! animate-[pulse_1.5s_infinite]' : ''}`}>
         

@@ -3,7 +3,7 @@ import MessageManager from './MessageManager';
 import ExamBotPanel from '../supervisor/ExamBotPanel'; 
 import { useTheme } from '../state/ThemeContext'; 
 
-export default function SidebarPanel({ activeTab, userRole, externalMessage, liveStats = null, onAction }) {
+export default function SidebarPanel({ activeTab, userRole, externalMessage, liveStats = null, onAction, userName }) {
   const { isDark } = useTheme();
 
   const renderContent = () => {
@@ -15,6 +15,7 @@ export default function SidebarPanel({ activeTab, userRole, externalMessage, liv
           externalMessage={externalMessage} 
           onAction={onAction} 
           liveStats={liveStats}
+          userName={userName}
         />
       );
     }

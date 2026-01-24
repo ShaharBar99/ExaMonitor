@@ -7,7 +7,8 @@ export default function ExamBotPanel({
   userRole = "supervisor", 
   externalMessage = null, 
   onAction = null, 
-  liveStats = null 
+  liveStats = null,
+  userName = "משגיח"
 }) {
   const { examId } = useParams();
   const { isDark } = useTheme(); 
@@ -21,7 +22,7 @@ export default function ExamBotPanel({
     { 
       role: "bot", 
       text: userRole === 'supervisor' 
-        ? "שלום משגיח! אני כאן כדי ללוות אותך בניהול המבחן לפי הפרוטוקול. איך אוכל לעזור?" 
+        ? `שלום ${userName}! אני כאן כדי ללוות אותך בניהול המבחן לפי הפרוטוקול. איך אוכל לעזור?`
         : "שלום, אני העוזר האישי שלך. איך אני יכול לעזור בניהול המבחן?", 
       time: new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) 
     }
@@ -57,7 +58,7 @@ export default function ExamBotPanel({
       alertedThresholds.current.add(id);
     };
 
-    if (liveStats.out >= 3) {
+    if (liveStats.out >= 2) {
       addBotAlert(`⚠️ שים לב: כרגע יש ${liveStats.out} סטודנטים מחוץ לכיתה. כדאי לוודא שאין התקהלות במסדרון.`, 'high_out_count');
     } else if (liveStats.out < 2) {
       alertedThresholds.current.delete('high_out_count'); 
