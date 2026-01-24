@@ -5,6 +5,7 @@ import { classroomHandler } from '../../handlers/classroomHandlers';
 import { incidentHandlers } from '../../handlers/incidentHandlers'; 
 import { useAuth } from '../state/AuthContext';
 import { useSocket } from '../state/SocketContext';
+import { useLocation } from 'react-router-dom';
 
 
 // רכיבי מערכת
@@ -30,6 +31,7 @@ export default function LecturerDashboardPage() {
   const { examData, setExamData } = useExam();
   const { isDark } = useTheme(); // שימוש במשתנה ה-Theme
   const { user } = useAuth();
+  const location = useLocation();
   
   // ניהול מצב
   const [activeTab, setActiveTab] = useState('notifications'); 
@@ -37,13 +39,13 @@ export default function LecturerDashboardPage() {
   const [notifications, setNotifications] = useState([]);
   const [remainingTime, setRemainingTime] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [attendance, setAttendance] = useState([]); //tk added
-  const [classrooms, setClassrooms] = useState([]); //tk added
-  const [incidents, setIncidents] = useState([]); //tk added
-  const [breaksCount, setBreaksCount] = useState(0); //tk added
-  const [activeMainTab, setActiveMainTab] = useState('dashboard'); //tk added
+  const [attendance, setAttendance] = useState([]);
+  const [classrooms, setClassrooms] = useState([]);
+  const [incidents, setIncidents] = useState([]);
+  const [breaksCount, setBreaksCount] = useState(0);
+  const [activeMainTab, setActiveMainTab] = useState('dashboard');
 
-  //tk added
+
   // רכיב כפתור ל-Navbar העליון
   const NavButton = ({ id, label, icon }) => (
     <button
@@ -84,35 +86,40 @@ export default function LecturerDashboardPage() {
       setRemainingTime(seconds);
       setIsLoading(false);
     };
+    const exam = location.state?.exam;
+    if (exam?.id) {
+    setExamData({
+      id: exam.id,
+      courseName: exam.courses?.course_name || exam.course_id || null,
+      ...exam,
+    });
+  }
+
     initLecturerConsole();
   }, [examId]);
 
   // פעולות (Handlers)
   const handleBroadcast = () => examHandlers.handleBroadcast(examId);
   const handleStatusChange = (newStatus) => examHandlers.handleChangeStatus(examId, newStatus, setExamData);
+  // הארכת זמן
+  const handleAddExtraTime = () => examHandlers.handleAddExtraTime(examId, setExamData);
 
 
-  //tk changed
+
   // חישוב נתונים (Memoized)
   const stats = useMemo(() => {
 
-    //const totalRegistered = attendance.length;
-    //const total = attendance.filter(a => a.status !== 'absent').length;
     const total = attendance.length;
     const absent = attendance.filter(a => a.status === 'absent').length;
     const present = attendance.filter(a => a.status === 'present').length;
+    const attendanceNumber = total - absent;  // actually came to the test
     const attendanceRate =
       total > 0
-        ? Number((((total - absent) / total) * 100).toFixed(1))
+        ? Number((((attendanceNumber) / total) * 100).toFixed(1))
         : 0;
-
-    //console.log('first row keys:', attendance[0] && Object.keys(attendance[0]));
-    //console.log('first row:', attendance[0]);
 
     const submittedCount = attendance.filter(a => a.status === 'submitted').length;
     const submittingPct = total > 0 ? Number(((submittedCount / total) * 100).toFixed(0)) : 0;
-    //const inProgressCount = attendance.filter(a => a.status !== 'submitted').length;
-    //const progressPct = total > 0 ? Number(((inProgressCount / total) * 100).toFixed(0)) : 0;
 
     // חישוב זמן הגשה ממוצע
     const finished = attendance.filter(a =>
@@ -131,10 +138,6 @@ export default function LecturerDashboardPage() {
     const minutes = String(totalMinutes % 60).padStart(2, '0');
     const avgCompletionTime = `${hours}:${minutes}`;
 
-
-    //const restroomCount = attendance.filter(a => a.status === 'exited_temporarily').length;
-    // breaksCount;
-
     const extraTimeRequests = attendance.filter(a =>
       Number(a?.profiles?.personal_extra_time || 0) > 0).length;
 
@@ -144,18 +147,17 @@ export default function LecturerDashboardPage() {
       submitted: attendance.filter(a => a.status === 'submitted').length,
       activeRooms: classrooms.length,
       flaggedIncidents: incidents.filter(i => i.severity === 'high').length,
+      attendanceNumber,
       attendanceRate,
       avgCompletionTime: avgCompletionTime,
       breaksCount,
       extraTimeRequests,
       submittingPct,
-      //progressPct,
     };
   }, [breaksCount, incidents, attendance, classrooms, notifications]);
 
 
-  
-  //tk added
+
   // ייצוא לדוח PDF
   const handleExportPdf = () => {
     const html = `
@@ -187,6 +189,7 @@ export default function LecturerDashboardPage() {
             <div class="card"><div class="label">Students in exam</div><div class="value">${stats.totalStudents}</div></div>
             <div class="card"><div class="label">Submitted</div><div class="value">${stats.submitted}</div></div>
             <div class="card"><div class="label">Active rooms</div><div class="value">${stats.activeRooms}</div></div>
+            <div class="card"><div class="label">Attendance rate</div><div class="value">${stats.attendanceNumber}%</div></div>
             <div class="card"><div class="label">Attendance rate</div><div class="value">${stats.attendanceRate}%</div></div>
             <div class="card"><div class="label">Avg completion time</div><div class="value">${stats.avgCompletionTime}</div></div>
             <div class="card"><div class="label">Incidents (high)</div><div class="value">${stats.flaggedIncidents}</div></div>
@@ -250,9 +253,11 @@ export default function LecturerDashboardPage() {
                 </button>
                 <div className="text-right md:text-right flex-1 md:flex-none px-4 md:px-0">
                   <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold leading-tight transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                    {activeMainTab === 'dashboard' && 'מסך נתונים'}
+                    {activeMainTab === 'dashboard' && 'מסך נתונים למרצה'}
                     {activeMainTab === 'rooms' && 'ניהול כיתות'}
-                    {activeMainTab === 'logs' && 'סטטיסטיקות'}
+                    {activeMainTab === 'stats' && 'סטטיסטיקות'}
+                    {activeMainTab === 'logs' && 'אירועים חריגים'}
+                    
                   </h1>
                   <div className="flex items-center justify-end md:justify-start gap-2 md:gap-3 mt-1 md:mt-3">
                     <span className={`w-2 h-2 rounded-full animate-pulse ${
@@ -292,6 +297,17 @@ export default function LecturerDashboardPage() {
               </button>
 
               <button
+                onClick={() => setActiveMainTab('stats')}
+                className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+                  ${activeMainTab === 'stats'
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}
+                `}
+              >
+                📊 נתונים
+              </button>
+
+              <button
                 onClick={() => setActiveMainTab('logs')}
                 className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
                   ${activeMainTab === 'logs'
@@ -299,8 +315,9 @@ export default function LecturerDashboardPage() {
                     : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}
                 `}
               >
-                📊 נתונים
+                ⚠️ אירועים חריגים
               </button>
+
             </div>
           </div>
 
@@ -325,10 +342,10 @@ export default function LecturerDashboardPage() {
 
           {/* מטריקות מהירות */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            <StatCard label="רשומים" value={stats.totalStudents} icon="👥" isDark={isDark} />
-            <StatCard label="הוגשו" value={stats.submitted} icon="📝" isDark={isDark} />
+            <StatCard label="סטודנטים רשומים לבחינה" value={stats.totalStudents} icon="👥" isDark={isDark} />
+            <StatCard label="בחינות שהוגשו" value={stats.submitted} icon="📝" isDark={isDark} />
             <StatCard label="כיתות" value={stats.activeRooms} icon="🏠" isDark={isDark} />
-            <StatCard label="חריגים" value={stats.flaggedIncidents} icon="⚠️" isDark={isDark} />
+            <StatCard label="אירועים חריגים" value={stats.flaggedIncidents} icon="⚠️" isDark={isDark} />
           </div>
 
           {/* לוח ניתוח נתונים מרכזי */}
@@ -358,11 +375,24 @@ export default function LecturerDashboardPage() {
       )}
 
       {activeMainTab === 'rooms' && (
-        <ViewClassroomsPage isDark={isDark} />
+        <>
+          <div className="flex justify-end mb-6">
+            <button
+              onClick={handleAddExtraTime}
+              className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-sm
+                      hover:bg-indigo-500 shadow-lg active:scale-95 transition-all"
+            >
+              ⏳ הוסף הארכה
+            </button>
+          </div>
+
+          <ViewClassroomsPage isDark={isDark} />
+        </>
       )}
 
 
-      {activeMainTab === 'logs' && (
+
+      {activeMainTab === 'stats' && (
         <div
           className={`flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 space-y-6 md:space-y-10 transition-colors ${isDark ? 'bg-[#0f172a]' : 'bg-slate-50'}`}
           dir="rtl"
@@ -388,9 +418,10 @@ export default function LecturerDashboardPage() {
             <SummaryBox
               icon="📈"
               label="שיעור נוכחות"
-              value={`${stats.attendanceRate}%`}
+              value={`${stats.attendanceNumber} סטודנטים (${stats.attendanceRate}%)`}
               isDark={isDark}
             />
+
 
             <SummaryBox
               icon="✅"
@@ -415,7 +446,7 @@ export default function LecturerDashboardPage() {
 
             <SummaryBox
               icon="🧊"
-              label="תוספת זמן"
+              label="בעלי תוספת זמן"
               value={stats.extraTimeRequests}
               isDark={isDark}
             />
@@ -423,6 +454,13 @@ export default function LecturerDashboardPage() {
           </div>
         </div>
       )}
+
+      {activeMainTab === 'logs' && (
+        <div className={`flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 ${isDark ? 'bg-[#0f172a]' : 'bg-slate-50'}`} dir="rtl">
+          <LogsTab incidents={incidents} isDark={isDark} islecturer />
+        </div>
+      )}
+
     </DashboardLayout>
   );
 

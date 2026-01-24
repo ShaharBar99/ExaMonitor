@@ -27,7 +27,7 @@ export const attendanceHandlers = {
     }
   },
 
-  //tk added
+
   /**
    * טעינת סטטוס סטודנטים לפי מבחן
    */

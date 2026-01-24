@@ -5,7 +5,7 @@ const ALLOWED_STATUS = new Set(['present', 'absent', 'exited_temporarily', 'subm
 
 export const AttendanceService = {
   
-  //tk added
+
   async list({ classroomId = null, examId = null }) {
     // Case 1: list by classroom
     if (classroomId) {
@@ -58,7 +58,7 @@ export const AttendanceService = {
     return [];
   },
 
-  //tk added
+
   async countBreaksByExam(examId) {
     const { count, error } = await supabaseAdmin
       .from('student_breaks')

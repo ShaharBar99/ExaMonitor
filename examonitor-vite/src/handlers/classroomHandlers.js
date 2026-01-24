@@ -20,7 +20,7 @@ export const classroomHandler = {
           return {
               ...room,
               studentsCount: actualArray.length,
-              submittedCount: actualArray.filter(s => s.status === 'submitted').length
+              submittedCount: actualArray.filter(s => s.status === 'submitted').length,
           };
       }));
       if (userRole === 'lecturer') {
