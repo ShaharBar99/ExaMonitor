@@ -14,7 +14,7 @@ export const SocketProvider = ({ children }) => {
         autoConnect: true,
         // Using both ensures better stability on localhost
         transports: ['polling', 'websocket'] 
-    }), []);
+    }), [API_BASE]);
 
     useEffect(() => {
         socket.on('connect', () => {
