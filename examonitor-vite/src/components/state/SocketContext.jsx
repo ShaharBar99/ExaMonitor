@@ -9,6 +9,7 @@ export const useSocket = () => {
 
 export const SocketProvider = ({ children }) => {
     const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+    console.log('SocketProvider using API_BASE:', API_BASE);
     // 1. Remove the transports restriction to allow standard handshake
     const socket = useMemo(() => io(API_BASE, {
         withCredentials: true,
