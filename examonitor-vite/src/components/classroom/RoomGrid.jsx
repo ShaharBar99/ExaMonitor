@@ -1,7 +1,7 @@
 import React from 'react';
 import RoomCard from './RoomCard';
 
-export default function RoomGrid({ rooms, supervisors, onSupervisorChange, readOnly, isDark }) {
+export default function RoomGrid({ rooms, examData, supervisors, onSupervisorChange, readOnly, isDark }) {
   if (!rooms || rooms.length === 0) {
     return (
       <div className={`flex flex-col items-center justify-center h-64 text-center ${
@@ -23,6 +23,7 @@ export default function RoomGrid({ rooms, supervisors, onSupervisorChange, readO
         <RoomCard 
           key={room.id} 
           room={room} 
+          examData={examData} // added for הארכת זמן
           supervisors={supervisors} 
           onSupervisorChange={onSupervisorChange}
           readOnly={readOnly} 

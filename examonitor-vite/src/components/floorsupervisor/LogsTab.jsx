@@ -1,10 +1,15 @@
 import React from 'react';
 
-export default function LogsTab({ incidents, isDark }) {
+export default function LogsTab({ incidents, isDark , islecturer = false }) {
     incidents = incidents || [];
 
+    // for the lecturer show only critical incidents
+    const source = islecturer
+        ? incidents.filter(inc => inc.severity === 'high' || inc.severity === 'critical')
+        : incidents;
+
     // מיפוי אירועים לפורמט תצוגה אחיד
-    const allLogs = incidents.map(inc => ({
+    const allLogs = source.map(inc => ({
       id: inc.id,
       time: inc.created_at ? new Date(inc.created_at).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }) : '--:--',
       room: inc.room_number || 'כללי',
@@ -22,7 +27,7 @@ export default function LogsTab({ incidents, isDark }) {
       <h2 className={`text-xl md:text-2xl font-black mb-6 md:mb-8 uppercase tracking-tight ${
           isDark ? 'text-white' : 'text-slate-800'
       }`}>
-        יומן אירועים קומתי
+        {islecturer ? 'אירועים חריגים' : 'יומן אירועים קומתי'}
       </h2>
       
       {/* Table for Tablet/Desktop */}

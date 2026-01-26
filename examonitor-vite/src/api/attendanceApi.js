@@ -60,7 +60,6 @@ export const attendanceApi = {
     });
   },
 
-  //tk added
   getBreaksCountByExam: async (examId) => {
     return apiFetch(`/attendance/breaks/count?examId=${encodeURIComponent(examId)}`);
   },

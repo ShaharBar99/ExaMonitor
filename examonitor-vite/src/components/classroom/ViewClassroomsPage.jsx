@@ -5,6 +5,7 @@ import { classroomHandler } from '../../handlers/classroomHandlers';
 import { useExam } from '../state/ExamContext';
 import { useAuth } from '../state/AuthContext';
 import { useTheme } from '../state/ThemeContext';
+import { examHandlers } from '../../handlers/examHandlers';
 
 export default function ViewClassroomsPage() {
   const navigate = useNavigate();
@@ -14,6 +15,10 @@ export default function ViewClassroomsPage() {
 
   const userRole = user?.role || 'floor_supervisor'; 
   const isLecturer = userRole === 'lecturer';
+  const handleAddExtraTime = () => {
+    if (!examData?.id) return;
+    examHandlers.handleAddExtraTime(examData.id);
+  };
   
   const [classrooms, setClassrooms] = useState([]); 
   const [loading, setLoading] = useState(true);
@@ -77,19 +82,47 @@ export default function ViewClassroomsPage() {
       isDark ? 'bg-[#0f172a] text-white' : 'bg-slate-50 text-slate-900'
     }`} dir="rtl">
       
-      {/* Header - Stacks on mobile */}
-      <header className={`flex flex-col lg:flex-row justify-between items-center mb-6 md:mb-12 p-6 md:p-8 rounded-[30px] md:rounded-[40px] border backdrop-blur-md transition-all gap-6 ${
+      {/* Header - Stacks on mobile */} {/*changed  justify-between to justify-start. Why: lets the button sit at the top instead of being vertically centered.*/}
+      <header className={`flex flex-col lg:flex-row justify-start items-center mb-6 md:mb-12 p-6 md:p-8 rounded-[30px] md:rounded-[40px] border backdrop-blur-md transition-all gap-6 ${
         isDark 
           ? 'bg-white/5 border-white/10' 
           : 'bg-white border-slate-200 shadow-xl shadow-slate-200/50'
       }`}>
+
+
+
+
+        
+
+
+        {/* {user?.role === 'lecturer' && examData?.id && (
+          <button
+            onClick={handleAddExtraTime}
+            className="mt-4 lg:mt-0 bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-sm
+                      hover:bg-indigo-500 shadow-lg active:scale-95 transition-all"
+          >
+            ⏳ הוסף הארכה
+          </button>
+        )} */}
+
+
+        
         <div className="w-full lg:w-auto">
           <h1 className={`text-2xl md:text-4xl font-black tracking-tight uppercase ${isDark ? 'text-white' : 'text-slate-800'}`}>
             {isLecturer ? `מעקב כיתות: ${examData?.courseName || 'המבחן שלי'}` : 'ניהול כיתות ובקרה'}
+            {isLecturer && examData?.id && (
+              <p className="text-sm text-slate-400 mt-1 font-normal">
+                מספר בחינה : {examData.id}
+              </p>
+            )}
           </h1>
-          <p className={`font-black uppercase tracking-widest text-[9px] md:text-[10px] mt-2 ${isDark ? 'text-slate-400 opacity-70' : 'text-slate-500'}`}>
+
+
+
+
+          {/* <p className={`font-black uppercase tracking-widest text-[9px] md:text-[10px] mt-2 ${isDark ? 'text-slate-400 opacity-70' : 'text-slate-500'}`}>
             {isLecturer ? 'סטטוס התקדמות בחדרי הבחינה' : 'תצוגת כיתות פעילות ושיבוץ משגיחים'}
-          </p>
+          </p> */}
         </div>
 
         {!isLecturer && (
@@ -129,6 +162,7 @@ export default function ViewClassroomsPage() {
 
         <RoomGrid 
           rooms={filteredClassrooms} 
+          examData={examData} // הארכת זמן
           supervisors={supervisors}
           onSupervisorChange={!isLecturer ? onSupervisorChange : null} 
           readOnly={isLecturer} 

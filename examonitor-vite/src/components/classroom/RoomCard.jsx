@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function RoomCard({ room, supervisors, onSupervisorChange, readOnly, isDark }) {
+export default function RoomCard({ room, examData, supervisors, onSupervisorChange, readOnly, isDark }) {
   const statusTheme = {
     active: { 
       dot: 'bg-emerald-500', 
@@ -18,7 +18,7 @@ export default function RoomCard({ room, supervisors, onSupervisorChange, readOn
       text: 'text-slate-400' 
     }
   };
-
+  
   const currentTheme = statusTheme[room.status] || statusTheme.active;
 
   return (
@@ -40,31 +40,50 @@ export default function RoomCard({ room, supervisors, onSupervisorChange, readOn
           <p className={`text-[9px] md:text-[10px] font-black uppercase tracking-widest mt-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
             {room.examName}
           </p>
+
         </div>
         <div className={`flex items-center gap-1.5 px-2.5 py-1 md:py-1.5 rounded-full border transition-colors ${
           isDark ? 'bg-slate-800/50 border-slate-700' : 'bg-slate-50 border-slate-100'
         }`}>
           <span className={`w-1.5 h-1.5 rounded-full ${currentTheme.dot}`}></span>
-          <span className={`text-[8px] md:text-[9px] font-black uppercase tracking-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+          <span className={`text-[8px] md:text-[11px] font-black uppercase tracking-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
             {room.status === 'warning' ? 'חריג' : 'בזמן אמת'}
           </span>
         </div>
       </div>
 
       {/* Attendance Stats */}
-      <div className="grid grid-cols-2 gap-2 md:gap-3 mb-6 md:mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-3 mb-6 md:mb-8">
         <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl border transition-colors ${
           isDark ? 'bg-slate-800/30 border-slate-700/50' : 'bg-slate-50/50 border-slate-100'
         }`}>
-          <p className={`text-[8px] md:text-[9px] font-black uppercase mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>נבחנים</p>
+          <p className={`text-[8px] md:text-[11px] font-black uppercase mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>נבחנים</p>
           <p className={`text-lg md:text-xl font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{room.studentsCount || 0}</p>
         </div>
         <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl border transition-colors ${
           isDark ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-emerald-50/30 border-emerald-100/50'
         }`}>
-          <p className={`text-[8px] md:text-[9px] font-black uppercase mb-1 ${isDark ? 'text-emerald-500/60' : 'text-emerald-600/60'}`}>הגישו</p>
+          <p className={`text-[8px] md:text-[11px] font-black uppercase mb-1 ${isDark ? 'text-emerald-500/60' : 'text-emerald-600/60'}`}>הגישו</p>
           <p className={`text-lg md:text-xl font-black ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{room.submittedCount || 0}</p>
         </div>
+
+
+
+        <div className={`p-3 md:p-4 rounded-xl md:rounded-2xl border transition-colors ${
+          isDark ? 'bg-slate-800/30 border-slate-700/50' : 'bg-slate-50/50 border-slate-100'
+        }`}>
+          <p className={`text-[8px] md:text-[11px] font-black uppercase mb-1 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            הארכת זמן
+          </p>
+          <p className={`text-lg md:text-xl font-black ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+            {Number(examData?.extra_time || 0)} דק׳
+          </p>
+        </div>
+
+
+
+
+
       </div>
 
       {/* Supervisor Selection */}
