@@ -18,7 +18,7 @@ const allowedOriginPrefix = 'https://examonitor-t11n';
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || origin.startsWith(allowedOriginPrefix) || origin.startsWith('http://localhost')) {
+    if (!origin || origin.startsWith(allowedOriginPrefix) || origin.startsWith('http://localhost') || origin.startsWith('https://examonitor-vite.vercel.app')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

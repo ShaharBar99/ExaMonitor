@@ -2,14 +2,14 @@ import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import { io } from 'socket.io-client';
 
 const SocketContext = createContext();
-
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 export const useSocket = () => {
     return useContext(SocketContext);
 };
 
 export const SocketProvider = ({ children }) => {
     // 1. Remove the transports restriction to allow standard handshake
-    const socket = useMemo(() => io('http://localhost:5000', {
+    const socket = useMemo(() => io(API_BASE, {
         withCredentials: true,
         autoConnect: true,
         // Using both ensures better stability on localhost
