@@ -15,6 +15,7 @@ import ExamTimer from '../exam/ExamTimer';
 import DashboardLayout from '../layout/DashboardLayout';
 import LogsTab from '../floorsupervisor/LogsTab';
 import OverviewTab from '../floorsupervisor/OverviewTab';
+import CourseLecturersTab from './CourseLecturersTab';
 
 // לוגיקה ו-Context
 import { useExam } from '../state/ExamContext';
@@ -44,6 +45,10 @@ export default function LecturerDashboardPage() {
   const [incidents, setIncidents] = useState([]);
   const [breaksCount, setBreaksCount] = useState(0);
   const [activeMainTab, setActiveMainTab] = useState('dashboard');
+  const [courseLecturers, setCourseLecturers] = useState([]);
+  const [examLecturerIds, setExamLecturerIds] = useState([]);
+  const [lecturersLoading, setLecturersLoading] = useState(false);
+
 
 
   // רכיב כפתור ל-Navbar העליון
@@ -97,6 +102,36 @@ export default function LecturerDashboardPage() {
 
     initLecturerConsole();
   }, [examId]);
+
+
+
+
+  //added new useEffect that runs when switching to the lecturers tab
+  useEffect(() => {
+    const load = async () => {
+      if (activeMainTab !== 'lecturers') return;
+
+      const courseId = examData?.course_id || examData?.courseId;
+      if (!courseId || !examId) return;
+
+      setLecturersLoading(true);
+      try {
+        const lecturers = await examHandlers.loadCourseLecturers(courseId);
+        const ids = await examHandlers.loadExamLecturers(examId);
+
+        setCourseLecturers(lecturers);
+        setExamLecturerIds(ids);
+      } finally {
+        setLecturersLoading(false);
+      }
+    };
+
+    load();
+  }, [activeMainTab, examId, examData]);
+
+
+
+
 
   // פעולות (Handlers)
   const handleBroadcast = () => examHandlers.handleBroadcast(examId);
@@ -257,6 +292,7 @@ export default function LecturerDashboardPage() {
                     {activeMainTab === 'rooms' && 'ניהול כיתות'}
                     {activeMainTab === 'stats' && 'סטטיסטיקות'}
                     {activeMainTab === 'logs' && 'אירועים חריגים'}
+                    {activeMainTab === 'lecturers' && 'מרצים בקורס'}
                     
                   </h1>
                   <div className="flex items-center justify-end md:justify-start gap-2 md:gap-3 mt-1 md:mt-3">
@@ -270,7 +306,7 @@ export default function LecturerDashboardPage() {
                 </div>
             </div>
 
-            {/* Main tabs */}
+            {/* Main tabs on navbar*/}
             <div className={`flex gap-1 md:gap-2 p-1 md:p-1.5 rounded-2xl md:rounded-3xl border backdrop-blur-md transition-all w-full md:w-auto justify-center overflow-x-auto ${
               isDark ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200 shadow-sm'
             }`}>
@@ -316,6 +352,19 @@ export default function LecturerDashboardPage() {
                 `}
               >
                 ⚠️ אירועים חריגים
+              </button>
+
+
+              
+              <button
+                onClick={() => setActiveMainTab('lecturers')}
+                className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+                  ${activeMainTab === 'lecturers'
+                    ? 'bg-indigo-600 text-white shadow-lg'
+                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}
+                `}
+              >
+                👨‍🏫 מרצים בקורס
               </button>
 
             </div>
@@ -373,6 +422,7 @@ export default function LecturerDashboardPage() {
 
         </main>
       )}
+
 
       {activeMainTab === 'rooms' && (
         <>
@@ -455,11 +505,30 @@ export default function LecturerDashboardPage() {
         </div>
       )}
 
+
       {activeMainTab === 'logs' && (
         <div className={`flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 ${isDark ? 'bg-[#0f172a]' : 'bg-slate-50'}`} dir="rtl">
           <LogsTab incidents={incidents} isDark={isDark} islecturer />
         </div>
       )}
+
+
+      {activeMainTab === 'lecturers' && (
+        <div className={`flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 ${isDark ? 'bg-[#0f172a]' : 'bg-slate-50'}`} dir="rtl">
+          <CourseLecturersTab
+            lecturers={courseLecturers}
+            examLecturerIds={examLecturerIds}
+            isDark={isDark}
+            isLoading={lecturersLoading}
+            onAddLecturer={async (lecturerId) => {
+              await examHandlers.handleAddSubstituteLecturer(examId, lecturerId);
+              const ids = await examHandlers.loadExamLecturers(examId); // refresh
+              setExamLecturerIds(ids);
+            }}
+          />
+        </div>
+      )}
+
 
     </DashboardLayout>
   );

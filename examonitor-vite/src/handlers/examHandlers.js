@@ -157,4 +157,21 @@ export const examHandlers = {
           alert("נכשל בעדכון זמן ההארכה");
       }
   },
+
+
+    //added for new tables
+    loadCourseLecturers: async (courseId) => {
+        const res = await examsApi.getCourseLecturers(courseId);
+        return res?.lecturers || [];
+    },
+
+    loadExamLecturers: async (examId) => {
+        const res = await examsApi.getExamLecturers(examId);
+        return res?.lecturerIds || [];
+    },
+
+    handleAddSubstituteLecturer: async (examId, lecturerId) => {
+        await examsApi.addExamLecturer(examId, lecturerId);
+    },
+
 };

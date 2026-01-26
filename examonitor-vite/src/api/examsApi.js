@@ -29,6 +29,25 @@ export const examsApi = {
     return apiFetch(`/exams/${examId}`);
   },
 
+
+
+
+  //added for new tables
+  getCourseLecturers: (courseId) =>
+    apiFetch(`/exams/courses/${courseId}/lecturers`),
+
+  getExamLecturers: (examId) =>
+    apiFetch(`/exams/${examId}/lecturers`),
+
+  addExamLecturer: (examId, lecturerId) =>
+    apiFetch(`/exams/${examId}/lecturers`, {
+      method: 'POST',
+      body: { lecturerId },
+    }),
+
+
+
+
   updateExamStatus: async (examId, status, userId) =>
     apiFetch(`/exams/${examId}/status`, {
       method: "PATCH",
