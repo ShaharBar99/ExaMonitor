@@ -18,6 +18,14 @@ export async function me(token) { // Fetch current session user
   }); // Return backend response
 } // End me
 
+// POST /auth/refresh. // Refreshes the token
+export async function refresh(payload) { // Refresh request
+  return apiFetch("/auth/refresh", { // Call REST endpoint
+    method: "POST", // POST
+    body: payload, // JSON body: { refreshToken }
+  }); // Return backend response
+} // End refresh
+
 // POST /auth/logout. // Optional backend logout
 export async function logout(token) { // Logout request
   return apiFetch("/auth/logout", { // Call REST endpoint

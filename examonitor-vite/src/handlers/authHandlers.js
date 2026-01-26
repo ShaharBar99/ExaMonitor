@@ -26,11 +26,13 @@ export const ROLE_OPTIONS = [ // Role options array
   { value: "admin", label: "מנהל מערכת" }, // Admin
 ]; // End role options
 
-export function persistAuthToken(token, rememberMe) {
+export function persistAuthToken(token, refreshToken, rememberMe) {
   if (rememberMe) {
     localStorage.setItem("token", token);
+    localStorage.setItem("refreshToken", refreshToken);
   } else {
     sessionStorage.setItem("token", token);
+    sessionStorage.setItem("refreshToken", refreshToken);
   }
 }
 
@@ -72,7 +74,7 @@ export async function loginWithApi({ username, password, role, rememberMe }, dep
   } // End mock path
 
   const result = await authApi.login({ username: value.username, password: value.password, role: value.role }); // Call REST login
-  persistAuthToken(result?.token, Boolean(rememberMe)); // Persist token if present
+  persistAuthToken(result?.token, result?.refreshToken, Boolean(rememberMe)); // Persist token if present
   return { ok: true, data: result }; // Return success
 } // End loginWithApi
 export async function registerWithApi({ name, username, email, password, role }, deps) { // Register handler

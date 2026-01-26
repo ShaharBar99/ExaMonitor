@@ -87,6 +87,7 @@ export const AuthService = {
 
     const authUser = data?.user; // Auth user
     const token = data?.session?.access_token; // Access token
+    const refreshToken = data?.session?.refresh_token; // Refresh token
 
     if (!authUser || !token) { // Missing session/token
       return fail("Login failed", 401); // Log + throw
@@ -115,6 +116,7 @@ export const AuthService = {
 
     return { // Success response
       token, // JWT access token
+      refreshToken, // Refresh token
       user: { // User object
         id: authUser.id, // User id
         email: profile.email ?? authUser.email ?? "", // Email
@@ -136,8 +138,30 @@ export const AuthService = {
     return { user: data.user };
   },
 
-  async logout() {
-    return { ok: true };
+  async refreshToken(refreshToken) {
+    const { data, error } = await supabase.auth.refreshSession({
+      refresh_token: refreshToken
+    });
+
+    if (error) {
+      const err = new Error('Invalid refresh token');
+      err.status = 401;
+      throw err;
+    }
+
+    const newToken = data?.session?.access_token;
+    const newRefreshToken = data?.session?.refresh_token;
+
+    if (!newToken) {
+      const err = new Error('Refresh failed');
+      err.status = 401;
+      throw err;
+    }
+
+    return {
+      token: newToken,
+      refreshToken: newRefreshToken
+    };
   },
 
   async register(name, username, email, password, role) {

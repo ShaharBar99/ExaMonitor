@@ -140,51 +140,67 @@ export default function FloorSupervisorDashboardPage() {
           <SidebarPanel key={activeSidebarTab} activeTab={activeSidebarTab} userRole="floor_manager" isDark={isDark} />
         </Sidebar>
       }
-      header={
-        <div className="flex flex-col lg:flex-row justify-between items-center w-full gap-4 md:gap-6" dir="rtl">
-          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 lg:gap-12 w-full lg:w-auto">
 
-            {/* Title Section with Mobile Toggle */}
-            <div className="flex items-center justify-between w-full md:w-auto">
+      header={
+        /* Base: flex-col (mobile) | lg:flex-row (desktop) */
+        <div className="flex flex-col lg:flex-row justify-between items-center w-full gap-4 py-2 lg:py-8 lg:px-6" dir="rtl">
+          
+          {/* TOP SECTION: Title & Mobile Sidebar Toggle */}
+          <div className="flex items-center justify-between w-full lg:w-auto px-1">
+            <div className="flex items-center gap-3 lg:gap-8">
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-lg transition-colors bg-slate-200 text-slate-700 dark:bg-indigo-500/20 dark:text-indigo-100 dark:border dark:border-indigo-500/30 text-xl"
+                className="lg:hidden p-2 rounded-xl transition-all active:scale-95 bg-slate-100 text-slate-700 dark:bg-white/10 dark:text-white"
               >
-                ☰
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
               </button>
 
-              <h1 className={`text-xl md:text-2xl font-black uppercase tracking-tighter px-4 lg:px-0 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+              {/* Mobile: text-xl | Desktop: lg:text-5xl (Huge & Black) */}
+              <h1 className={`text-xl md:text-2xl lg:text-5xl font-black uppercase tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 {activeMainTab === 'dashboard' ? 'Control' :
-                  activeMainTab === 'rooms' ? 'Rooms' : 'History'}
+                activeMainTab === 'rooms' ? 'Rooms' : 'History'}
               </h1>
-
-              {/* Mobile-only Stats */}
-              <div className="md:hidden">
-                <div className={`px-4 py-1 rounded-lg border flex items-center gap-2 ${stats.warnings > 0 ? 'bg-rose-500/10 border-rose-500/20' : 'bg-transparent border-transparent'}`}>
-                  <span className="text-xs">⚠️</span>
-                  <span className={`font-black ${stats.warnings > 0 ? 'text-rose-500' : 'text-slate-400'}`}>{stats.warnings}</span>
-                </div>
-              </div>
             </div>
 
-            {/* Main Navigation Bar */}
-            <nav className={`flex gap-1 md:gap-2 p-1 md:p-1.5 rounded-2xl md:rounded-3xl border backdrop-blur-md transition-colors w-full md:w-auto overflow-x-auto no-scrollbar ${isDark ? 'bg-black/20 border-white/5' : 'bg-slate-200/50 border-slate-300/50'
+            {/* Mobile-only Stats Badge (Stays small) */}
+            <div className="lg:hidden">
+              <div className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 ${
+                stats.warnings > 0 ? 'bg-rose-500/10 border-rose-500/20' : 'bg-slate-100/50 border-transparent'
               }`}>
+                <span className="text-xs">⚠️</span>
+                <span className={`font-black text-sm ${stats.warnings > 0 ? 'text-rose-500' : 'text-slate-400'}`}>
+                  {stats.warnings}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* MIDDLE/RIGHT SECTION: The Navigation Pill */}
+          {/* w-fit and mx-auto ensure it doesn't stretch on mobile */}
+          <div className="flex items-center justify-center w-fit lg:w-auto mx-auto lg:mx-0 overflow-hidden">
+            <nav className={`flex items-center gap-1 lg:gap-4 p-1 lg:p-3 rounded-2xl lg:rounded-[40px] border backdrop-blur-md transition-all
+              ${isDark ? 'bg-black/20 border-white/5' : 'bg-slate-200/50 border-slate-300/50'}
+            `}>
+              {/* NavButton needs to handle lg: size internally, or we pass it here */}
               <NavButton id="dashboard" label="ראשי" icon="📊" />
               <NavButton id="rooms" label="כיתות" icon="🏫" />
-              <NavButton id="logs" label="יומן אירועים" icon="📜" />
+              <NavButton id="logs" label="יומן" icon="📜" /> 
               <NavButton id="report" label="דיווח" icon="⚠️" />
             </nav>
           </div>
 
-          {/* Desktop Stats Section */}
-          <div className="hidden md:flex gap-4">
-            <div className={`px-6 py-2 rounded-xl border flex flex-col items-center min-w-24 transition-all
+          {/* DESKTOP-ONLY STATS (Massive Cards) */}
+          <div className="hidden lg:flex gap-6">
+            <div className={`px-10 py-6 rounded-4xl border flex flex-col items-center min-w-40 transition-all shadow-2xl
                 ${stats.warnings > 0
                 ? 'bg-rose-500/10 border-rose-500/20 animate-pulse'
                 : isDark ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
-              <p className={`text-[9px] font-black uppercase ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>קריאות</p>
-              <p className={`text-lg font-black ${stats.warnings > 0 ? 'text-rose-500' : isDark ? 'text-white' : 'text-slate-900'}`}>
+              <p className={`text-xs font-black uppercase tracking-[0.2em] mb-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                קריאות פתוחות
+              </p>
+              <p className={`text-5xl font-black ${stats.warnings > 0 ? 'text-rose-500' : isDark ? 'text-white' : 'text-slate-900'}`}>
                 {stats.warnings}
               </p>
             </div>
