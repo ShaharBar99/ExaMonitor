@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
 // Allowed origin for your Vercel frontend
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || /^http:\/\/localhost:\d+$/;
-
+console.log('Using CLIENT_ORIGIN:', CLIENT_ORIGIN);
 // Express CORS for REST endpoints
 app.use(cors({
   origin: CLIENT_ORIGIN,
