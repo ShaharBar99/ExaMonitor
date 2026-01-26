@@ -8,7 +8,6 @@ export const botHandlers = {
 
     // 1. הפעלת אינדיקטור טעינה ב-UI
     setTyping(true);
-    console.log(stats);
     try {
       // 2. קריאה לשיטה בתוך botAPI.js
       const data = await botAPI.postChatMessage({

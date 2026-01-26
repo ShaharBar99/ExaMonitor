@@ -31,6 +31,26 @@ const getExamContext = async (examId) => {
     }
 };
 
+// New helper function to format stats when AI is unavailable
+   const getStatsFallback = (stats) => {
+        const present = stats?.present || 0;
+        const out = stats?.out || 0;
+        const submitted = stats?.submitted || 0;
+        const longestOut = stats?.longestOutName;
+
+        let summary = `🤖 (מענה אוטומטי): חלה שגיאה זמנית בחיבור ל-AI, אך הנה תמונת המצב הנוכחית:\n`;
+        summary += `• ${present} סטודנטים נוכחים בכיתה.\n`;
+        summary += `• ${out} סטודנטים נמצאים כרגע בחוץ.`;
+        
+        if (longestOut) {
+            summary += ` (${longestOut} בחוץ הכי הרבה זמן).`;
+        }
+        
+        summary += `\n• ${submitted} סטודנטים כבר הגישו את המבחן.`;
+
+        return summary;
+    }
+
 export const BotService = {
     async getReply(message, role, examId, currentStats) {
         try {
@@ -89,8 +109,8 @@ export const BotService = {
 
         } catch (error) {
             console.error("BotService Critical Error:", error);
-            return "חלה שגיאה בחיבור ל-AI. נתוני הכיתה מראים שיש כרגע " + 
-                   `${currentStats?.present || 0} סטודנטים בכיתה.`;
+            return getStatsFallback(currentStats?.liveStats || {});
         }
+    
     }
 };

@@ -121,7 +121,6 @@ export default function ExamBotPanel({
       }, 600);
       return;
     }
-
     await botHandlers.handleSendMessage(
       userText,
       { role: userRole, examId },
