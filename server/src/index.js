@@ -13,9 +13,10 @@ app.use(cors({
   origin: CLIENT_ORIGIN,
   credentials: true
 }));
+
 const io = new Server(server, {
     cors: {
-        origin: [/^http:\/\/localhost:\d+$/,'https://examonitor-t11n.vercel.app', 'https://examonitor-vite.vercel.app'],
+        origin: CLIENT_ORIGIN,
         methods: ["GET", "POST"],
         credentials: true
     }
