@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../state/AuthContext';
 import { useTheme } from '../state/ThemeContext';
+import { useExam } from '../state/ExamContext';
 // רכיב האייקון בסרגל הצדי
 const NavIcon = ({ icon, active, onClick, label, activeColor, isDark }) => (
   <button 
