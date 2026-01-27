@@ -8,7 +8,7 @@ import FloorSupervisorDashboardPage from "../components/floorsupervisor/FloorSup
 import ViewClassroomsPage from "../components/classroom/ViewClassroomsPage";
 import LecturerDashboardPage from "../components/lecturer/LecturerDashboardPage";
 import StudentPage from "../components/student/StudentPage";
-import IncidentReportPage from "../components/supervisor/IncidentReportPage";
+import IncidentReportPage from "../components/exam/IncidentReportPage";
 
 import LoginPage from "../components/auth/authPages/LoginPage"; // Login route page
 import AdminLayout from "../components/admin/adminComponents/AdminLayout"; // Admin layout wrapper

@@ -9,7 +9,7 @@ import ExamTimer from '../exam/ExamTimer';
 import { useExam } from '../state/ExamContext';
 import { useAuth } from '../state/AuthContext';
 import AttendanceManager from './AttendanceManager';
-import IncidentReportPage from './IncidentReportPage';
+import IncidentReportPage from '../exam/IncidentReportPage'
 import { useTheme } from '../state/ThemeContext';
 import DashboardLayout from '../layout/DashboardLayout';
 

@@ -14,7 +14,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import OverviewTab from './OverviewTab';
 import LogsTab from './LogsTab';
 import ViewClassroomsPage from '../classroom/ViewClassroomsPage';
-import IncidentReportPage from '../supervisor/IncidentReportPage';
+import IncidentReportPage from '../exam/IncidentReportPage';
 
 // לוגיקה ונתונים
 import { notificationHandlers } from '../../handlers/notificationHandlers';
@@ -229,7 +229,6 @@ export default function FloorSupervisorDashboardPage() {
               classrooms={{ room_number: '' }}
               availableRooms={rooms}
               onBack={() => {
-                fetchDashboardData();
                 setActiveMainTab('dashboard');
               }}
             />
