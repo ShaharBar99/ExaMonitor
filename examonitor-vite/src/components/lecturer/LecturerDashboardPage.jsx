@@ -15,6 +15,7 @@ import ExamTimer from '../exam/ExamTimer';
 import DashboardLayout from '../layout/DashboardLayout';
 import LogsTab from '../floorsupervisor/LogsTab';
 import OverviewTab from '../floorsupervisor/OverviewTab';
+import CourseLecturersTab from './CourseLecturersTab';
 
 // לוגיקה ו-Context
 import { useExam } from '../state/ExamContext';
@@ -44,6 +45,10 @@ export default function LecturerDashboardPage() {
   const [incidents, setIncidents] = useState([]);
   const [breaksCount, setBreaksCount] = useState(0);
   const [activeMainTab, setActiveMainTab] = useState('dashboard');
+  const [courseLecturers, setCourseLecturers] = useState([]);
+  const [examLecturerIds, setExamLecturerIds] = useState([]);
+  const [lecturersLoading, setLecturersLoading] = useState(false);
+
 
 
   // רכיב כפתור ל-Navbar העליון
@@ -97,6 +102,36 @@ export default function LecturerDashboardPage() {
 
     initLecturerConsole();
   }, [examId]);
+
+
+
+
+  //added new useEffect that runs when switching to the lecturers tab
+  useEffect(() => {
+    const load = async () => {
+      if (activeMainTab !== 'lecturers') return;
+
+      const courseId = examData?.course_id || examData?.courseId;
+      if (!courseId || !examId) return;
+
+      setLecturersLoading(true);
+      try {
+        const lecturers = await examHandlers.loadCourseLecturers(courseId);
+        const ids = await examHandlers.loadExamLecturers(examId);
+
+        setCourseLecturers(lecturers);
+        setExamLecturerIds(ids);
+      } finally {
+        setLecturersLoading(false);
+      }
+    };
+
+    load();
+  }, [activeMainTab, examId, examData]);
+
+
+
+
 
   // פעולות (Handlers)
   const handleBroadcast = () => examHandlers.handleBroadcast(examId);
@@ -239,100 +274,100 @@ export default function LecturerDashboardPage() {
         </Sidebar>
       )}
 
-      header={(
-        <div className="flex flex-col lg:flex-row justify-between items-center w-full px-4 md:px-8 lg:px-12 py-4 md:py-8 gap-6 md:gap-8" dir="rtl">
-          {/* Left: title + tabs */}
-          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 lg:gap-12 w-full lg:w-auto">
-            <div className="flex items-center justify-between w-full md:w-auto">
-                {/* Mobile Sidebar Toggle */}
-                <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 rounded-lg transition-colors
-                bg-slate-200 text-slate-700 
-                dark:bg-indigo-500/20 dark:text-indigo-100 dark:border dark:border-indigo-500/30 
-                hover:bg-slate-300 dark:hover:bg-indigo-500/40 text-xl">
-                  ☰
-                </button>
-                <div className="text-right md:text-right flex-1 md:flex-none px-4 md:px-0">
-                  <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold leading-tight transition-colors ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                    {activeMainTab === 'dashboard' && 'מסך נתונים למרצה'}
-                    {activeMainTab === 'rooms' && 'ניהול כיתות'}
-                    {activeMainTab === 'stats' && 'סטטיסטיקות'}
-                    {activeMainTab === 'logs' && 'אירועים חריגים'}
-                    
-                  </h1>
-                  <div className="flex items-center justify-end md:justify-start gap-2 md:gap-3 mt-1 md:mt-3">
-                    <span className={`w-2 h-2 rounded-full animate-pulse ${
-                      examData?.status === 'paused' ? 'bg-amber-500' : 'bg-rose-500'
-                    }`} />
-                    <p className={`font-black uppercase tracking-widest text-[8px] md:text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                      {examData?.name || 'בחינה כללית'} • {examData?.courseId}
-                    </p>
-                  </div>
-                </div>
-            </div>
-
-            {/* Main tabs */}
-            <div className={`flex gap-1 md:gap-2 p-1 md:p-1.5 rounded-2xl md:rounded-3xl border backdrop-blur-md transition-all w-full md:w-auto justify-center overflow-x-auto ${
-              isDark ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200 shadow-sm'
-            }`}>
-              <button
-                onClick={() => setActiveMainTab('dashboard')}
-                className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
-                  ${activeMainTab === 'dashboard'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}
-                `}
-              >
-                📊 ראשי
-              </button>
-
-              <button
-                onClick={() => setActiveMainTab('rooms')}
-                className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
-                  ${activeMainTab === 'rooms'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}
-                `}
-              >
-                🏫 כיתות
-              </button>
-
-              <button
-                onClick={() => setActiveMainTab('stats')}
-                className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
-                  ${activeMainTab === 'stats'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}
-                `}
-              >
-                📊 נתונים
-              </button>
-
-              <button
-                onClick={() => setActiveMainTab('logs')}
-                className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[9px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
-                  ${activeMainTab === 'logs'
-                    ? 'bg-indigo-600 text-white shadow-lg'
-                    : isDark ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}
-                `}
-              >
-                ⚠️ אירועים חריגים
-              </button>
-
+header={(
+  /* Changed py-4 md:py-8 to be more compact on mobile */
+  <div className="flex flex-col lg:flex-row justify-between items-center w-full px-4 md:px-8 lg:px-12 py-3 md:py-8 gap-4 md:gap-8" dir="rtl">
+    
+    {/* Left Section: Title + Navbar */}
+    <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 lg:gap-12 w-full lg:w-auto">
+      
+      {/* Title & Mobile Toggle */}
+      <div className="flex items-center justify-between w-full md:w-auto">
+          <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 rounded-lg bg-slate-200 text-slate-700 dark:bg-indigo-500/20 dark:text-indigo-100 dark:border dark:border-indigo-500/30 text-xl">
+            ☰
+          </button>
+          <div className="text-right flex-1 px-4 md:px-0">
+            <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+              {activeMainTab === 'dashboard' && 'מסך נתונים'}
+              {activeMainTab === 'rooms' && 'ניהול כיתות'}
+              {activeMainTab === 'stats' && 'סטטיסטיקות'}
+              {activeMainTab === 'logs' && 'אירועים חריגים'}
+              {activeMainTab === 'lecturers' && 'מרצים בקורס'}
+            </h1>
+            <div className="flex items-center justify-end md:justify-start gap-2 mt-1">
+              <span className={`w-2 h-2 rounded-full animate-pulse ${examData?.status === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
+              <p className={`font-black uppercase tracking-widest text-[8px] md:text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                {examData?.name || 'בחינה כללית'} • {examData?.courseId}
+              </p>
             </div>
           </div>
+      </div>
 
-          {/* Right: timer */}
-          <div className="scale-100 md:scale-125 lg:mx-6">
-            {remainingTime !== null && (
-              <ExamTimer
-                initialSeconds={remainingTime}
-                isPaused={examData?.status === 'paused'}
-                isDark={isDark}
-              />
-            )}
-          </div>
-        </div>
+      {/* FIXED NAVBAR: Added flex-wrap so it breaks into 2 rows on mobile */}
+      <div className={`flex flex-wrap gap-1.5 md:gap-2 p-1.5 rounded-2xl md:rounded-3xl border backdrop-blur-md transition-all w-full md:w-auto justify-center ${
+        isDark ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200 shadow-sm'
+      }`}>
+        
+        {/* Helper style: Using 'flex-1' or 'grow' ensures they fill the width when wrapping */}
+        <button
+          onClick={() => setActiveMainTab('dashboard')}
+          className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+            ${activeMainTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : isDark ? 'text-slate-400' : 'text-slate-500 hover:bg-white'}
+          `}
+        >
+          📊 ראשי
+        </button>
+
+        <button
+          onClick={() => setActiveMainTab('rooms')}
+          className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+            ${activeMainTab === 'rooms' ? 'bg-indigo-600 text-white shadow-lg' : isDark ? 'text-slate-400' : 'text-slate-500 hover:bg-white'}
+          `}
+        >
+          🏫 כיתות
+        </button>
+
+        <button
+          onClick={() => setActiveMainTab('stats')}
+          className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+            ${activeMainTab === 'stats' ? 'bg-indigo-600 text-white shadow-lg' : isDark ? 'text-slate-400' : 'text-slate-500 hover:bg-white'}
+          `}
+        >
+          📊 נתונים
+        </button>
+
+        <button
+          onClick={() => setActiveMainTab('logs')}
+          className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+            ${activeMainTab === 'logs' ? 'bg-indigo-600 text-white shadow-lg' : isDark ? 'text-slate-400' : 'text-slate-500 hover:bg-white'}
+          `}
+        >
+          ⚠️ חריגים
+        </button>
+
+        <button
+          onClick={() => setActiveMainTab('lecturers')}
+          className={`w-full md:w-auto md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+            ${activeMainTab === 'lecturers' ? 'bg-indigo-600 text-white shadow-lg' : isDark ? 'text-slate-400' : 'text-slate-500 hover:bg-white'}
+          `}
+        >
+          👨‍🏫 מרצים בקורס
+        </button>
+      </div>
+    </div>
+
+    {/* Right: Timer */}
+    <div className="scale-90 md:scale-125 lg:mx-6">
+      {remainingTime !== null && (
+        <ExamTimer
+          initialSeconds={remainingTime}
+          isPaused={examData?.status === 'paused'}
+          isDark={isDark}
+        />
       )}
+    </div>
+  </div>
+)}
     >
 
       {/* ================= MAIN CONTENT ================= */}
@@ -373,6 +408,7 @@ export default function LecturerDashboardPage() {
 
         </main>
       )}
+
 
       {activeMainTab === 'rooms' && (
         <>
@@ -455,11 +491,30 @@ export default function LecturerDashboardPage() {
         </div>
       )}
 
+
       {activeMainTab === 'logs' && (
         <div className={`flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 ${isDark ? 'bg-[#0f172a]' : 'bg-slate-50'}`} dir="rtl">
           <LogsTab incidents={incidents} isDark={isDark} islecturer />
         </div>
       )}
+
+
+      {activeMainTab === 'lecturers' && (
+        <div className={`flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 ${isDark ? 'bg-[#0f172a]' : 'bg-slate-50'}`} dir="rtl">
+          <CourseLecturersTab
+            lecturers={courseLecturers}
+            examLecturerIds={examLecturerIds}
+            isDark={isDark}
+            isLoading={lecturersLoading}
+            onAddLecturer={async (lecturerId) => {
+              await examHandlers.handleAddSubstituteLecturer(examId, lecturerId);
+              const ids = await examHandlers.loadExamLecturers(examId); // refresh
+              setExamLecturerIds(ids);
+            }}
+          />
+        </div>
+      )}
+
 
     </DashboardLayout>
   );

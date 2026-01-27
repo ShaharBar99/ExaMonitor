@@ -51,6 +51,63 @@ export const ExamService = {
   },
 
 
+
+
+  async listCourseLecturers(courseId) {
+  const { data, error } = await supabaseAdmin
+    .from('course_lecturers')
+    .select(`
+      lecturer_id,
+      profiles:lecturer_id (
+        id,
+        full_name,
+        email
+      )
+    `)
+    .eq('course_id', courseId);
+
+  if (error) throw Object.assign(new Error(error.message), { status: 400 });
+  return (data || []).map(r => r.profiles).filter(Boolean);
+},
+
+
+
+
+  //added for new tables
+  async listExamLecturers(examId) {
+    const { data, error } = await supabaseAdmin
+      .from('exam_lecturers')
+      .select('lecturer_id')
+      .eq('exam_id', examId);
+
+    if (error) throw Object.assign(new Error(error.message), { status: 400 });
+    return (data || []).map(r => r.lecturer_id);
+  },
+
+  async addExamLecturer(examId, lecturerId) {
+    // prevent duplicates (since DB has no unique constraint on exam_id+lecturer_id)
+    const { data: existing } = await supabaseAdmin
+      .from('exam_lecturers')
+      .select('id')
+      .eq('exam_id', examId)
+      .eq('lecturer_id', lecturerId)
+      .maybeSingle();
+
+    if (existing?.id) return existing;
+
+    const { data, error } = await supabaseAdmin
+      .from('exam_lecturers')
+      .insert([{ exam_id: examId, lecturer_id: lecturerId }])
+      .select('*')
+      .single();
+
+    if (error) throw Object.assign(new Error(error.message), { status: 400 });
+    return data;
+  },
+
+
+
+
   // GET /exams/:id
   async getExamById(examId) {
     const { data, error } = await supabaseAdmin
@@ -367,4 +424,10 @@ export const ExamService = {
         extraTime: data.extra_time || 0
     };
   }
+
+
+
+
+
+
 };

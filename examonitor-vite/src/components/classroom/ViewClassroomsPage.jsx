@@ -29,15 +29,15 @@ export default function ViewClassroomsPage() {
     const fetchData = async () => {
       if (isLecturer) {
         if (examData?.id) {
-          classroomHandler.loadDisplayData(userRole, examData.id, examData?.courseName || null, setClassrooms, setLoading);
+          await classroomHandler.loadDisplayData(userRole, examData.id, examData?.courseName || null, setClassrooms, setLoading);
         } else if (user?.id) {
-          classroomHandler.loadDisplayData(userRole, null, null, setClassrooms, setLoading, user.id);
+          await classroomHandler.loadDisplayData(userRole, null, null, setClassrooms, setLoading, user.id);
         } else {
           setClassrooms([]);
           setLoading(false);
         }
       } else {
-        await classroomHandler.loadDisplayData(userRole, examData?.id || null, examData?.courseName || null, setClassrooms, setLoading);
+        await classroomHandler.loadDisplayData(userRole, null, null, setClassrooms, setLoading);
         if (!isLecturer) {
           try {
             const supervisorsData = await classroomHandler.loadSupervisors();

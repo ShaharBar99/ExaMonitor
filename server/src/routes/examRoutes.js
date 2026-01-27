@@ -8,6 +8,10 @@ const router = Router();
 // Later you can enforce role checks (supervisor/lecturer).
 router.use(requireAuth);
 
+router.get('/courses/:courseId/lecturers', ExamController.listCourseLecturers);
+router.get('/:id/lecturers', ExamController.listExamLecturers);
+router.post('/:id/lecturers', ExamController.addExamLecturer);
+
 router.get('/courses', ExamController.listCourses);
 router.get('/', ExamController.list);
 router.get('/:id', ExamController.getOne);

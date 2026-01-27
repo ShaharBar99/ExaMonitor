@@ -37,7 +37,8 @@ export default function Sidebar({
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const { user } = useAuth();
+  let { user } = useAuth();
+  let { examData } = useExam();
   
   // הגדרת רוחב ראשונית חכמה
   const getInitialWidth = () => {
@@ -116,6 +117,8 @@ export default function Sidebar({
   const currentTab = tabs.find(t => t.id === activeTab) || tabs[0];
 
   const handleLogout = () => {
+    user = null;
+    examData = null;
     localStorage.clear();
     navigate('/login');
   };

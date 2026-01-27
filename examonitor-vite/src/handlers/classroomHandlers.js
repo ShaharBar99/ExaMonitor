@@ -13,7 +13,7 @@ export const classroomHandler = {
     try {
       setLoading(true);
       // If we have an examId, request server-side filtered classrooms for that exam
-      const data = await classroomApi.getClassrooms(examId, lecturerId);
+      const data = lecturerId ? await classroomApi.getClassrooms(examId, lecturerId) : await classroomApi.getClassrooms(examId);
       const enrichedData = await Promise.all(data.map(async (room) => {
           const students = await attendanceApi.getStudentsForSupervisor(room.exam_id, room.supervisor_id);
           const actualArray = Array.isArray(students) ? students : (students?.data || []);

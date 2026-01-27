@@ -24,6 +24,37 @@ export const ExamController = {
     }
   },
 
+
+  //added for new tables
+  async listCourseLecturers(req, res, next) {
+    try {
+      const { courseId } = req.params;
+      const lecturers = await ExamService.listCourseLecturers(courseId);
+      res.json({ lecturers });
+    } catch (err) { next(err); }
+  },
+
+  async listExamLecturers(req, res, next) {
+    try {
+      const { id: examId } = req.params;
+      const lecturerIds = await ExamService.listExamLecturers(examId);
+      res.json({ lecturerIds });
+    } catch (err) { next(err); }
+  },
+
+  async addExamLecturer(req, res, next) {
+    try {
+      const { id: examId } = req.params;
+      const { lecturerId } = req.body;
+      if (!lecturerId) return res.status(400).json({ error: 'lecturerId is required' });
+
+      const row = await ExamService.addExamLecturer(examId, lecturerId);
+      res.status(201).json({ row });
+    } catch (err) { next(err); }
+  },
+
+
+
   async getOne(req, res, next) {
     try {
       const exam = await ExamService.getExamById(req.params.id);
