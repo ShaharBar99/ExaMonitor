@@ -167,6 +167,7 @@ export default function ManageCoursesPage() {
                     </div>
                   </td>
                 </tr>
+                
               ))}
             </AdminTable>
           </div>
