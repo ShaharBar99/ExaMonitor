@@ -102,12 +102,69 @@ export const AdminController = {
     }
   },
 
+  async listExams(req, res, next) {
+    try {
+      const limit = Number(req.query.limit ?? 50);
+      const offset = Number(req.query.offset ?? 0);
+      const filters = {
+        status: req.query.status,
+        q: req.query.q
+      };
+      const result = await AdminService.listExams(filters, limit, offset);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async createExam(req, res, next) {
+    try {
+      const adminUserId = req.user.id;
+      const result = await AdminService.createExam(req.body, adminUserId);
+      res.status(201).json({ exam: result });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deleteExam(req, res, next) {
+    try {
+      await AdminService.deleteExam(req.params.id);
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deleteUser(req, res, next) {
+    try {
+      await AdminService.deleteUser(req.params.id);
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async bulkCreateUsers(req, res, next) {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
       const result = await AdminService.bulkUsersFromExcel(req.file.buffer);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async importExams(req, res, next) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      // Assuming req.user is populated by auth middleware and has id
+      const adminUserId = req.user.id;
+      const result = await AdminService.importExamsFromExcel(req.file.buffer, adminUserId);
       res.json(result);
     } catch (err) {
       next(err);

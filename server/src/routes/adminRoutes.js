@@ -19,8 +19,15 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 router.get('/audit', AdminController.getAudit);
 
+// Exams
+router.get('/exams', AdminController.listExams);
+router.post('/exams', AdminController.createExam);
+router.delete('/exams/:id', AdminController.deleteExam);
+
 router.post('/users', AdminController.createUser);
+router.delete('/users/:id', AdminController.deleteUser);
 router.post('/users/bulk', upload.single('file'), AdminController.bulkCreateUsers);
+router.post('/exams/import', upload.single('file'), AdminController.importExams);
 
 router.get('/security/alerts', AdminController.listSecurityAlerts);
 router.post('/security/alerts/:id/resolve', AdminController.resolveSecurityAlert);

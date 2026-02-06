@@ -273,4 +273,347 @@ export const AdminService = {
 
     return results;
   },
+
+  async listExams(filters = {}, limit = 50, offset = 0) {
+    let q = supabaseAdmin
+      .from('exams')
+      .select(`
+        id, original_start_time, original_duration, status, extra_time,
+        courses ( id, course_name, course_code ),
+        exam_lecturers (
+          profiles ( id, full_name, email )
+        )
+      `, { count: 'exact' })
+      .order('original_start_time', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    // Apply filters
+    if (filters.status) {
+      q = q.eq('status', filters.status);
+    }
+
+    // For search, we need to search on related tables. 
+    // Supabase simple client doesn't support deep filtering easily in one query without !inner or complex modifiers.
+    // However, given the requirement: "enable to search exams by course name or course symbol"
+    // We can try to use the !inner hint on joined courses if filter.q is present.
+    // Or, for simplicity and stability if OR relation across joined tables is tricky, we can filter in memory if result set is small, 
+    // or use a more complex RPC. 
+    // Let's try the direct approach with !inner check on courses.
+    if (filters.q) {
+      // Search by course code or name
+      // Syntax: courses!inner(course_code, course_name)
+      // We'll filter where course code OR course name ILIKE %q%
+      // Note: Supabase JS syntax for OR across columns: .or('col1.ilike.%q%,col2.ilike.%q%')
+      // Applying this to a foreign table requires the foreign table to be selected with !inner and then applying .or on it?
+      // Actually, easiest way often is just:
+      // .or(`course_code.ilike.%${filters.q}%,course_name.ilike.%${filters.q}%`, { foreignTable: 'courses' })
+      // Let's modify the select first to ensure inner join reference is valid if we use a filter.
+
+      // Actually, simpler approach for common use case: 
+      // We cannot easily do "OR" across parent and child fields without complications using standard client.
+      // But searching course code/name is JUST on the child table 'courses'.
+      q = q.not('courses', 'is', null); // Ensure course exists
+      // We need to switch the select to use !inner if we filter? Not strictly required for .textSearch but for .or with foreignTable it is better.
+      // Let's try the foreign table filter syntax:
+      q = q.or(`course_code.ilike.%${filters.q}%,course_name.ilike.%${filters.q}%`, { foreignTable: 'courses' });
+    }
+
+    const { data, error, count } = await q;
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    // Flatten structure for UI
+    const items = (data || []).map(e => {
+      // exam_lecturers is an array of objects due to join
+      const lecturers = e.exam_lecturers?.map(el => el.profiles).filter(Boolean) || [];
+      const lecturer = lecturers[0] || {}; // Primary lecturer
+
+      return {
+        id: e.id,
+        date: e.original_start_time, // ISO string
+        duration: e.original_duration,
+        status: e.status,
+        course_name: e.courses?.course_name || 'Unknown',
+        course_code: e.courses?.course_code || 'Unknown',
+        lecturer_name: lecturer.full_name || '',
+        lecturer_email: lecturer.email || '',
+      };
+    });
+
+    return { items, total: count ?? 0 };
+  },
+
+  async deleteExam(examId) {
+    // Deleting an exam usually requires deleting related rows (exam_lecturers).
+    // Supabase cascade delete might handle this if foreign keys are set up with ON DELETE CASCADE.
+    // If not, we manually delete.
+
+    // 1. Delete links
+    await supabaseAdmin.from('exam_lecturers').delete().eq('exam_id', examId);
+
+    // 2. Delete exam
+    const { error } = await supabaseAdmin.from('exams').delete().eq('id', examId);
+    if (error) throw new Error(error.message);
+    return { id: examId, deleted: true };
+  },
+
+  async deleteUser(userId) {
+    // 1. Delete from Auth (admin)
+    const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    if (authError) throw new Error(`Auth delete failed: ${authError.message}`);
+
+    // 2. Delete from Profiles (should cascade or be manual)
+    // If we rely on cascade from auth.users -> public.profiles, we might be good.
+    // But typically we want to ensure profile is gone.
+    const { error: dbError } = await supabaseAdmin.from('profiles').delete().eq('id', userId);
+
+    // Note: If auth delete cascades, dbError might be "row not found" or null.
+    // We'll assume success if auth delete worked.
+
+    return { id: userId, deleted: true };
+  },
+
+  async createExam({ courseCode, courseName, lecturerEmail, examDate, examTime, duration }, adminUserId) {
+    // 1. Identify/Validate Lecturer
+    const { data: lecturer, error: lecturerError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, role')
+      .eq('email', String(lecturerEmail).trim())
+      .single();
+
+    if (lecturerError || !lecturer) throw new Error(`Lecturer not found: ${lecturerEmail}`);
+    if (lecturer.role !== 'lecturer') throw new Error(`User ${lecturerEmail} is not a lecturer`);
+
+    // 2. Handle Course
+    let courseId;
+    const { data: existingCourse } = await supabaseAdmin
+      .from('courses')
+      .select('id')
+      .eq('course_code', String(courseCode).trim())
+      .single();
+
+    if (existingCourse) {
+      courseId = existingCourse.id;
+    } else {
+      if (!courseName) throw new Error(`Course ${courseCode} not found and no name provided`);
+      const { data: newCourse, error: createCourseError } = await supabaseAdmin
+        .from('courses')
+        .insert({
+          course_code: String(courseCode).trim(),
+          course_name: String(courseName).trim(),
+          lecturer_id: lecturer.id
+        })
+        .select('id')
+        .single();
+      if (createCourseError) throw new Error(`Create course failed: ${createCourseError.message}`);
+      courseId = newCourse.id;
+    }
+
+    // 3. Prepare Time
+    const combinedDateTimeStr = `${examDate} ${examTime}`;
+    const startTimestamp = new Date(combinedDateTimeStr);
+    if (isNaN(startTimestamp.getTime())) throw new Error(`Invalid date/time: ${combinedDateTimeStr}`);
+    const isoStartTime = startTimestamp.toISOString();
+
+    // 4. Duplicate Check
+    const { data: existingExam } = await supabaseAdmin
+      .from('exams')
+      .select('id')
+      .eq('course_id', courseId)
+      .eq('original_start_time', isoStartTime)
+      .maybeSingle();
+
+    if (existingExam) throw new Error(`Exam already exists here`);
+
+    // 5. Insert Exam
+    const { data: newExam, error: insertExamError } = await supabaseAdmin
+      .from('exams')
+      .insert({
+        course_id: courseId,
+        original_start_time: isoStartTime,
+        original_duration: Number(duration),
+        status: 'pending'
+      })
+      .select('id')
+      .single();
+
+    if (insertExamError) throw new Error(`Insert exam failed: ${insertExamError.message}`);
+
+    // 6. Link Lecturer
+    await supabaseAdmin.from('exam_lecturers').insert({
+      exam_id: newExam.id,
+      lecturer_id: lecturer.id
+    });
+
+    // Audit
+    await supabaseAdmin.from('audit_trail').insert({
+      user_id: adminUserId,
+      action: 'CREATE_EXAM',
+      metadata: { exam_id: newExam.id, course: courseCode }
+    });
+
+    return newExam;
+  },
+
+  async importExamsFromExcel(buffer, adminUserId) {
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    // raw: false ensures we get formatted strings if needed
+    const rows = xlsx.utils.sheet_to_json(sheet, { raw: false });
+
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: []
+    };
+
+    let rowIndex = 1;
+
+    for (const row of rows) {
+      rowIndex++;
+
+      // Keys (normalize)
+      const normalized = {};
+      Object.keys(row).forEach(k => normalized[k.trim().toLowerCase()] = row[k]);
+
+      const lecturerEmail = normalized['lecturer email'] || normalized['lecturer_email'] || normalized['דואל מרצה'] || normalized['אימייל מרצה'];
+      const courseName = normalized['course name'] || normalized['course_name'] || normalized['שם קורס'];
+      const courseCode = normalized['course code'] || normalized['course_code'] || normalized['קוד קורס'];
+      const examDate = normalized['exam date'] || normalized['exam_date'] || normalized['תאריך בחינה'];
+      const examTime = normalized['exam time'] || normalized['exam_time'] || normalized['שעת התחלה'];
+      const duration = normalized['duration'] || normalized['original_duration'] || normalized['משך בחינה'];
+
+      // Basic Validation
+      if (!lecturerEmail || !courseCode || !examDate || !examTime || !duration) {
+        results.failed++;
+        results.errors.push({
+          row: rowIndex,
+          error: `Missing fields. Found: Email=${lecturerEmail}, Code=${courseCode}, Date=${examDate}, Time=${examTime}, Duration=${duration}`
+        });
+        continue;
+      }
+
+      try {
+        // 1. Identify Lecturer
+        const { data: lecturer, error: lecturerError } = await supabaseAdmin
+          .from('profiles')
+          .select('id, role')
+          .eq('email', lecturerEmail.trim())
+          .single();
+
+        if (lecturerError || !lecturer) {
+          throw new Error(`Lecturer not found: ${lecturerEmail}`);
+        }
+        if (lecturer.role !== 'lecturer') {
+          throw new Error(`User ${lecturerEmail} is not a lecturer`);
+        }
+
+        // 2. Handle Course
+        let courseId;
+        const { data: existingCourse } = await supabaseAdmin
+          .from('courses')
+          .select('id')
+          .eq('course_code', String(courseCode).trim())
+          .single();
+
+        if (existingCourse) {
+          courseId = existingCourse.id;
+        } else {
+          if (!courseName) throw new Error(`Course ${courseCode} not found and no name provided`);
+
+          const { data: newCourse, error: createCourseError } = await supabaseAdmin
+            .from('courses')
+            .insert({
+              course_code: String(courseCode).trim(),
+              course_name: String(courseName).trim(),
+              lecturer_id: lecturer.id
+            })
+            .select('id')
+            .single();
+
+          if (createCourseError) throw new Error(`Create course failed: ${createCourseError.message}`);
+          courseId = newCourse.id;
+        }
+
+        // 3. Prepare Start Time
+        const combinedDateTimeStr = `${examDate} ${examTime}`;
+        // Attempt parsing - expecting standard formats mostly. 
+        // If imports fail due to date format, we might need luxon or moment, but trying native first.
+        const startTimestamp = new Date(combinedDateTimeStr);
+
+        if (isNaN(startTimestamp.getTime())) {
+          throw new Error(`Invalid date/time: ${combinedDateTimeStr}`);
+        }
+
+        const isoStartTime = startTimestamp.toISOString();
+
+        // 4. Validation (Duplicates)
+        const { data: existingExam, error: conflictError } = await supabaseAdmin
+          .from('exams')
+          .select('id')
+          .eq('course_id', courseId)
+          .eq('original_start_time', isoStartTime)
+          .maybeSingle();
+
+        if (conflictError) throw new Error(`Conflict check failed: ${conflictError.message}`);
+
+        if (existingExam) {
+          throw new Error(`Exam already exists for ${courseCode} at ${combinedDateTimeStr}`);
+        }
+
+        // 5. Insert Exam
+        const { data: newExam, error: insertExamError } = await supabaseAdmin
+          .from('exams')
+          .insert({
+            course_id: courseId,
+            original_start_time: isoStartTime,
+            original_duration: Number(duration),
+            status: 'pending'
+          })
+          .select('id')
+          .single();
+
+        if (insertExamError) throw new Error(`Insert exam failed: ${insertExamError.message}`);
+
+        // 6. Link Lecturer
+        const { error: linkError } = await supabaseAdmin
+          .from('exam_lecturers')
+          .insert({
+            exam_id: newExam.id,
+            lecturer_id: lecturer.id
+          });
+
+        if (linkError) {
+          // Rollback exam
+          await supabaseAdmin.from('exams').delete().eq('id', newExam.id);
+          throw new Error(`Link lecturer failed, exam rollback: ${linkError.message}`);
+        }
+
+        results.success++;
+
+      } catch (err) {
+        results.failed++;
+        results.errors.push({
+          row: rowIndex,
+          error: err.message
+        });
+      }
+    }
+
+    // Audit Trail
+    if (results.success > 0 || results.failed > 0) {
+      await supabaseAdmin.from('audit_trail').insert({
+        user_id: adminUserId,
+        action: 'IMPORT_EXAMS',
+        metadata: { success: results.success, failed: results.failed, filename: 'excel_upload' }
+      });
+    }
+
+    return results;
+  },
 };
