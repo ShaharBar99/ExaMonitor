@@ -170,4 +170,106 @@ export const AdminController = {
       next(err);
     }
   },
+
+  // ========== COURSES ==========
+
+  async listCourses(req, res, next) {
+    try {
+      const filters = {
+        search: req.query.q,
+        lecturer_id: req.query.lecturer_id,
+      };
+      const courses = await AdminService.listCourses(filters);
+      res.json({ courses });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async createCourse(req, res, next) {
+    try {
+      const result = await AdminService.createCourse(req.body);
+      res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async updateCourse(req, res, next) {
+    try {
+      const result = await AdminService.updateCourse(req.params.id, req.body);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deleteCourse(req, res, next) {
+    try {
+      const result = await AdminService.deleteCourse(req.params.id);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getCourseStudents(req, res, next) {
+    try {
+      const students = await AdminService.getCourseStudents(req.params.id);
+      res.json({ students });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getAvailableStudents(req, res, next) {
+    try {
+      const students = await AdminService.getAvailableStudents(req.params.id);
+      res.json({ students });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async addStudentToCourse(req, res, next) {
+    try {
+      const result = await AdminService.addStudentToCourse(req.params.id, req.body);
+      res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async bulkAddStudentsToCourse(req, res, next) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      const result = await AdminService.bulkImportStudentsToCourse(req.params.id, req.file.buffer);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async importCourses(req, res, next) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      const result = await AdminService.importCoursesFromExcel(req.file.buffer);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async removeStudentFromCourse(req, res, next) {
+    try {
+      const result = await AdminService.removeStudentFromCourse(req.params.courseId, req.params.studentId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
 };

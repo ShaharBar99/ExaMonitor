@@ -27,10 +27,11 @@ export const ROLE_OPTIONS = [ // Role options array
 ]; // End role options
 
 export function persistAuthToken(token, refreshToken, rememberMe) {
-  if (rememberMe) {
-    localStorage.setItem("token", token);
-    localStorage.setItem("refreshToken", refreshToken);
-  } else {
+  // Always save to localStorage for admin/supervisor features to work across navigation
+  localStorage.setItem("token", token);
+  localStorage.setItem("refreshToken", refreshToken);
+  // Also save to sessionStorage as fallback for non-persistent sessions if rememberMe is false
+  if (!rememberMe) {
     sessionStorage.setItem("token", token);
     sessionStorage.setItem("refreshToken", refreshToken);
   }

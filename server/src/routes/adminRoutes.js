@@ -29,6 +29,20 @@ router.delete('/users/:id', AdminController.deleteUser);
 router.post('/users/bulk', upload.single('file'), AdminController.bulkCreateUsers);
 router.post('/exams/import', upload.single('file'), AdminController.importExams);
 
+// Courses
+router.get('/courses', AdminController.listCourses);
+router.post('/courses', AdminController.createCourse);
+router.post('/courses/import', upload.single('file'), AdminController.importCourses);
+router.patch('/courses/:id', AdminController.updateCourse);
+router.delete('/courses/:id', AdminController.deleteCourse);
+
+// Course Students
+router.get('/courses/:id/students', AdminController.getCourseStudents);
+router.get('/courses/:id/available-students', AdminController.getAvailableStudents);
+router.post('/courses/:id/students', AdminController.addStudentToCourse);
+router.post('/courses/:id/students/bulk', upload.single('file'), AdminController.bulkAddStudentsToCourse);
+router.delete('/courses/:courseId/students/:studentId', AdminController.removeStudentFromCourse);
+
 router.get('/security/alerts', AdminController.listSecurityAlerts);
 router.post('/security/alerts/:id/resolve', AdminController.resolveSecurityAlert);
 

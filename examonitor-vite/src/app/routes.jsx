@@ -13,6 +13,7 @@ import IncidentReportPage from "../components/exam/IncidentReportPage";
 import LoginPage from "../components/auth/authPages/LoginPage"; // Login route page
 import AdminLayout from "../components/admin/adminComponents/AdminLayout"; // Admin layout wrapper
 import ManageUsersPage from "../components/admin/adminPages/ManageUsersPage"; // Admin route page
+import ManageCoursesPage from "../components/admin/adminPages/ManageCoursesPage"; // Admin courses page
 import AuditTrailPage from "../components/admin/adminPages/AuditTrailPage"; // Admin route page
 import SecurityAlertsPage from "../components/admin/adminPages/SecurityAlertsPage"; // Admin route page
 import ManageExamsPage from "../components/admin/adminPages/ManageExamsPage"; // Admin route page
@@ -27,6 +28,7 @@ export default function AppRoutes() { // Export a component that holds the route
       <Route path="/admin" element={<AdminLayout />}> {/* Admin area wrapper */}
         <Route index element={<Navigate to="/admin/users" replace />} /> {/* Default admin route */}
         <Route path="users" element={<ManageUsersPage />} /> {/* Admin users */}
+        <Route path="courses" element={<ManageCoursesPage />} /> {/* Admin courses */}
         <Route path="audit" element={<AuditTrailPage />} /> {/* Admin audit trail */}
         <Route path="security" element={<SecurityAlertsPage />} /> {/* Admin security alerts */}
         <Route path="exams" element={<ManageExamsPage />} /> {/* Admin exams */}

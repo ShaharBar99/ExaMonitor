@@ -616,4 +616,561 @@ export const AdminService = {
 
     return results;
   },
+
+  /**
+   * List all courses with student count and lecturer info
+   */
+  async listCourses(filters = {}) {
+    let q = supabaseAdmin
+      .from('courses')
+      .select(`
+        id,
+        course_name,
+        course_code,
+        created_at,
+        lecturer_id,
+        profiles ( id, full_name, email ),
+        course_registrations ( id )
+      `);
+
+    if (filters.search) {
+      const searchTerm = `%${filters.search}%`;
+      q = q.or(`course_name.ilike.${searchTerm},course_code.ilike.${searchTerm}`);
+    }
+
+    if (filters.lecturer_id) {
+      q = q.eq('lecturer_id', filters.lecturer_id);
+    }
+
+    q = q.order('created_at', { ascending: false });
+
+    const { data, error } = await q;
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    // Format response
+    return (data || []).map(c => ({
+      id: c.id,
+      course_name: c.course_name,
+      course_code: c.course_code,
+      lecturer_id: c.lecturer_id,
+      lecturer_name: c.profiles?.full_name || 'Unassigned',
+      lecturer_email: c.profiles?.email || '',
+      student_count: c.course_registrations?.length || 0,
+      created_at: c.created_at,
+    }));
+  },
+
+  /**
+   * Create a new course
+   */
+  async createCourse({ course_name, course_code, lecturer_id }) {
+    if (!course_name || !course_code) {
+      const err = new Error('course_name and course_code are required');
+      err.status = 400;
+      throw err;
+    }
+
+    // Check for duplicate course code
+    const { data: existing } = await supabaseAdmin
+      .from('courses')
+      .select('id')
+      .eq('course_code', course_code)
+      .single();
+
+    if (existing) {
+      const err = new Error(`Course code "${course_code}" already exists`);
+      err.status = 409;
+      throw err;
+    }
+
+    // If lecturer_id is provided, validate it exists and is a lecturer
+    if (lecturer_id) {
+      const { data: lecturer, error: lecturerError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role')
+        .eq('id', lecturer_id)
+        .single();
+
+      if (lecturerError || !lecturer) {
+        const err = new Error('Lecturer not found');
+        err.status = 404;
+        throw err;
+      }
+
+      if (lecturer.role !== 'lecturer') {
+        const err = new Error('User is not a lecturer');
+        err.status = 400;
+        throw err;
+      }
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('courses')
+      .insert({
+        course_name,
+        course_code,
+        lecturer_id: lecturer_id || null,
+      })
+      .select('id, course_name, course_code, lecturer_id, created_at')
+      .single();
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 500;
+      throw err;
+    }
+
+    // Fetch lecturer info if exists
+    let lecturerName = 'Unassigned';
+    if (data.lecturer_id) {
+      const { data: lecturer } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name')
+        .eq('id', data.lecturer_id)
+        .single();
+      lecturerName = lecturer?.full_name || 'Unknown';
+    }
+
+    return {
+      course: {
+        id: data.id,
+        course_name: data.course_name,
+        course_code: data.course_code,
+        lecturer_id: data.lecturer_id,
+        lecturer_name: lecturerName,
+        student_count: 0,
+        created_at: data.created_at,
+      },
+    };
+  },
+
+  /**
+   * Update course details
+   */
+  async updateCourse(courseId, { course_name, course_code, lecturer_id }) {
+    const updates = {};
+    if (course_name !== undefined) updates.course_name = course_name;
+    if (course_code !== undefined) updates.course_code = course_code;
+    if (lecturer_id !== undefined) updates.lecturer_id = lecturer_id;
+
+    if (Object.keys(updates).length === 0) {
+      return { course: {} };
+    }
+
+    // If changing course_code, check for duplicates
+    if (course_code) {
+      const { data: existing } = await supabaseAdmin
+        .from('courses')
+        .select('id')
+        .eq('course_code', course_code)
+        .neq('id', courseId)
+        .single();
+
+      if (existing) {
+        const err = new Error(`Course code "${course_code}" already exists`);
+        err.status = 409;
+        throw err;
+      }
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('courses')
+      .update(updates)
+      .eq('id', courseId)
+      .select('id, course_name, course_code, lecturer_id, created_at')
+      .single();
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return { course: data };
+  },
+
+  /**
+   * Delete a course
+   */
+  async deleteCourse(courseId) {
+    // Delete related course_registrations first
+    await supabaseAdmin.from('course_registrations').delete().eq('course_id', courseId);
+
+    // Delete course
+    const { error } = await supabaseAdmin.from('courses').delete().eq('id', courseId);
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return { id: courseId, deleted: true };
+  },
+
+  /**
+   * Get students in a course
+   */
+  async getCourseStudents(courseId) {
+    const { data, error } = await supabaseAdmin
+      .from('course_registrations')
+      .select(`
+        id,
+        student_id,
+        profiles ( id, full_name, email, student_id )
+      `)
+      .eq('course_id', courseId);
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return (data || []).map(cr => ({
+      id: cr.profiles?.id || cr.student_id,
+      full_name: cr.profiles?.full_name || 'Unknown',
+      email: cr.profiles?.email || '',
+      student_id: cr.profiles?.student_id || '',
+      registration_id: cr.id,
+    }));
+  },
+
+  /**
+   * Get available students for a course (students not yet enrolled)
+   */
+  async getAvailableStudents(courseId) {
+    // Get all students with role 'student'
+    const { data: allStudents, error: allError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name, email, student_id')
+      .eq('role', 'student');
+
+    if (allError) {
+      const err = new Error(allError.message);
+      err.status = 400;
+      throw err;
+    }
+
+    // Get students already in this course
+    const { data: enrolled, error: enrollError } = await supabaseAdmin
+      .from('course_registrations')
+      .select('student_id')
+      .eq('course_id', courseId);
+
+    if (enrollError) {
+      const err = new Error(enrollError.message);
+      err.status = 400;
+      throw err;
+    }
+
+    // Get IDs of enrolled students
+    const enrolledIds = new Set((enrolled || []).map(r => r.student_id));
+
+    // Filter out already enrolled students
+    const available = (allStudents || [])
+      .filter(s => !enrolledIds.has(s.id))
+      .map(s => ({
+        id: s.id,
+        full_name: s.full_name || 'Unknown',
+        email: s.email || '',
+        student_id: s.student_id || '',
+      }));
+
+    return available;
+  },
+
+  /**
+   * Add student to course manually
+   */
+  async addStudentToCourse(courseId, { student_id, email, id }) {
+    // Find student by ID (profile ID from client) or student_id column or email
+    let student = null;
+    let studentError = null;
+
+    // Try by profile ID first (when sent from available students list)
+    if (id) {
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('id, full_name, email, student_id')
+        .eq('id', id)
+        .single();
+      student = data;
+      studentError = error;
+    }
+
+    // Try by student_id column if not found
+    if (!student && student_id) {
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('id, full_name, email, student_id')
+        .eq('student_id', student_id)
+        .single();
+      student = data;
+      studentError = error;
+    }
+
+    // Try by email if not found
+    if (!student && email) {
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('id, full_name, email, student_id')
+        .eq('email', email)
+        .single();
+      student = data;
+      studentError = error;
+    }
+
+    if (studentError || !student) {
+      const err = new Error('Student not found');
+      err.status = 404;
+      throw err;
+    }
+
+    // Check if already registered
+    const { data: existing } = await supabaseAdmin
+      .from('course_registrations')
+      .select('id')
+      .eq('course_id', courseId)
+      .eq('student_id', student.id)
+      .single();
+
+    if (existing) {
+      const err = new Error('Student already registered in this course');
+      err.status = 409;
+      throw err;
+    }
+
+    // Add registration
+    const { data, error } = await supabaseAdmin
+      .from('course_registrations')
+      .insert({
+        course_id: courseId,
+        student_id: student.id,
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 500;
+      throw err;
+    }
+
+    return {
+      registration: {
+        id: data.id,
+        student_id: student.id,
+        student_name: student.full_name,
+      },
+    };
+  },
+
+  /**
+   * Bulk import students to course from Excel
+   */
+  async bulkImportStudentsToCourse(courseId, buffer) {
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows = xlsx.utils.sheet_to_json(sheet);
+
+    const results = {
+      imported: 0,
+      failed: 0,
+      errors: [],
+      skipped: 0,
+    };
+
+    for (const row of rows) {
+      // Normalize keys to lowercase
+      const normalized = {};
+      Object.keys(row).forEach((k) => {
+        normalized[k.toLowerCase()] = row[k];
+      });
+
+      // Accept various column name variations
+      const studentId = normalized.student_id || normalized['student id'] || normalized['מספר סטודנט'];
+      const email = normalized.email || normalized['אימייל'];
+      const fullName = normalized.full_name || normalized['name'] || normalized['שם מלא'];
+
+      if (!studentId && !email) {
+        results.failed++;
+        results.errors.push({
+          row: row,
+          error: 'Missing student_id or email',
+        });
+        continue;
+      }
+
+      try {
+        // Find student
+        let studentQuery = supabaseAdmin.from('profiles').select('id, full_name, email, student_id');
+
+        if (studentId) {
+          studentQuery = studentQuery.eq('student_id', String(studentId).trim());
+        } else {
+          studentQuery = studentQuery.eq('email', String(email).trim());
+        }
+
+        const { data: student } = await studentQuery.single();
+
+        if (!student) {
+          results.failed++;
+          results.errors.push({
+            studentId: studentId || email,
+            error: 'Student not found in system',
+          });
+          continue;
+        }
+
+        // Check if already registered
+        const { data: existing } = await supabaseAdmin
+          .from('course_registrations')
+          .select('id')
+          .eq('course_id', courseId)
+          .eq('student_id', student.id)
+          .single();
+
+        if (existing) {
+          results.skipped++;
+          continue;
+        }
+
+        // Add registration
+        await supabaseAdmin.from('course_registrations').insert({
+          course_id: courseId,
+          student_id: student.id,
+        });
+
+        results.imported++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push({
+          studentId: studentId || email,
+          error: err.message,
+        });
+      }
+    }
+
+    return results;
+  },
+
+  /**
+   * Remove student from course
+   */
+  async removeStudentFromCourse(courseId, studentId) {
+    const { error } = await supabaseAdmin
+      .from('course_registrations')
+      .delete()
+      .eq('course_id', courseId)
+      .eq('student_id', studentId);
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return { deleted: true };
+  },
+
+  /**
+   * Import courses from Excel file
+   */
+  async importCoursesFromExcel(buffer) {
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows = xlsx.utils.sheet_to_json(sheet, { raw: false });
+
+    const results = {
+      imported: 0,
+      failed: 0,
+      skipped: 0,
+      errors: []
+    };
+
+    let rowIndex = 1;
+
+    for (const row of rows) {
+      rowIndex++;
+
+      // Normalize keys
+      const normalized = {};
+      Object.keys(row).forEach(k => normalized[k.trim().toLowerCase()] = row[k]);
+
+      const courseCode = normalized['course code'] || normalized['course_code'] || normalized['קוד קורס'];
+      const courseName = normalized['course name'] || normalized['course_name'] || normalized['שם קורס'];
+      const lecturerEmail = normalized['lecturer email'] || normalized['lecturer_email'] || normalized['דואל מרצה'];
+
+      // Validate required fields
+      if (!courseCode || !courseName) {
+        results.failed++;
+        results.errors.push({
+          row: rowIndex,
+          error: 'Missing course code or course name'
+        });
+        continue;
+      }
+
+      try {
+        // Check if course already exists
+        const { data: existingCourse } = await supabaseAdmin
+          .from('courses')
+          .select('id')
+          .eq('course_code', String(courseCode).trim())
+          .single();
+
+        if (existingCourse) {
+          results.skipped++;
+          continue;
+        }
+
+        // If lecturer email provided, find lecturer
+        let lecturerId = null;
+        if (lecturerEmail) {
+          const { data: lecturer } = await supabaseAdmin
+            .from('profiles')
+            .select('id, role')
+            .eq('email', lecturerEmail.trim())
+            .single();
+
+          if (lecturer && lecturer.role === 'lecturer') {
+            lecturerId = lecturer.id;
+          }
+        }
+
+        // Create course
+        const { data: newCourse, error: courseError } = await supabaseAdmin
+          .from('courses')
+          .insert({
+            course_code: String(courseCode).trim(),
+            course_name: String(courseName).trim(),
+            lecturer_id: lecturerId
+          })
+          .select('id')
+          .single();
+
+        if (courseError) {
+          throw new Error(`Failed to create course: ${courseError.message}`);
+        }
+
+        results.imported++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push({
+          courseCode: courseCode,
+          error: err.message
+        });
+      }
+    }
+
+    return results;
+  },
 };

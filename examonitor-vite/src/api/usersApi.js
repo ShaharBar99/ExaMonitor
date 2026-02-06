@@ -99,3 +99,13 @@ export async function bulkCreateUsers(formData, token) {
     token,
   });
 }
+
+export async function searchLecturerByEmail(email) {
+  if (useMock) {
+    return { users: [] };
+  }
+  const q = new URLSearchParams();
+  q.set("search", email);
+  q.set("role", "lecturer");
+  return apiFetch(`/admin/users?${q.toString()}`, { method: "GET" });
+}
