@@ -301,89 +301,97 @@ async endBreak({ attendanceId }) {
 async addStudentToExam(classroomId, studentProfileId = null, studentId = null) {
     let finalProfileId = studentProfileId;
     console.log("Adding student to classroom:", classroomId, "with profile ID:", studentProfileId, "or student ID:", studentId);
-    // 1. אם קיבלנו studentId (ת"ז) ולא UUID, נמיר אותו ל-UUID מהפרופיל
+
+    // 1. Convert student_id (ID number) to Profile UUID if needed
     if (studentId !== null && !finalProfileId) {
-        const { data: profile, error: profErr } = await supabaseAdmin
+        const { data: profiles, error: profErr } = await supabaseAdmin
             .from('profiles')
             .select('id')
-            .eq('student_id', studentId) // מחפש בעמודה של תעודות הזהות
-            .single();
+            .eq('student_id', studentId)
+            .limit(1); // Returns an array
 
-        if (profErr || !profile) {
+        if (profErr || !profiles || profiles.length === 0) {
             throw new Error(`לא נמצא סטודנט עם תעודת זהות ${studentId}`);
         }
-        finalProfileId = profile.id;
+        finalProfileId = profiles[0].id; // Extract from array
     }
-    if (finalProfileId===null) {
+
+    if (!finalProfileId) {
         throw new Error("חובה לספק מזהה פרופיל או תעודת זהות");
     }
 
-    // 2. קבלת פרטי המבחן והקורס
+    // 2. Get classroom and course details
     const { data: classroom, error: classErr } = await supabaseAdmin
         .from('classrooms')
         .select('exam_id, exams(course_id)')
         .eq('id', classroomId)
-        .single();
+        .maybeSingle();
 
-    if (classErr) throw classErr;
+    if (classErr || !classroom) throw classErr || new Error("כיתה לא נמצאה");
+    
     const examId = classroom.exam_id;
-    // 3. בדיקה שהסטודנט רשום לקורס
+
+    // 3. Verify course registration
     const { data: registration, error: regErr } = await supabaseAdmin
         .from('course_registrations')
         .select('id')
         .eq('student_id', finalProfileId)
         .eq('course_id', classroom.exams.course_id)
-        .maybeSingle(); // שימוש ב-maybeSingle גמיש יותר מ-single
+        .maybeSingle();
+
     if (regErr || !registration) {
         throw new Error("הסטודנט אינו רשום לקורס זה");
     }
 
-    // 4. חיפוש רשומה קיימת של הסטודנט במבחן הזה
-    const { data: existingAttendance, error: fetchErr } = await supabaseAdmin
+    // 4. Check for existing attendance in THIS exam
+    const { data: attendanceRecords, error: fetchErr } = await supabaseAdmin
         .from('attendance')
         .select(`
             id, 
             status,
             classroom_id,
+            check_in_time,
             classrooms!inner(exam_id)
         `)
         .eq('student_id', finalProfileId)
         .eq('classrooms.exam_id', examId)
-        .maybeSingle();
+        .limit(1);
 
     if (fetchErr) throw fetchErr;
+    
+    const existingRecord = attendanceRecords?.[0]; // Handle array result
 
-    // קביעת הסטטוס
+    // Determine status logic
     let finalStatus = 'present';
-    if (existingAttendance) {
-        if (existingAttendance.status === 'submitted' || existingAttendance.status === 'finished') {
+    if (existingRecord) {
+        if (['submitted', 'finished'].includes(existingRecord.status)) {
             finalStatus = 'submitted';
-        } else if (existingAttendance.status === 'present' || existingAttendance.status === 'exited_temporarily') {
-            finalStatus = existingAttendance.status; // שומרים על סטטוס קיים אם הוא כבר במבחן או בשירותים
+        } else if (['present', 'exited_temporarily'].includes(existingRecord.status)) {
+            finalStatus = existingRecord.status;
         }
     }
 
-    // 5. ביצוע ה-Upsert
+    // 5. Perform Upsert
     const attendanceData = {
         student_id: finalProfileId,
-        classroom_id: classroomId,
+        classroom_id: classroomId, // Move student to NEW classroom if they switched
         status: finalStatus,
-        check_in_time: existingAttendance?.check_in_time || new Date().toISOString()
+        check_in_time: existingRecord?.check_in_time || new Date().toISOString()
     };
 
-    if (existingAttendance) {
-        attendanceData.id = existingAttendance.id;
+    if (existingRecord) {
+        attendanceData.id = existingRecord.id;
     }
 
     const { data: result, error: upsertErr } = await supabaseAdmin
         .from('attendance')
-        .upsert([attendanceData])
+        .upsert(attendanceData) // Pass object directly for single row upsert
         .select(`
             id,
             status,
             profiles:student_id (id, full_name, student_id)
         `)
-        .single();
+        .single(); // Since we are upserting one row, single() is fine here
 
     if (upsertErr) throw upsertErr;
     return result;
