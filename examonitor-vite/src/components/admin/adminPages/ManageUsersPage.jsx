@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState,useRef  } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import FormField from "../../shared/FormField";
 import SelectField from "../../shared/SelectField";
 import AdminTable from "../../admin/adminComponents/AdminTable";
-import { changeUserRole, changeUserStatus, fetchUsers, filterUsers } from "../../../handlers/adminUserHandlers";
+import { changeUserRole, changeUserStatus, fetchUsers, filterUsers, deleteUser } from "../../../handlers/adminUserHandlers"; // Added deleteUser
 import { useAuth } from "../../state/AuthContext";
 import { useTheme } from "../../state/ThemeContext";
 import { useNavigate } from "react-router-dom";
@@ -23,37 +23,50 @@ export default function ManageUsersPage() {
   const fileInputRef = useRef(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
-const loadUsers = async () => {
-  setLoading(true);
-  try {
-    const res = await fetchUsers({}, {}, user?.id);
-    if (res.ok) setUsers(res.data.users || []);
-  } catch (e) {
-    setError("Failed to load users");
-  } finally {
-    setLoading(false);
-  }
-};
-
-const handleFileUpload = async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  const formData = new FormData();
-  formData.append("file", file);
-
-  try {
+  const loadUsers = async () => {
     setLoading(true);
-    await importUsers(formData);
-    await loadUsers(); // refresh table
-  } catch (err) {
-    setError(err.message || "ייבוא נכשל");
-  } finally {
-    setLoading(false);
-    e.target.value = ""; // reset input
-  }
-};
+    try {
+      const res = await fetchUsers({}, {}, user?.id);
+      if (res.ok) setUsers(res.data.users || []);
+    } catch (e) {
+      setError("Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setLoading(true);
+      await importUsers(formData);
+      await loadUsers(); // refresh table
+    } catch (err) {
+      setError(err.message || "ייבוא נכשל");
+    } finally {
+      setLoading(false);
+      e.target.value = ""; // reset input
+    }
+  };
+
+  const handleDelete = async (userId) => {
+    if (!window.confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
+
+    setRowBusyId(userId);
+    try {
+      await deleteUser(userId, { token: localStorage.getItem('token') }); // Ensure token is passed if needed, though handler does it
+      setUsers(prev => prev.filter(u => u.id !== userId));
+    } catch (err) {
+      alert("Failed to delete user: " + err.message);
+    } finally {
+      setRowBusyId("");
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -86,6 +99,7 @@ const handleFileUpload = async (e) => {
     { key: "role", header: "תפקיד" },
     { key: "status", header: "סטטוס" },
     { key: "actions", header: "ניהול" },
+    { key: "delete", header: "מחיקה" }, // Added delete column
   ]), []);
 
   const onChangeRowRole = async (userId, nextRole) => {
@@ -128,41 +142,41 @@ const handleFileUpload = async (e) => {
         </div>
 
         <div className="flex flex-col gap-2">
-        <div className="flex gap-3">
-          <input
-            type="file"
-            hidden
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            accept=".xlsx,.xls,.csv"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={loading}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${isDark
-              ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
-              : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-          >
-            📥 ייבוא מאקסל
-          </button>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
-          >
-            + הוסף משתמש
-          </button>
+          <div className="flex gap-3">
+            <input
+              type="file"
+              hidden
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".xlsx,.xls,.csv"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${isDark
+                ? "bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700"
+                : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+            >
+              📥 ייבוא מאקסל
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+            >
+              + הוסף משתמש
+            </button>
+          </div>
+
+          <div className="text-[11px] text-slate-500">
+            פורמט קובץ Excel:
+            <span className="font-mono ml-1">
+              username | email | password | role | full_name
+            </span>
+          </div>
         </div>
 
-        <div className="text-[11px] text-slate-500">
-          פורמט קובץ Excel:
-          <span className="font-mono ml-1">
-            username | email | password | role | full_name
-          </span>
-        </div>
       </div>
-
-    </div>
 
       <div className={`backdrop-blur-md shadow-2xl rounded-[30px] md:rounded-3xl p-4 md:p-8 border transition-all ${isDark ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200"
         }`}>
@@ -275,7 +289,19 @@ const handleFileUpload = async (e) => {
                     : "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white"
                     } disabled:opacity-50`}
                 >
-                  {rowBusyId === u.id ? "מעדכן..." : (u.is_active ? "השבת חשבון" : "הפעל חשבון")}
+                  {rowBusyId === u.id && u.id !== rowBusyId ? "..." : (u.is_active ? "השבת חשבון" : "הפעל חשבון")}
+                </button>
+              </td>
+
+              {/* Delete Button */}
+              <td className="px-0 md:px-4 py-4 block md:table-cell text-center md:text-right">
+                <button
+                  onClick={() => handleDelete(u.id)}
+                  disabled={rowBusyId === u.id}
+                  className="text-lg opacity-50 hover:opacity-100 hover:scale-110 transition-all text-red-500"
+                  title="מחק משתמש"
+                >
+                  🗑️
                 </button>
               </td>
             </tr>

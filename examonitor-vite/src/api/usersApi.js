@@ -70,6 +70,21 @@ export async function createUser(userData, token) {
     body: userData,
     token,
   });
+  return apiFetch("/admin/users", {
+    method: "POST",
+    body: userData,
+    token,
+  });
+}
+
+export async function deleteUser(userId, token) {
+  if (useMock) {
+    return { success: true };
+  }
+  return apiFetch(`/admin/users/${userId}`, {
+    method: "DELETE",
+    token
+  });
 }
 
 export async function bulkCreateUsers(formData, token) {

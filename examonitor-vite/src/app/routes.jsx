@@ -15,6 +15,7 @@ import AdminLayout from "../components/admin/adminComponents/AdminLayout"; // Ad
 import ManageUsersPage from "../components/admin/adminPages/ManageUsersPage"; // Admin route page
 import AuditTrailPage from "../components/admin/adminPages/AuditTrailPage"; // Admin route page
 import SecurityAlertsPage from "../components/admin/adminPages/SecurityAlertsPage"; // Admin route page
+import ManageExamsPage from "../components/admin/adminPages/ManageExamsPage"; // Admin route page
 
 export default function AppRoutes() { // Export a component that holds the route table
   const navigate = useNavigate(); // Router navigation
@@ -28,6 +29,7 @@ export default function AppRoutes() { // Export a component that holds the route
         <Route path="users" element={<ManageUsersPage />} /> {/* Admin users */}
         <Route path="audit" element={<AuditTrailPage />} /> {/* Admin audit trail */}
         <Route path="security" element={<SecurityAlertsPage />} /> {/* Admin security alerts */}
+        <Route path="exams" element={<ManageExamsPage />} /> {/* Admin exams */}
       </Route> {/* End admin wrapper */}
 
       <Route path="/" element={<Navigate to="/login" replace />} /> {/* Default route */}

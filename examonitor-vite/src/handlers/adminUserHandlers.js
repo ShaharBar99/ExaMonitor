@@ -71,6 +71,20 @@ export async function createNewUser(userData, deps = {}) {
   return { ok: true, data };
 }
 
+export async function deleteUser(userId, deps = {}) {
+  const usersApi = deps.usersApi || usersApiDefault;
+  const token = deps.token ?? (localStorage.getItem("token") || sessionStorage.getItem("token"));
+  // We need to implement deleteUser in logic or assume apiFetch direct usage or add to usersApi
+  // Let's add it to usersApi first or call it directly if usage allows.
+  // Given the pattern, let's call usersApi wrapper if exists, but usersApi seems to be a wrapper.
+  // Let's check usersApi.js content via previous context... it doesn't have delete.
+  // So we should add deleteUser to usersApi.js first or implement it here using apiFetch if exposed.
+  // But this file imports * as userApiDefault. 
+  // Let's assume we will add it to usersApi.js.
+  const data = await usersApi.deleteUser(String(userId), token);
+  return { ok: true, data };
+}
+
 export async function importUsers(formData, deps = {}) {
   const usersApi = deps.usersApi || usersApiDefault;
   const token = deps.token ?? (localStorage.getItem("token") || sessionStorage.getItem("token"));
