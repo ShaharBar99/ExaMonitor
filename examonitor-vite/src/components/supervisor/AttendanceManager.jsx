@@ -4,6 +4,8 @@ import { classroomHandler } from '../../handlers/classroomHandlers';
 import StudentGrid from './StudentGrid';
 import StatCard from '../exam/StatCard'; // Adjusted path based on your imports
 import AdmissionScanner from './AdmissionScanner';
+import { useAuth } from '../state/AuthContext';
+import { useExam } from '../state/ExamContext';
 
 export default function AttendanceManager({ 
   examId, 
@@ -23,12 +25,16 @@ export default function AttendanceManager({
   // --- Move Student Logic State ---
   const [studentToMove, setStudentToMove] = useState(null); 
   const [otherClassrooms, setOtherClassrooms] = useState([]); 
+  const { user } = useAuth();
+  const { setExamData } = useExam();
 
   // --- Refs for Search and Scanner Lock ---
   const searchTimeout = useRef(null);
   const lastScannedId = useRef(null);
   const scanLock = useRef(false);
-
+  useEffect(() => {
+      attendanceHandlers.initSupervisorConsole(examId ? examId: null, user.id, setStudents, ()=> {}, setExamData);
+    }, [examId, user.id, setExamData]);
   // --- 1. Status Change Logic ---
   const handleStatusChange = async (id, status) => {
     const student = students.find(s => s.id === id || s.studentId === id);
@@ -93,8 +99,9 @@ export default function AttendanceManager({
   const handleExecuteMove = async (targetRoomId) => {
     if (!studentToMove) return;
     try {
+      console.log("Moving student", studentToMove, "to room", targetRoomId);
       await attendanceHandlers.handleRemoveStudent(studentToMove.id, setStudents);
-      await attendanceHandlers.handleAddStudent(targetRoomId, null, () => {}, studentToMove.studentId);
+      await attendanceHandlers.handleAddStudent(targetRoomId, studentToMove?.profileId ? studentToMove.profileId : studentToMove.profiles.id, () => {}, studentToMove.studentId);
       setBotMsg({ text: `🔄 הסטודנט ${studentToMove.name} הועבר בהצלחה לחדר אחר.` });
       setStudentToMove(null);
     } catch (err) {

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../lib/supabaseClient.js';
+import validationService from './validationService.js';
 
 export const ClassroomService = {
   // GET /classrooms?exam_id=... or ?lecturer_id=...
@@ -244,6 +245,33 @@ export const ClassroomService = {
     const update = {};
     if (supervisor_id !== undefined) update.supervisor_id = supervisor_id;
     if (floor_supervisor_id !== undefined) update.floor_supervisor_id = floor_supervisor_id;
+
+    // Fetch existing classroom to get exam context for validation
+    const { data: existing, error: fetchErr } = await supabaseAdmin
+      .from('classrooms')
+      .select('id, exam_id, room_number')
+      .eq('id', classroomId)
+      .single();
+
+    if (fetchErr || !existing) {
+      const err = new Error('Classroom not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const conflicts = await validationService.check_conflicts('assign_supervisor', {
+      existing_classroom_id: classroomId,
+      exam_id: existing.exam_id,
+      room_number: existing.room_number,
+      supervisor_id: supervisor_id,
+      floor_supervisor_id: floor_supervisor_id,
+    });
+
+    if (conflicts && conflicts.length > 0) {
+      const err = new Error(conflicts.join('; '));
+      err.status = 409;
+      throw err;
+    }
 
     const { data, error } = await supabaseAdmin
       .from('classrooms')

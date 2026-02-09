@@ -207,20 +207,44 @@ export const ExamService = {
       const { data: classrooms, error: roomsErr } = await supabaseAdmin
         .from('classrooms')
         .select('id')
-        .eq('exam_id', examId)
-        .eq('supervisor_id', userId); // רק חדרים ללא משגיח מוקצה
+        .eq('exam_id', examId);
 
       if (roomsErr) throw roomsErr;
 
       const roomIds = classrooms.map(r => r.id);
 
       if (roomIds.length > 0) {
+        const now = new Date().toISOString();
+
+        // Find and close all open breaks for students in these classrooms
+        const { data: studentsOnBreak, error: breakFetchErr } = await supabaseAdmin
+          .from('attendance')
+          .select('id')
+          .in('classroom_id', roomIds)
+          .eq('status', 'exited_temporarily');
+        
+        if (breakFetchErr) {
+          console.error("Error fetching students on break:", breakFetchErr);
+        } else if (studentsOnBreak && studentsOnBreak.length > 0) {
+          const attendanceIdsOnBreak = studentsOnBreak.map(a => a.id);
+          
+          const { error: breakUpdateErr } = await supabaseAdmin
+            .from('student_breaks')
+            .update({ return_time: now })
+            .in('attendance_id', attendanceIdsOnBreak)
+            .is('return_time', null);
+            
+          if (breakUpdateErr) {
+            console.error("Error closing open breaks:", breakUpdateErr);
+          }
+        }
+
         // שלב ב': עדכון כל הסטודנטים בחדרים האלו שנמצאים בסטטוס פעיל
         const { error: attError } = await supabaseAdmin
           .from('attendance')
           .update({ 
             status: 'submitted', 
-            check_out_time: new Date().toISOString()
+            check_out_time: now
           })
           .in('classroom_id', roomIds) // שימוש ב-classroom_id במקום exam_id
           .in('status', ['present', 'exited_temporarily']);
@@ -229,7 +253,9 @@ export const ExamService = {
       }
 
       // 3. יצירת הדוח - הוספתי await כדי להבטיח שהדוח ייווצר רק אחרי שהסטודנטים עודכנו
-      report = await this.finalizeAndSaveReport(examId, userId, classrooms[0]?.id); // שימוש ב-classroom_id
+      if (classrooms && classrooms.length > 0) {
+        report = await this.finalizeAndSaveReport(examId, userId, classrooms[0]?.id); // שימוש ב-classroom_id
+      }
     }
 
     return { exam: examData, report };

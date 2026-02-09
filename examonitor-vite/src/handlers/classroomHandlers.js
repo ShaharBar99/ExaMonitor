@@ -73,7 +73,7 @@ export const classroomHandler = {
       }
     } catch (error) {
       console.error("Assignment failed:", error);
-      alert("פעולת השיבוץ נכשלה ברמת השרת");
+      alert(error.message || "פעולת השיבוץ נכשלה ברמת השרת");
     }
   },
 

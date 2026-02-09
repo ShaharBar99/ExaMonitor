@@ -1,5 +1,15 @@
 import { supabaseAdmin } from '../lib/supabaseClient.js';
 import xlsx from 'xlsx';
+import validationService from './validationService.js';
+
+async function logAudit(userId, action, metadata = {}) {
+  try {
+    if (!userId) return;
+    await supabaseAdmin.from('audit_trail').insert({ user_id: userId, action, metadata });
+  } catch (err) {
+    console.error('Failed to write audit log', err);
+  }
+}
 
 export const AdminService = {
   /**
@@ -9,7 +19,7 @@ export const AdminService = {
   async listUsers() {
     const { data, error } = await supabaseAdmin
       .from('profiles')
-      .select('id, full_name, email, role, created_at, username, is_active')
+      .select('id, full_name, email, role, created_at, username, is_active, student_id')
     console.log('AdminService.listUsers: fetched', data); // Debug log
 
     if (error) {
@@ -25,18 +35,18 @@ export const AdminService = {
       email: u.email ?? '',
       role: u.role ?? 'student',
       username: u.username ?? '',
+      student_id: u.student_id ?? '',
       is_active: u.is_active ?? true,          // placeholder (no column yet)
       created_at: u.created_at, // real if exists
       permissions: [],          // placeholder (no column yet)
     }));
   },
 
-  async updateUserStatus(userId, is_active) {
+  async updateUserRole(userId, role) {
     const { data, error } = await supabaseAdmin
       .from('profiles')
-      .update({ is_active: !!is_active })
-      .eq('id', userId)
-      .select('id, full_name, email, role, created_at, username, is_active')
+      .update({ role })
+      .eq('id', userId).select('id, full_name, email, role, created_at, username, is_active, student_id')
       .single();
 
     if (error) {
@@ -45,18 +55,145 @@ export const AdminService = {
       throw err;
     }
 
+    // Also update auth metadata
+    await supabaseAdmin.auth.admin.updateUserById(userId, {
+      user_metadata: { role }
+    });
+
+    await logAudit(null, 'UPDATE_USER_ROLE', { user_id: userId, new_role: role });
+
     return {
       id: data.id,
       full_name: data.full_name ?? '',
       email: data.email ?? '',
       role: data.role ?? 'student',
       username: data.username ?? '',
+      student_id: data.student_id ?? '',
+      is_active: data.is_active ?? true,
+      created_at: data.created_at,
+      permissions: [],
+    };
+  },
+
+  async updateUserStatus(userId, is_active) {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .update({ is_active: !!is_active })
+      .eq('id', userId)
+      .select('id, full_name, email, role, created_at, username, is_active, student_id')
+      .single();
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    await logAudit(null, 'UPDATE_USER_STATUS', { user_id: userId, is_active: !!is_active });
+
+    return {
+      id: data.id,
+      full_name: data.full_name ?? '',
+      email: data.email ?? '',
+      role: data.role ?? 'student',
+      username: data.username ?? '',
+      student_id: data.student_id ?? '',
       is_active: data.is_active ?? true,
       created_at: data.created_at,
       permissions: [],
     };
   }
   ,
+
+  async updateUser(userId, { full_name, username, email, password, role, is_active }) {
+    const updates = {};
+    if (full_name !== undefined) updates.full_name = full_name;
+    if (username !== undefined) updates.username = username;
+    if (email !== undefined) updates.email = email;
+    if (role !== undefined) updates.role = role;
+    if (is_active !== undefined) updates.is_active = !!is_active;
+    // student_id is intentionally not updatable
+    // password is not stored in profiles table, handled separately for auth user
+
+    if (Object.keys(updates).length === 0 && !password) {
+      const err = new Error('No updates provided'); err.status = 400; throw err;
+    }
+
+    // --- Conflict Checks ---
+    if (updates.username) {
+      const { data: existing } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('username', updates.username)
+        .neq('id', userId)
+        .single();
+      if (existing) {
+        const err = new Error('Username already taken'); err.status = 409; throw err;
+      }
+    }
+    if (updates.email) {
+        const { data: existing } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('email', updates.email)
+            .neq('id', userId)
+            .single();
+        if (existing) {
+            const err = new Error('Email already in use'); err.status = 409; throw err;
+        }
+    }
+
+    // --- Auth User Update ---
+    const authUpdates = {};
+    const user_metadata = {};
+    if (updates.email) authUpdates.email = updates.email;
+    if (password) authUpdates.password = password;
+    if (updates.full_name) user_metadata.full_name = updates.full_name;
+    if (updates.role) user_metadata.role = updates.role;
+    if (updates.username) user_metadata.username = updates.username;
+    if (Object.keys(user_metadata).length > 0) {
+        const { data: { user: currentUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
+        authUpdates.user_metadata = { ...currentUser.user_metadata, ...user_metadata };
+    }
+
+    if (Object.keys(authUpdates).length > 0) {
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(userId, authUpdates);
+      if (authError) {
+        const err = new Error(`Auth update failed: ${authError.message}`);
+        err.status = authError.status || 500;
+        throw err;
+      }
+    }
+
+    // --- Profile Update ---
+    let data, error;
+    if (Object.keys(updates).length > 0) {
+        const { data: profileData, error: profileError } = await supabaseAdmin
+            .from('profiles')
+            .update(updates)
+            .eq('id', userId).select('id, full_name, email, role, created_at, username, is_active, student_id')
+            .single();
+        data = profileData;
+        error = profileError;
+    } else {
+        // If only password was changed, we still need to fetch the user data to return
+        const { data: profileData, error: profileError } = await supabaseAdmin
+            .from('profiles').select('id, full_name, email, role, created_at, username, is_active, student_id')
+            .eq('id', userId)
+            .single();
+        data = profileData;
+        error = profileError;
+    }
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    await logAudit(null, 'UPDATE_USER', { user_id: userId, updates: { ...updates, password: password ? 'updated' : 'not-updated' } });
+
+    return data;
+  },
 
   async updateUserPermissions(userId, permissions) {
     // Placeholder because DB might not have permissions column.
@@ -155,7 +292,26 @@ export const AdminService = {
   },
 
 
-  async createUser({ full_name, username, email, password, role }) {
+  async createUser({ full_name, username, email, password, role, student_id }) {
+    // 1. Validate student_id if role is student
+    if (role === 'student') {
+      if (!student_id) {
+        const err = new Error('Student ID is required for student role');
+        err.status = 400;
+        throw err;
+      }
+      // Check for duplicate student_id
+      const { data: existingStudent } = await supabaseAdmin
+        .from('profiles')
+        .select('student_id')
+        .eq('student_id', student_id)
+        .single();
+      if (existingStudent) {
+        const err = new Error('A user with this Student ID already exists');
+        err.status = 409;
+        throw err;
+      }
+    }
     // 1. Check if user already exists in profiles (optional, but good for custom error)
     const { data: existingUser } = await supabaseAdmin
       .from('profiles')
@@ -188,16 +344,19 @@ export const AdminService = {
     // 3. Upsert into profiles table
     // Note: If you have a Trigger, this might be redundant or cause conflict depending on logic.
     // Assuming manual sync is safe/required as per authService logic.
-    const { error: profileError } = await supabaseAdmin.from('profiles').upsert([
-      {
-        id: user.id,
-        email: user.email,
-        full_name: full_name,
-        role,
-        username,
-        is_active: true
-      },
-    ]);
+    const profileData = {
+      id: user.id,
+      email: user.email,
+      full_name: full_name,
+      role,
+      username,
+      is_active: true,
+    };
+
+    if (role === 'student' && student_id) {
+      profileData.student_id = student_id;
+    }
+    const { error: profileError } = await supabaseAdmin.from('profiles').upsert([profileData]);
 
     if (profileError) {
       // Cleanup auth user if profile fails
@@ -213,6 +372,7 @@ export const AdminService = {
       full_name: full_name,
       role: role,
       username: username,
+      student_id: role === 'student' ? student_id : null,
       is_active: true,
       created_at: new Date().toISOString(),
       permissions: [],
@@ -245,6 +405,7 @@ export const AdminService = {
       const email = normalized.email || normalized['אימייל'];
       const password = normalized.password || normalized['סיסמה'];
       const role = normalized.role || normalized['תפקיד'] || 'student';
+      const student_id = normalized.student_id || normalized['student id'] || normalized['מספר סטודנט'];
 
       if (!username || !email || !password) {
         results.failed++;
@@ -261,7 +422,8 @@ export const AdminService = {
           username,
           email,
           password,
-          role
+          role,
+          student_id: role === 'student' ? student_id : undefined,
         });
         results.success++;
         results.created.push(newUser.username);
@@ -271,6 +433,46 @@ export const AdminService = {
       }
     }
 
+    return results;
+  },
+
+  async importExamsFromExcel(buffer, adminUserId) {
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows = xlsx.utils.sheet_to_json(sheet, { raw: false });
+
+    const results = { success: 0, failed: 0, errors: [] };
+
+    for (const row of rows) {
+      const normalized = {};
+      Object.keys(row).forEach((k) => {
+        normalized[k.toLowerCase().trim()] = row[k];
+      });
+
+      const courseCode = normalized['course code'] || normalized['course_code'];
+      const courseName = normalized['course name'] || normalized['course_name'];
+      const lecturerEmail = normalized['lecturer email'] || normalized['lecturer_email'];
+      const examDate = normalized['date'] || normalized['exam date'];
+      const examTime = normalized['time'] || normalized['exam time'];
+      const duration = normalized['duration'];
+
+      if (!courseCode || !examDate || !examTime || !duration || !lecturerEmail) {
+        results.failed++;
+        results.errors.push({ row, error: 'Missing required fields (course_code, date, time, duration, lecturer_email)' });
+        continue;
+      }
+
+      try {
+        await this.createExam({
+          courseCode, courseName, lecturerEmail, examDate, examTime, duration,
+        }, adminUserId);
+        results.success++;
+      } catch (err) {
+        results.failed++;
+        results.errors.push({ row, error: err.message });
+      }
+    }
     return results;
   },
 
@@ -339,6 +541,7 @@ export const AdminService = {
         status: e.status,
         course_name: e.courses?.course_name || 'Unknown',
         course_code: e.courses?.course_code || 'Unknown',
+        course_id: e.courses?.id || null,
         lecturer_name: lecturer.full_name || '',
         lecturer_email: lecturer.email || '',
       };
@@ -459,162 +662,92 @@ export const AdminService = {
     return newExam;
   },
 
-  async importExamsFromExcel(buffer, adminUserId) {
-    const workbook = xlsx.read(buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    // raw: false ensures we get formatted strings if needed
-    const rows = xlsx.utils.sheet_to_json(sheet, { raw: false });
 
-    const results = {
-      success: 0,
-      failed: 0,
-      errors: []
-    };
+  /**
+   * Update an exam's time/duration/course and validate conflicts
+   */
+  async updateExam(examId, { original_start_time, original_duration, extra_time, course_id }, adminUserId) {
+    // Build update payload
+    const updates = {};
+    if (original_start_time !== undefined) updates.original_start_time = original_start_time;
+    if (original_duration !== undefined) updates.original_duration = Number(original_duration);
+    if (extra_time !== undefined) updates.extra_time = Number(extra_time);
+    if (course_id !== undefined) updates.course_id = course_id;
 
-    let rowIndex = 1;
-
-    for (const row of rows) {
-      rowIndex++;
-
-      // Keys (normalize)
-      const normalized = {};
-      Object.keys(row).forEach(k => normalized[k.trim().toLowerCase()] = row[k]);
-
-      const lecturerEmail = normalized['lecturer email'] || normalized['lecturer_email'] || normalized['דואל מרצה'] || normalized['אימייל מרצה'];
-      const courseName = normalized['course name'] || normalized['course_name'] || normalized['שם קורס'];
-      const courseCode = normalized['course code'] || normalized['course_code'] || normalized['קוד קורס'];
-      const examDate = normalized['exam date'] || normalized['exam_date'] || normalized['תאריך בחינה'];
-      const examTime = normalized['exam time'] || normalized['exam_time'] || normalized['שעת התחלה'];
-      const duration = normalized['duration'] || normalized['original_duration'] || normalized['משך בחינה'];
-
-      // Basic Validation
-      if (!lecturerEmail || !courseCode || !examDate || !examTime || !duration) {
-        results.failed++;
-        results.errors.push({
-          row: rowIndex,
-          error: `Missing fields. Found: Email=${lecturerEmail}, Code=${courseCode}, Date=${examDate}, Time=${examTime}, Duration=${duration}`
-        });
-        continue;
-      }
-
-      try {
-        // 1. Identify Lecturer
-        const { data: lecturer, error: lecturerError } = await supabaseAdmin
-          .from('profiles')
-          .select('id, role')
-          .eq('email', lecturerEmail.trim())
-          .single();
-
-        if (lecturerError || !lecturer) {
-          throw new Error(`Lecturer not found: ${lecturerEmail}`);
-        }
-        if (lecturer.role !== 'lecturer') {
-          throw new Error(`User ${lecturerEmail} is not a lecturer`);
-        }
-
-        // 2. Handle Course
-        let courseId;
-        const { data: existingCourse } = await supabaseAdmin
-          .from('courses')
-          .select('id')
-          .eq('course_code', String(courseCode).trim())
-          .single();
-
-        if (existingCourse) {
-          courseId = existingCourse.id;
-        } else {
-          if (!courseName) throw new Error(`Course ${courseCode} not found and no name provided`);
-
-          const { data: newCourse, error: createCourseError } = await supabaseAdmin
-            .from('courses')
-            .insert({
-              course_code: String(courseCode).trim(),
-              course_name: String(courseName).trim(),
-              lecturer_id: lecturer.id
-            })
-            .select('id')
-            .single();
-
-          if (createCourseError) throw new Error(`Create course failed: ${createCourseError.message}`);
-          courseId = newCourse.id;
-        }
-
-        // 3. Prepare Start Time
-        const combinedDateTimeStr = `${examDate} ${examTime}`;
-        // Attempt parsing - expecting standard formats mostly. 
-        // If imports fail due to date format, we might need luxon or moment, but trying native first.
-        const startTimestamp = new Date(combinedDateTimeStr);
-
-        if (isNaN(startTimestamp.getTime())) {
-          throw new Error(`Invalid date/time: ${combinedDateTimeStr}`);
-        }
-
-        const isoStartTime = startTimestamp.toISOString();
-
-        // 4. Validation (Duplicates)
-        const { data: existingExam, error: conflictError } = await supabaseAdmin
-          .from('exams')
-          .select('id')
-          .eq('course_id', courseId)
-          .eq('original_start_time', isoStartTime)
-          .maybeSingle();
-
-        if (conflictError) throw new Error(`Conflict check failed: ${conflictError.message}`);
-
-        if (existingExam) {
-          throw new Error(`Exam already exists for ${courseCode} at ${combinedDateTimeStr}`);
-        }
-
-        // 5. Insert Exam
-        const { data: newExam, error: insertExamError } = await supabaseAdmin
-          .from('exams')
-          .insert({
-            course_id: courseId,
-            original_start_time: isoStartTime,
-            original_duration: Number(duration),
-            status: 'pending'
-          })
-          .select('id')
-          .single();
-
-        if (insertExamError) throw new Error(`Insert exam failed: ${insertExamError.message}`);
-
-        // 6. Link Lecturer
-        const { error: linkError } = await supabaseAdmin
-          .from('exam_lecturers')
-          .insert({
-            exam_id: newExam.id,
-            lecturer_id: lecturer.id
-          });
-
-        if (linkError) {
-          // Rollback exam
-          await supabaseAdmin.from('exams').delete().eq('id', newExam.id);
-          throw new Error(`Link lecturer failed, exam rollback: ${linkError.message}`);
-        }
-
-        results.success++;
-
-      } catch (err) {
-        results.failed++;
-        results.errors.push({
-          row: rowIndex,
-          error: err.message
-        });
-      }
+    if (Object.keys(updates).length === 0) {
+      const err = new Error('No updates provided'); err.status = 400; throw err;
     }
 
-    // Audit Trail
-    if (results.success > 0 || results.failed > 0) {
-      await supabaseAdmin.from('audit_trail').insert({
-        user_id: adminUserId,
-        action: 'IMPORT_EXAMS',
-        metadata: { success: results.success, failed: results.failed, filename: 'excel_upload' }
+    // Normalize start time if provided
+    if (updates.original_start_time) {
+      const dt = new Date(updates.original_start_time);
+      if (isNaN(dt.getTime())) {
+        const err = new Error('Invalid original_start_time'); err.status = 400; throw err;
+      }
+      updates.original_start_time = dt.toISOString();
+    }
+
+    // Fetch existing exam to know current window
+    const { data: existingExam, error: existingExamErr } = await supabaseAdmin
+      .from('exams')
+      .select('id, course_id, original_start_time, original_duration, extra_time')
+      .eq('id', examId)
+      .single();
+
+    if (existingExamErr || !existingExam) {
+      const err = new Error('Exam not found'); err.status = 404; throw err;
+    }
+
+    const newStart = updates.original_start_time || existingExam.original_start_time;
+    const newDuration = updates.original_duration || existingExam.original_duration;
+    const newExtra = updates.extra_time !== undefined ? updates.extra_time : existingExam.extra_time;
+
+    // Validate conflicts for all classrooms attached to this exam
+    const { data: classrooms, error: clsErr } = await supabaseAdmin
+      .from('classrooms')
+      .select('id, room_number, supervisor_id')
+      .eq('exam_id', examId);
+
+    if (clsErr) {
+      const err = new Error(clsErr.message); err.status = 500; throw err;
+    }
+
+    for (const cls of (classrooms || [])) {
+      const conflicts = await validationService.check_conflicts('exam_update', {
+        exam_id: examId,
+        existing_classroom_id: cls.id,
+        room_number: cls.room_number,
+        supervisor_id: cls.supervisor_id,
+        new_start_time: newStart,
+        original_duration: newDuration,
+        extra_time: newExtra,
       });
+      if (conflicts && conflicts.length > 0) {
+        const err = new Error(conflicts.join('; ')); err.status = 409; throw err;
+      }
     }
 
-    return results;
+    // Apply update
+    const { data: updatedExam, error: updateError } = await supabaseAdmin
+      .from('exams')
+      .update(updates)
+      .eq('id', examId)
+      .select('id, course_id, original_start_time, original_duration, extra_time, status')
+      .single();
+
+    if (updateError) {
+      const err = new Error(updateError.message); err.status = 400; throw err;
+    }
+
+    // Audit
+    try {
+      await logAudit(adminUserId, 'UPDATE_EXAM', { exam_id: examId, updates });
+    } catch (e) {
+      // swallow audit errors
+      console.error('Audit write failed', e.message);
+    }
+
+    return updatedExam;
   },
 
   /**
@@ -1235,7 +1368,7 @@ export const AdminService = {
     }));
   },
 
-  async createClassroomForAdmin(classroomData) {
+  async createClassroomForAdmin(classroomData, adminUserId) {
     const { exam_id, room_number, supervisor_id, floor_supervisor_id } = classroomData;
 
     if (!exam_id || !room_number) {
@@ -1254,6 +1387,19 @@ export const AdminService = {
     if (examError || !exam) {
       const err = new Error('Exam not found');
       err.status = 404;
+      throw err;
+    }
+
+    // Run conflict validations (classroom allocation & supervisor scheduling)
+    const conflicts = await validationService.check_conflicts('classroom_create', {
+      exam_id,
+      room_number: room_number,
+      supervisor_id,
+    });
+
+    if (conflicts && conflicts.length > 0) {
+      const err = new Error(conflicts.join('; '));
+      err.status = 409; // conflict
       throw err;
     }
 
@@ -1289,7 +1435,7 @@ export const AdminService = {
       throw err;
     }
 
-    return {
+    const result = {
       classroom: {
         id: data.id,
         room_number: data.room_number,
@@ -1300,15 +1446,45 @@ export const AdminService = {
         floor_supervisor_name: data.floor_supervisor?.full_name || null,
       },
     };
+
+    await logAudit(adminUserId, 'create_classroom', { classroom: result.classroom });
+    return result;
   },
 
-  async updateClassroomForAdmin(classroomId, classroomData) {
-    const { room_number, supervisor_id, floor_supervisor_id } = classroomData;
+  async updateClassroomForAdmin(classroomId, classroomData, adminUserId) {
+    const { room_number, supervisor_id, floor_supervisor_id, exam_id } = classroomData;
 
     const updateData = {};
     if (room_number !== undefined) updateData.room_number = String(room_number).trim();
     if (supervisor_id !== undefined) updateData.supervisor_id = supervisor_id;
     if (floor_supervisor_id !== undefined) updateData.floor_supervisor_id = floor_supervisor_id;
+    if (exam_id !== undefined) updateData.exam_id = exam_id;
+
+    // Fetch existing classroom to get exam context
+    const { data: existing, error: fetchErr } = await supabaseAdmin
+      .from('classrooms')
+      .select('id, exam_id, room_number')
+      .eq('id', classroomId)
+      .single();
+
+    if (fetchErr || !existing) {
+      const err = new Error('Classroom not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const conflicts = await validationService.check_conflicts('classroom_update', {
+      existing_classroom_id: classroomId,
+      exam_id: updateData.exam_id || existing.exam_id,
+      room_number: updateData.room_number || existing.room_number,
+      supervisor_id: updateData.supervisor_id,
+    });
+
+    if (conflicts && conflicts.length > 0) {
+      const err = new Error(conflicts.join('; '));
+      err.status = 409;
+      throw err;
+    }
 
     const { data, error } = await supabaseAdmin
       .from('classrooms')
@@ -1337,7 +1513,7 @@ export const AdminService = {
       throw err;
     }
 
-    return {
+    const result = {
       classroom: {
         id: data.id,
         room_number: data.room_number,
@@ -1348,6 +1524,8 @@ export const AdminService = {
         floor_supervisor_name: data.floor_supervisor?.full_name || null,
       },
     };
+    await logAudit(adminUserId, 'update_classroom', { classroom: result.classroom });
+    return result;
   },
 
   async deleteClassroomForAdmin(classroomId) {
@@ -1365,7 +1543,7 @@ export const AdminService = {
     return { success: true };
   },
 
-  async assignSupervisorsToClassroom(classroomId, assignmentData) {
+  async assignSupervisorsToClassroom(classroomId, assignmentData, adminUserId) {
     const { supervisor_id, floor_supervisor_id } = assignmentData;
 
     const updateData = {};
@@ -1375,6 +1553,33 @@ export const AdminService = {
     if (Object.keys(updateData).length === 0) {
       const err = new Error('At least one supervisor field is required');
       err.status = 400;
+      throw err;
+    }
+
+    // Validate supervisor scheduling conflicts
+    const { data: existing } = await supabaseAdmin
+      .from('classrooms')
+      .select('id, exam_id, room_number')
+      .eq('id', classroomId)
+      .single();
+
+    if (!existing) {
+      const err = new Error('Classroom not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const conflicts = await validationService.check_conflicts('assign_supervisor', {
+      existing_classroom_id: classroomId,
+      exam_id: existing.exam_id,
+      room_number: existing.room_number,
+      supervisor_id: supervisor_id,
+      floor_supervisor_id: floor_supervisor_id,
+    });
+
+    if (conflicts && conflicts.length > 0) {
+      const err = new Error(conflicts.join('; '));
+      err.status = 409;
       throw err;
     }
 
@@ -1405,7 +1610,7 @@ export const AdminService = {
       throw err;
     }
 
-    return {
+    const result = {
       classroom: {
         id: data.id,
         room_number: data.room_number,
@@ -1416,6 +1621,9 @@ export const AdminService = {
         floor_supervisor_name: data.floor_supervisor?.full_name || null,
       },
     };
+
+    await logAudit(adminUserId, 'assign_supervisors', { classroom: result.classroom, assignment: assignmentData });
+    return result;
   },
 
   async getSupervisorsForAssignment() {
@@ -1440,7 +1648,7 @@ export const AdminService = {
     }));
   },
 
-  async importClassroomsFromExcel(buffer) {
+  async importClassroomsFromExcel(buffer, adminUserId) {
     console.log("Starting classroom import...");
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
@@ -1534,6 +1742,22 @@ export const AdminService = {
           .eq('exam_id', String(examId).trim())
           .single();
 
+        // Run conflict checks before update/create
+        const conflicts = await validationService.check_conflicts('import_row', {
+          existing_classroom_id: existingClassroom?.id,
+          exam_id: String(examId).trim(),
+          room_number: String(roomNumber).trim(),
+          supervisor_id: supervisorId,
+          floor_supervisor_id: floorSupervisorId,
+        });
+
+        if (conflicts && conflicts.length > 0) {
+          results.failed++;
+          results.errors.push({ row: rowIndex, roomNumber: roomNumber, error: conflicts.join('; ') });
+          console.log(`  -> FAILED: Conflicts: ${conflicts.join('; ')}`);
+          continue;
+        }
+
         if (existingClassroom) {
           // UPDATE existing classroom with new supervisor assignments
           const { data: updatedClassroom, error: updateError } = await supabaseAdmin
@@ -1584,6 +1808,11 @@ export const AdminService = {
     }
 
     console.log(`Import complete: imported=${results.imported}, updated=${results.updated}, failed=${results.failed}`);
+    try {
+      await logAudit(adminUserId, 'import_classrooms', { summary: results });
+    } catch (err) {
+      console.error('Failed to log audit for import', err);
+    }
     return results;
   },
 };

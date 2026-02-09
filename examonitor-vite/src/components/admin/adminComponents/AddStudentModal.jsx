@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { fetchAvailableStudents, addStudentToCourseHandler } from "../../../handlers/courseHandlers";
 
-export default function AddStudentModal({ courseId, onClose, onStudentAdded, isDark }) {
+export default function AddStudentModal({ courseId, onClose, onAdded, isDark }) {
   const [available, setAvailable] = useState([]);
   const [search, setSearch] = useState("");
 
@@ -22,7 +22,7 @@ export default function AddStudentModal({ courseId, onClose, onStudentAdded, isD
     try {
       const res = await addStudentToCourseHandler(courseId, student);
       if (res.ok) {
-        onStudentAdded(student);
+        onAdded(student);
         setAvailable(prev => prev.filter(s => s.id !== student.id));
       }
     } catch (err) { alert(err.message); }

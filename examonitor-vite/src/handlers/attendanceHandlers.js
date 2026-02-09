@@ -139,7 +139,7 @@ export const attendanceHandlers = {
       setStudents(prev => prev.map(s => s.id === studentId || s.attendanceId === studentId ? { ...s, status: 'exited_temporarily' } : s));
     } catch (error) {
       console.error("Failed to start break:", error);
-      alert("נכשל בהתחלת הפסקה");
+      alert("נכשל בהתחלת הפסקה: סטודנט אחר נמצא בשירותים");
     }
   },
 

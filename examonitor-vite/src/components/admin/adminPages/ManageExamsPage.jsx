@@ -1,249 +1,222 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useTheme } from "../../state/ThemeContext";
-import { importExams, fetchExams, deleteExam } from "../../../handlers/adminExamHandlers";
-import AdminTable from "../adminComponents/AdminTable";
+import { fetchExams, deleteExam, importExams } from "../../../handlers/adminExamHandlers";
 import CreateExamModal from "../adminComponents/CreateExamModal";
-import FormField from "../../shared/FormField";
-import SelectField from "../../shared/SelectField";
+import AdminTable from "../adminComponents/AdminTable";
 
 export default function ManageExamsPage() {
-    const { isDark } = useTheme();
-    const [loading, setLoading] = useState(false);
-    const [exams, setExams] = useState([]);
-    const [error, setError] = useState("");
+  const { isDark } = useTheme();
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [rowBusyId, setRowBusyId] = useState(null);
 
-    // Import State
-    const [importResult, setImportResult] = useState(null);
-    const fileInputRef = useRef(null);
-    const [importLoading, setImportLoading] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingExam, setEditingExam] = useState(null);
+  const fileInputRef = useRef(null);
 
-    // Modal State
-    const [showCreateModal, setShowCreateModal] = useState(false);
+  const loadExams = async () => {
+    setLoading(true);
+    try {
+      const filters = {};
+      if (search) filters.q = search;
+      if (statusFilter) filters.status = statusFilter;
+      const data = await fetchExams(filters);
+      setExams(data.items || []);
+    } catch (err) {
+      console.error("Failed to load exams", err);
+      alert("Failed to load exams");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Filters
-    const [search, setSearch] = useState("");
-    const [status, setStatus] = useState("");
-
-    // Busy state for row actions
-    const [rowBusyId, setRowBusyId] = useState("");
-
-    const loadExams = async () => {
-        setLoading(true);
-        try {
-            const res = await fetchExams({ q: search, status });
-            setExams(res?.items || []);
-            setError("");
-        } catch (err) {
-            setError("Failed to load exams");
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
         loadExams();
-    }, [search, status]);
+    }, 300); // Debounce search
+    return () => clearTimeout(timer);
+  }, [search, statusFilter]);
 
-    const handleFileUpload = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+  const handleOpenCreate = () => {
+    setEditingExam(null);
+    setShowCreateModal(true);
+  };
 
-        const formData = new FormData();
-        formData.append("file", file);
+  const handleOpenEdit = (exam) => {
+    setEditingExam(exam);
+    setShowCreateModal(true);
+  };
 
-        setImportLoading(true);
-        setImportResult(null);
+  const handleCloseModal = () => {
+    setEditingExam(null);
+    setShowCreateModal(false);
+  };
 
-        try {
-            const res = await importExams(formData);
-            const data = res.data || res;
-            setImportResult(data);
-            loadExams();
-        } catch (err) {
-            setError(err.message || "Import failed");
-        } finally {
-            setImportLoading(false);
-            e.target.value = "";
-        }
-    };
+  const handleSuccess = () => {
+    handleCloseModal();
+    loadExams();
+  };
 
-    const handleDelete = async (examId) => {
-        if (!window.confirm("Are you sure you want to delete this exam? This action cannot be undone.")) return;
-        setRowBusyId(examId);
-        try {
-            await deleteExam(examId);
-            setExams(prev => prev.filter(e => e.id !== examId));
-        } catch (err) {
-            alert("Failed to delete exam: " + err.message);
-        } finally {
-            setRowBusyId("");
-        }
-    };
+  const handleDelete = async (examId) => {
+    if (!window.confirm("Are you sure you want to delete this exam? This cannot be undone.")) return;
+    setRowBusyId(examId);
+    try {
+      await deleteExam(examId);
+      loadExams();
+    } catch (err) {
+      alert(`Failed to delete exam: ${err.message}`);
+    } finally {
+      setRowBusyId(null);
+    }
+  };
 
-    const columns = [
-        { key: "course", header: "קוד קורס", className: "text-right" },
-        { key: "name", header: "שם קורס", className: "text-right" },
-        { key: "lecturer", header: "מרצה", className: "text-right" },
-        { key: "date", header: "תאריך", className: "text-right" },
-        { key: "time", header: "שעה", className: "text-right" },
-        { key: "duration", header: "משך", className: "text-right" },
-        { key: "status", header: "סטטוס", className: "text-right" },
-        { key: "actions", header: "פעולות", className: "text-right" },
-    ];
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await importExams(formData);
+      alert(`Imported: ${res.success}, Failed: ${res.failed}`);
+      loadExams();
+    } catch (err) {
+      alert(`Import failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
-    return (
-        <div className="animate-in fade-in duration-700 p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
-            {/* Header Section */}
-            <div className="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                <div className="space-y-1">
-                    <h1 className={`text-2xl md:text-3xl font-black tracking-tight ${isDark ? "text-white" : "text-slate-900"}`}>
-                        ניהול מבחנים
-                    </h1>
-                    <p className={`text-sm font-medium ${isDark ? "text-slate-400" : "text-slate-500"}`}>
-                        רשימת המבחנים, יצירה וייבוא
-                    </p>
-                </div>
+  const columns = [
+    { key: "course", header: "קורס" },
+    { key: "date", header: "תאריך ושעה" },
+    { key: "duration", header: "משך" },
+    { key: "status", header: "סטטוס" },
+    { key: "actions", header: "פעולות" },
+  ];
 
-                <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-3">
-                    <input type="file" hidden ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx,.xls,.csv" />
-                    
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={importLoading}
-                        className={`flex-1 sm:flex-none justify-center flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all border shadow-sm active:scale-95 ${
-                            isDark ? "bg-slate-800 border-white/10 text-slate-300 hover:bg-slate-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                        }`}
-                    >
-                        {importLoading ? "טוען..." : "📥 ייבוא"}
-                    </button>
-
-                    <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all shadow-lg shadow-emerald-600/20 active:scale-95 bg-emerald-600 text-white hover:bg-emerald-500"
-                    >
-                        ➕ מבחן חדש
-                    </button>
-                </div>
+  return (
+    <div className={`min-h-screen pb-20 ${isDark ? "text-slate-100" : "text-slate-900"}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">ניהול בחינות</h1>
+            <p className="text-sm mt-1 opacity-70">יצירה, עריכה ומחיקה של בחינות.</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-3">
+              <input type="file" hidden ref={fileInputRef} onChange={handleImport} accept=".xlsx,.xls,.csv" />
+              <button onClick={() => fileInputRef.current?.click()} className={`px-4 py-2.5 rounded-xl text-sm font-bold border transition-all ${isDark ? "bg-slate-800 border-white/10 text-green-400" : "bg-white border-green-200 text-green-600"}`}>
+                📥 ייבוא
+              </button>
+              <button
+                onClick={handleOpenCreate}
+                className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-black shadow-lg shadow-blue-600/20 active:scale-95 transition-all"
+              >
+                + בחינה חדשה
+              </button>
             </div>
-
-            {/* Filters Section */}
-            <div className={`mb-8 p-4 md:p-6 rounded-2xl border ${isDark ? "bg-slate-900/40 border-white/5" : "bg-white border-slate-200 shadow-sm"}`}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <FormField
-                        id="search"
-                        label="חיפוש חופשי"
-                        placeholder="שם קורס או קוד..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        isDark={isDark}
-                    />
-                    <SelectField
-                        id="statusFilter"
-                        label="סינון לפי סטטוס"
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        options={[
-                            { value: "", label: "כל הסטטוסים" },
-                            { value: "pending", label: "ממתין" },
-                            { value: "active", label: "פעיל" },
-                            { value: "finished", label: "הסתיים" },
-                        ]}
-                        isDark={isDark}
-                    />
-                </div>
-            </div>
-
-            {/* Content Area */}
-            <div className={`rounded-3xl border overflow-hidden transition-all ${isDark ? "bg-slate-900/60 border-white/5" : "bg-white border-slate-200 shadow-sm"}`}>
-                
-                {/* Desktop Table View (Hidden on Mobile) */}
-                <div className="hidden md:block">
-                    <AdminTable columns={columns} loading={loading} isDark={isDark} emptyText="לא נמצאו מבחנים">
-                        {exams.map((exam) => {
-                            const dateObj = new Date(exam.date);
-                            const dateStr = dateObj.toLocaleDateString('he-IL');
-                            const timeStr = dateObj.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-
-                            return (
-                                <tr key={exam.id} className={`group border-b last:border-0 ${isDark ? "hover:bg-white/5 border-white/5" : "hover:bg-slate-50 border-slate-100"}`}>
-                                    <td className="px-6 py-4 text-right font-mono text-xs opacity-70">{exam.course_code}</td>
-                                    <td className="px-6 py-4 text-right font-bold">{exam.course_name}</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="text-sm font-medium">{exam.lecturer_name}</div>
-                                        <div className="text-[10px] opacity-50">{exam.lecturer_email}</div>
-                                    </td>
-                                    <td className="px-6 py-4 text-right text-sm">{dateStr}</td>
-                                    <td className="px-6 py-4 text-right text-sm font-mono">{timeStr}</td>
-                                    <td className="px-6 py-4 text-right text-sm">{exam.duration} דק'</td>
-                                    <td className="px-6 py-4 text-right">
-                                        <StatusBadge status={exam.status} />
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <button onClick={() => handleDelete(exam.id)} disabled={rowBusyId === exam.id} className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-all">🗑️</button>
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </AdminTable>
-                </div>
-
-                {/* Mobile/Tablet Card View (Shown only on small screens) */}
-                <div className="md:hidden divide-y divide-slate-100 dark:divide-white/5">
-                    {loading ? (
-                         <div className="p-10 text-center animate-pulse opacity-50">טוען מבחנים...</div>
-                    ) : exams.length === 0 ? (
-                        <div className="p-10 text-center opacity-50">לא נמצאו מבחנים</div>
-                    ) : (
-                        exams.map((exam) => {
-                            const dateObj = new Date(exam.date);
-                            return (
-                                <div key={exam.id} className="p-5 space-y-4">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">{exam.course_code}</span>
-                                            <h3 className={`font-bold text-lg ${isDark ? "text-white" : "text-slate-900"}`}>{exam.course_name}</h3>
-                                            <p className="text-xs opacity-60 mt-1">מרצה: {exam.lecturer_name}</p>
-                                        </div>
-                                        <StatusBadge status={exam.status} />
-                                    </div>
-                                    
-                                    <div className={`grid grid-cols-2 gap-4 p-3 rounded-xl text-xs font-medium ${isDark ? "bg-white/5" : "bg-slate-50"}`}>
-                                        <div>📅 {new Date(exam.date).toLocaleDateString('he-IL')}</div>
-                                        <div>🕒 {new Date(exam.date).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}</div>
-                                        <div>⏳ {exam.duration} דקות</div>
-                                        <button 
-                                            onClick={() => handleDelete(exam.id)}
-                                            className="text-red-500 font-bold flex items-center gap-1"
-                                        >
-                                            🗑️ מחק מבחן
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
-                </div>
-            </div>
-
-            {showCreateModal && (
-                <CreateExamModal
-                    isDark={isDark}
-                    onClose={() => setShowCreateModal(false)}
-                    onSuccess={loadExams}
-                />
-            )}
+            <div className="text-[11px] text-slate-500 text-right">פורמט: course_code | date | time | duration | lecturer_email</div>
+          </div>
         </div>
-    );
-}
 
-// Sub-component for cleaner status rendering
-const StatusBadge = ({ status }) => (
-    <span className={`inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${
-        status === 'active' ? 'bg-emerald-500/10 text-emerald-500' :
-        status === 'finished' ? 'bg-slate-500/10 text-slate-500' :
-        'bg-amber-500/10 text-amber-500'
-    }`}>
-        {status === 'active' ? 'פעיל' : status === 'finished' ? 'הסתיים' : 'ממתין'}
-    </span>
-);
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <input
+            type="text"
+            placeholder="חיפוש לפי שם קורס או קוד..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={`w-full pr-12 pl-4 py-3.5 rounded-2xl border outline-none transition-all focus:ring-2 focus:ring-blue-500/50 ${isDark ? "bg-slate-800/50 border-white/10" : "bg-white border-slate-200"}`}
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className={`w-full px-4 py-3.5 rounded-2xl border outline-none transition-all focus:ring-2 focus:ring-blue-500/50 ${isDark ? "bg-slate-800/50 border-white/10" : "bg-white border-slate-200"}`}
+          >
+            <option value="">כל הסטטוסים</option>
+            <option value="pending">ממתין</option>
+            <option value="active">פעיל</option>
+            <option value="finished">הסתיים</option>
+          </select>
+        </div>
+
+        <div className={`rounded-2xl border overflow-hidden ${isDark ? "border-white/5 bg-slate-900/40" : "border-slate-200 bg-white shadow-sm"}`}>
+          <div className="hidden md:block">
+            <AdminTable columns={columns} loading={loading} isDark={isDark}>
+              {exams.map((exam) => (
+                <tr key={exam.id} className={`border-t transition-colors ${isDark ? "border-white/5 hover:bg-white/5" : "border-slate-100 hover:bg-slate-50"}`}>
+                  <td className="px-6 py-4">
+                    <div className="font-bold">{exam.course_name}</div>
+                    <div className="text-xs opacity-70 font-mono">{exam.course_code}</div>
+                  </td>
+                  <td className="px-6 py-4 text-sm">{new Date(exam.date).toLocaleString('he-IL')}</td>
+                  <td className="px-6 py-4 text-sm">{exam.duration} דקות</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                      exam.status === 'active' ? 'bg-green-500/10 text-green-500' :
+                      exam.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
+                      'bg-slate-500/10 text-slate-500'
+                    }`}>
+                      {exam.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-2 justify-end">
+                      <button onClick={() => handleOpenEdit(exam)} className="px-4 py-1.5 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 font-bold text-xs transition-all">ערוך</button>
+                      <button onClick={() => handleDelete(exam.id)} disabled={rowBusyId === exam.id} className="px-4 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 font-bold text-xs transition-all">מחק</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </AdminTable>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="md:hidden p-4 space-y-3">
+            {exams.map((exam) => (
+              <div key={exam.id} className={`p-4 rounded-xl border ${isDark ? "bg-slate-800/50 border-white/5" : "bg-white border-slate-200"}`}>
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <div className="font-bold text-lg">{exam.course_name}</div>
+                    <div className="text-xs opacity-70 font-mono">{exam.course_code}</div>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                    exam.status === 'active' ? 'bg-green-500/10 text-green-500' :
+                    exam.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
+                    'bg-slate-500/10 text-slate-500'
+                  }`}>
+                    {exam.status}
+                  </span>
+                </div>
+                
+                <div className="text-sm space-y-1 mb-4 opacity-80">
+                  <div>📅 {new Date(exam.date).toLocaleString('he-IL')}</div>
+                  <div>⏱️ {exam.duration} דקות</div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button onClick={() => handleOpenEdit(exam)} className="flex-1 py-2 rounded-lg bg-blue-500/10 text-blue-500 font-bold text-xs">ערוך</button>
+                  <button onClick={() => handleDelete(exam.id)} disabled={rowBusyId === exam.id} className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-500 font-bold text-xs">מחק</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {showCreateModal && (
+        <CreateExamModal
+          isDark={isDark}
+          initialData={editingExam}
+          onClose={handleCloseModal}
+          onSuccess={handleSuccess}
+        />
+      )}
+    </div>
+  );
+}

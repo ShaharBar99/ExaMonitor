@@ -95,7 +95,7 @@ export const AttendanceService = {
     const { data: students, error: attErr } = await supabaseAdmin
       .from('attendance')
       .select(`
-        id, status,
+        id, status, student_id,
         profiles:student_id (full_name, student_id, personal_extra_time)
       `)
       .eq('classroom_id', classroom.id)
@@ -105,6 +105,7 @@ export const AttendanceService = {
 
     return students.map(s => ({
       id: s.id, // attendanceId as id
+      profileId: s.student_id, // Profile UUID
       studentId: s.profiles?.student_id,
       name: s.profiles?.full_name,
       status: s.status,
@@ -169,6 +170,29 @@ export const AttendanceService = {
   async startBreak({ attendanceId, reason = 'toilet' }) {
     const now = new Date().toISOString();
     console.log("Starting break for attendance ID:", attendanceId, "with reason:", reason);
+
+    // Resolve attendance to classroom/student
+    const { data: attendanceRow, error: attFetchErr } = await supabaseAdmin
+      .from('attendance')
+      .select('id, classroom_id, student_id')
+      .eq('id', attendanceId)
+      .single();
+    if (attFetchErr || !attendanceRow) {
+      const err = new Error('Attendance record not found'); err.status = 404; throw err;
+    }
+
+    // Validation: prevent two students from same classroom being on a break simultaneously
+    const conflicts = await (await import('./validationService.js')).default.check_conflicts('start_break', {
+      check_toilet: true,
+      classroom_id: attendanceRow.classroom_id,
+      attendance_id: attendanceId,
+      student_id: attendanceRow.student_id,
+    });
+
+    if (conflicts && conflicts.length > 0) {
+      const err = new Error(conflicts.join('; ')); err.status = 409; throw err;
+    }
+
     // 1. יצירת רשומת הפסקה
     const { data: brk, error: breakErr } = await supabaseAdmin
       .from('student_breaks')
@@ -189,6 +213,13 @@ export const AttendanceService = {
       .select()
       .single();
     if (attErr) throw attErr;
+
+    // Audit
+    await AuditTrailService.log({
+      userId: null,
+      action: 'student.start_break',
+      metadata: { attendanceId, breakId: brk.id, classroomId: attendanceRow.classroom_id, studentId: attendanceRow.student_id }
+    });
 
     return { success: true, break: brk, attendance: att };
   },
@@ -242,13 +273,20 @@ async endBreak({ attendanceId }) {
 
     if (attErr) throw attErr;
 
+    // Audit the end of break
+    await AuditTrailService.log({
+      userId: null,
+      action: 'student.end_break',
+      metadata: { attendanceId, closedBreakId: closedBreak?.id || null, wasBreakFound: !!closedBreak }
+    });
+
     return { 
       success: true, 
       break: closedBreak, 
       attendance: att,
       wasBreakFound: !!closedBreak 
     };
-  },
+  }, 
 
   /**
    * סיכום סטטיסטי לקומה (עבור מנהל קומה)
@@ -292,6 +330,8 @@ async endBreak({ attendanceId }) {
       .single();
 
     if (error) throw error;
+    // Audit assign supervisor
+    await AuditTrailService.log({ userId: null, action: 'assign.supervisor', metadata: { classroomId, supervisorId } }).catch(() => {});
     return { success: true, data };
   },
 
@@ -394,6 +434,10 @@ async addStudentToExam(classroomId, studentProfileId = null, studentId = null) {
         .single(); // Since we are upserting one row, single() is fine here
 
     if (upsertErr) throw upsertErr;
+
+    // Audit add/update attendance
+    await AuditTrailService.log({ userId: null, action: 'attendance.upsert', metadata: { attendanceId: result.id, studentId: finalProfileId, classroomId } }).catch(() => {});
+
     return result;
 },
 

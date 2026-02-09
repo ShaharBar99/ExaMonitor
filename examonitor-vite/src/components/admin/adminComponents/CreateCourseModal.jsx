@@ -1,13 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import FormField from "../../shared/FormField";
-import { createNewCourse } from "../../../handlers/courseHandlers";
+import { createNewCourse, updateCourseDetails } from "../../../handlers/courseHandlers";
 import { searchLecturerByEmail } from "../../../api/usersApi";
 
-export default function CreateCourseModal({ onClose, onSuccess, isDark }) {
+export default function CreateCourseModal({ onClose, onSuccess, isDark, initialData = null }) {
   const [formData, setFormData] = useState({ name: "", code: "", lecturerEmail: "", lecturerId: null });
   const [loading, setLoading] = useState(false);
   const [searching, setSearching] = useState(false);
   const [lecturerFound, setLecturerFound] = useState(null);
+  const isEditing = !!initialData;
+
+  useEffect(() => {
+    if (isEditing) {
+      setFormData({
+        name: initialData.course_name || "",
+        code: initialData.course_code || "",
+        lecturerId: initialData.lecturer_id || null,
+        lecturerEmail: initialData.lecturer_email || "",
+      });
+      if (initialData.lecturer_id && initialData.lecturer_name) {
+        setLecturerFound({ id: initialData.lecturer_id, full_name: initialData.lecturer_name, email: initialData.lecturer_email });
+      }
+    }
+  }, [initialData, isEditing]);
 
   const handleSearchLecturer = async () => {
     if (!formData.lecturerEmail) return;
@@ -40,14 +55,22 @@ export default function CreateCourseModal({ onClose, onSuccess, isDark }) {
     
     setLoading(true);
     try {
-      const res = await createNewCourse({
+      let res;
+      const courseData = {
         course_name: formData.name,
         course_code: formData.code,
         lecturer_id: formData.lecturerId || null,
-      });
+      };
+
+      if (isEditing) {
+        res = await updateCourseDetails(initialData.id, courseData);
+      } else {
+        res = await createNewCourse(courseData);
+      }
+
       if (res.ok) {
-        onSuccess(res.data.course);
-        onClose();
+        onSuccess();
+        onClose(); // onSuccess should handle closing and reloading
       }
     } catch (err) {
       alert(err.message);
@@ -60,7 +83,7 @@ export default function CreateCourseModal({ onClose, onSuccess, isDark }) {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className={`w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 transition-all ${isDark ? "bg-slate-900 border border-white/10 text-white" : "bg-white"}`}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-black">הוספת קורס חדש</h2>
+          <h2 className="text-xl font-black">{isEditing ? "עריכת קורס" : "הוספת קורס חדש"}</h2>
           <button onClick={onClose} className="text-2xl opacity-50">&times;</button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -104,8 +127,8 @@ export default function CreateCourseModal({ onClose, onSuccess, isDark }) {
           </div>
           
           <div className="flex gap-3 pt-4">
-            <button type="submit" disabled={loading} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold disabled:opacity-50">
-              {loading ? "יוצר..." : "צור קורס"}
+            <button type="submit" disabled={loading || searching} className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold disabled:opacity-50">
+              {loading ? (isEditing ? "מעדכן..." : "יוצר...") : (isEditing ? "שמור שינויים" : "צור קורס")}
             </button>
             <button type="button" onClick={onClose} className={`flex-1 py-3 rounded-xl font-bold transition-colors ${
                 isDark 

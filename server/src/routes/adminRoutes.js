@@ -10,6 +10,7 @@ router.use(requireAuth);
 router.get('/users', AdminController.listUsers);
 router.patch('/users/:id/role', AdminController.updateRole);
 router.patch('/users/:id/status', AdminController.updateStatus);
+router.patch('/users/:id', AdminController.updateUser);
 router.put('/users/:id/permissions', AdminController.updatePermissions);
 
 import multer from 'multer';
@@ -22,6 +23,7 @@ router.get('/audit', AdminController.getAudit);
 // Exams
 router.get('/exams', AdminController.listExams);
 router.post('/exams', AdminController.createExam);
+router.patch('/exams/:id', requireAuth, requireAdmin, AdminController.updateExam);
 router.delete('/exams/:id', AdminController.deleteExam);
 
 router.post('/users', AdminController.createUser);

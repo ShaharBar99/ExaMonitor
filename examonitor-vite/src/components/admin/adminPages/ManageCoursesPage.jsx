@@ -2,10 +2,9 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useTheme } from "../../state/ThemeContext";
 import { useAuth } from "../../state/AuthContext";
 import AdminTable from "../adminComponents/AdminTable";
-import CreateCourseModal from "../adminComponents/CreateCourseModal";
+import CreateCourseModal from "../adminComponents/CreateCourseModal.jsx";
 import CourseStudentsModal from "../adminComponents/ManageStudentsModal";
 import { fetchCourses, deleteCourseHandler, filterCourses, importCoursesFromExcel } from "../../../handlers/courseHandlers";
-import AddStudentModal from "../adminComponents/AddStudentModal";
 
 export default function ManageCoursesPage() {
   const { isDark } = useTheme();
@@ -20,6 +19,7 @@ export default function ManageCoursesPage() {
   // Modal Visibility States
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
+  const [editingCourse, setEditingCourse] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
 
   const coursesFileInputRef = useRef(null);
@@ -56,6 +56,11 @@ export default function ManageCoursesPage() {
   const openStudentsModal = (course) => {
     setSelectedCourse(course);
     setShowStudentsModal(true);
+  };
+
+  const openEditModal = (course) => {
+    setEditingCourse(course);
+    setShowCreateModal(true);
   };
 
   const handleImportCourses = async (e) => {
@@ -162,6 +167,7 @@ export default function ManageCoursesPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2 justify-end">
+                      <button onClick={() => openEditModal(course)} className="px-4 py-1.5 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 font-bold text-xs transition-all">ערוך</button>
                       <button onClick={() => openStudentsModal(course)} className="px-4 py-1.5 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 font-bold text-xs transition-all">שיבוץ סטודנטים</button>
                       <button onClick={() => handleDeleteCourse(course.id)} disabled={rowBusyId === course.id} className="px-4 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 font-bold text-xs transition-all">מחק</button>
                     </div>
@@ -182,10 +188,14 @@ export default function ManageCoursesPage() {
                     <h3 className="font-bold text-lg">{course.course_name}</h3>
                     <p className="text-xs opacity-60">מרצה: {course.lecturer_name || "לא הוגדר"}</p>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <button onClick={() => openStudentsModal(course)} className="p-2.5 rounded-xl bg-green-500/10 text-green-500">👥</button>
-                    <button onClick={() => handleDeleteCourse(course.id)} className="p-2.5 rounded-xl bg-red-500/10 text-red-500">🗑️</button>
-                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 text-xs font-bold">
+                    {course.student_count || 0} סטודנטים
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => openEditModal(course)} className="flex-1 py-2 rounded-lg bg-blue-500/10 text-blue-500 font-bold text-xs">ערוך</button>
+                  <button onClick={() => openStudentsModal(course)} className="flex-1 py-2 rounded-lg bg-green-500/10 text-green-500 font-bold text-xs">שיבוץ סטודנטים</button>
+                  <button onClick={() => handleDeleteCourse(course.id)} disabled={rowBusyId === course.id} className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-500 font-bold text-xs">מחק</button>
                 </div>
               </div>
             ))}
@@ -195,10 +205,16 @@ export default function ManageCoursesPage() {
 
       {/* --- MODALS --- */}
       {showCreateModal && (
-        <CreateCourseModal 
-          isDark={isDark} 
-          onClose={() => setShowCreateModal(false)} 
-          onSuccess={(newCourse) => setCourses(prev => [...prev, newCourse])}
+        <CreateCourseModal
+          isDark={isDark}
+          initialData={editingCourse}
+          onClose={() => {
+            setShowCreateModal(false);
+            setEditingCourse(null);
+          }}
+          onSuccess={() => {
+            loadCourses();
+          }}
         />
       )}
 
@@ -207,6 +223,7 @@ export default function ManageCoursesPage() {
           isDark={isDark}
           course={selectedCourse}
           onClose={() => setShowStudentsModal(false)}
+          
         />
       )}
 

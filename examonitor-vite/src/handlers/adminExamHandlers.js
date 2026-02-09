@@ -36,3 +36,10 @@ export async function deleteExam(examId) {
         method: 'DELETE'
     });
 }
+
+export async function updateExam(examId, examData) {
+    return apiFetch(`/admin/exams/${examId}`, {
+        method: 'PATCH',
+        body: examData
+    });
+}

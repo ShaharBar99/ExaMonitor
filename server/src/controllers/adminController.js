@@ -10,6 +10,15 @@ export const AdminController = {
     }
   },
 
+  async updateUser(req, res, next) {
+    try {
+      const user = await AdminService.updateUser(req.params.id, req.body);
+      res.json({ user });
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async updateRole(req, res, next) {
     try {
       const { role } = req.body;
@@ -127,6 +136,30 @@ export const AdminController = {
     }
   },
 
+  async updateExam(req, res, next) {
+    try {
+      const adminUserId = req.user.id;
+      const result = await AdminService.updateExam(req.params.id, req.body, adminUserId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async importExams(req, res, next) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      // Assuming req.user is populated by auth middleware and has id
+      const adminUserId = req.user.id;
+      const result = await AdminService.importExamsFromExcel(req.file.buffer, adminUserId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
   async deleteExam(req, res, next) {
     try {
       await AdminService.deleteExam(req.params.id);
@@ -151,20 +184,6 @@ export const AdminController = {
         return res.status(400).json({ error: 'No file uploaded' });
       }
       const result = await AdminService.bulkUsersFromExcel(req.file.buffer);
-      res.json(result);
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  async importExams(req, res, next) {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: 'No file uploaded' });
-      }
-      // Assuming req.user is populated by auth middleware and has id
-      const adminUserId = req.user.id;
-      const result = await AdminService.importExamsFromExcel(req.file.buffer, adminUserId);
       res.json(result);
     } catch (err) {
       next(err);
@@ -290,7 +309,7 @@ export const AdminController = {
 
   async createClassroom(req, res, next) {
     try {
-      const result = await AdminService.createClassroomForAdmin(req.body);
+      const result = await AdminService.createClassroomForAdmin(req.body, req.user?.id);
       res.status(201).json(result);
     } catch (err) {
       next(err);
@@ -299,7 +318,7 @@ export const AdminController = {
 
   async updateClassroom(req, res, next) {
     try {
-      const result = await AdminService.updateClassroomForAdmin(req.params.id, req.body);
+      const result = await AdminService.updateClassroomForAdmin(req.params.id, req.body, req.user?.id);
       res.json(result);
     } catch (err) {
       next(err);
@@ -317,7 +336,7 @@ export const AdminController = {
 
   async assignSupervisors(req, res, next) {
     try {
-      const result = await AdminService.assignSupervisorsToClassroom(req.params.id, req.body);
+      const result = await AdminService.assignSupervisorsToClassroom(req.params.id, req.body, req.user?.id);
       res.json(result);
     } catch (err) {
       next(err);
@@ -329,7 +348,7 @@ export const AdminController = {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
-      const result = await AdminService.importClassroomsFromExcel(req.file.buffer);
+      const result = await AdminService.importClassroomsFromExcel(req.file.buffer, req.user?.id);
       res.json(result);
     } catch (err) {
       next(err);

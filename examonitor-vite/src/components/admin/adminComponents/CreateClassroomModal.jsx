@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import FormField from "../../shared/FormField";
-import { createNewClassroom } from "../../../handlers/classroomHandlers";
+import { createNewClassroom, updateClassroomDetails } from "../../../handlers/classroomHandlers";
 import { fetchExamsForAssignment, fetchSupervisors } from "../../../handlers/classroomHandlers";
 
-export default function CreateClassroomModal({ onClose, onSuccess, isDark }) {
+export default function CreateClassroomModal({ onClose, onSuccess, isDark, initialData = null }) {
   const [formData, setFormData] = useState({ 
     room_number: "", 
     exam_id: "", 
@@ -13,10 +13,19 @@ export default function CreateClassroomModal({ onClose, onSuccess, isDark }) {
   const [exams, setExams] = useState([]);
   const [supervisors, setSupervisors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const isEditing = !!initialData;
 
   useEffect(() => {
     loadData();
-  }, []);
+    if (isEditing) {
+      setFormData({
+        room_number: initialData.room_number || "",
+        exam_id: initialData.exam_id || "",
+        supervisor_id: initialData.supervisor_id || null,
+        floor_supervisor_id: initialData.floor_supervisor_id || null,
+      });
+    }
+  }, [initialData, isEditing]);
 
   const loadData = async () => {
     try {
@@ -38,15 +47,25 @@ export default function CreateClassroomModal({ onClose, onSuccess, isDark }) {
 
     setLoading(true);
     try {
-      const res = await createNewClassroom({
-        room_number: formData.room_number,
-        exam_id: formData.exam_id,
-        supervisor_id: formData.supervisor_id || null,
-        floor_supervisor_id: formData.floor_supervisor_id || null,
-      });
+      let res;
+      if (isEditing) {
+        res = await updateClassroomDetails(initialData.id, {
+          room_number: formData.room_number,
+          supervisor_id: formData.supervisor_id || null,
+          floor_supervisor_id: formData.floor_supervisor_id || null,
+          exam_id: formData.exam_id,
+        });
+      } else {
+        res = await createNewClassroom({
+          room_number: formData.room_number,
+          exam_id: formData.exam_id,
+          supervisor_id: formData.supervisor_id || null,
+          floor_supervisor_id: formData.floor_supervisor_id || null,
+        });
+      }
 
       if (res.ok) {
-        onSuccess(res.data.classroom);
+        onSuccess();
         onClose();
       }
     } catch (err) {
@@ -60,7 +79,7 @@ export default function CreateClassroomModal({ onClose, onSuccess, isDark }) {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-100 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className={`w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 transition-all ${isDark ? "bg-slate-900 border border-white/10 text-white" : "bg-white"}`}>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-black">הוספת חדר בחינה חדש</h2>
+          <h2 className="text-xl font-black">{isEditing ? "עריכת חדר בחינה" : "הוספת חדר בחינה חדש"}</h2>
           <button onClick={onClose} className="text-2xl opacity-50">&times;</button>
         </div>
 
@@ -148,7 +167,7 @@ export default function CreateClassroomModal({ onClose, onSuccess, isDark }) {
               disabled={loading}
               className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-all active:scale-95 disabled:opacity-50"
             >
-              {loading ? "טוען..." : "הוסף חדר"}
+              {loading ? (isEditing ? "מעדכן..." : "יוצר...") : (isEditing ? "שמור שינויים" : "הוסף חדר")}
             </button>
           </div>
         </form>

@@ -25,10 +25,7 @@ export function filterUsers(users, filters = {}) { // Filter users by search/rol
 } // End filterUsers
 
 // Fetch users (REST or mock) via usersApi. // Thin handler
-export async function fetchUsers(filters = {}, deps = {}, userId) { // Get users list
-  if (userId === undefined || userId === null) { // Require userId
-    return { ok: false, apiError: { message: "User ID is required to fetch users." } }; // Error response
-  }
+export async function fetchUsers(filters = {}, deps = {}) { // Get users list
   const usersApi = deps.usersApi || usersApiDefault; // Use injected or default
   const token = (localStorage.getItem("token") || sessionStorage.getItem("token")) ?? null; // Get token from local storage
   const data = await usersApi.listUsers({ ...filters, token }); // Call api
@@ -68,6 +65,13 @@ export async function createNewUser(userData, deps = {}) {
   const usersApi = deps.usersApi || usersApiDefault;
   const token = deps.token ?? (localStorage.getItem("token") || sessionStorage.getItem("token"));
   const data = await usersApi.createUser(userData, token);
+  return { ok: true, data };
+}
+
+export async function updateUser(userId, userData, deps = {}) {
+  const usersApi = deps.usersApi || usersApiDefault;
+  // Assumes usersApi has an 'updateUser' method that calls PATCH /admin/users/:id
+  const data = await usersApi.updateUser(String(userId), userData);
   return { ok: true, data };
 }
 

@@ -24,6 +24,7 @@ export default function ManageClassroomsPage() {
 
   // Modal Visibility States
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingClassroom, setEditingClassroom] = useState(null);
 
   const classroomsFileInputRef = useRef(null);
 
@@ -222,8 +223,8 @@ export default function ManageClassroomsPage() {
             <div className="p-8 text-center opacity-50">לא נמצאו חדרים</div>
           ) : (
             <>
-              {/* Desktop Table View - Hidden on sm */}
-              <div className="hidden sm:block overflow-x-auto">
+              {/* Desktop Table View - Hidden on lg and below */}
+              <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full">
                   <thead className={`${isDark ? "bg-slate-800" : "bg-slate-50"}`}>
                     <tr>
@@ -266,7 +267,13 @@ export default function ManageClassroomsPage() {
                               {isAssigned ? "משוים ✓" : "ללא"}
                             </span>
                           </td>
-                          <td className="px-4 md:px-6 py-3 md:py-4">
+                          <td className="px-4 md:px-6 py-3 md:py-4 flex items-center gap-3">
+                            <button
+                              onClick={() => setEditingClassroom(classroom)}
+                              className="text-blue-600 hover:text-blue-800 font-bold text-xs md:text-sm"
+                            >
+                              ערוך
+                            </button>
                             <button
                               onClick={() => handleDeleteClassroom(classroom.id)}
                               disabled={rowBusyId === classroom.id}
@@ -282,8 +289,8 @@ export default function ManageClassroomsPage() {
                 </table>
               </div>
 
-              {/* Mobile Card View - Visible only on sm and below */}
-              <div className="sm:hidden space-y-3 p-4">
+              {/* Mobile Card View - Visible on lg and below */}
+              <div className="lg:hidden space-y-3 p-4">
                 {filtered.map((classroom) => {
                   const examData = exams.find(e => e.id === classroom.exam_id);
                   const isAssigned = classroom.supervisor_id || classroom.floor_supervisor_id;
@@ -319,13 +326,21 @@ export default function ManageClassroomsPage() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleDeleteClassroom(classroom.id)}
-                        disabled={rowBusyId === classroom.id}
-                        className="w-full px-3 py-2 rounded-lg bg-red-500/10 text-red-600 font-bold text-xs hover:bg-red-500/20 transition-all disabled:opacity-50"
-                      >
-                        {rowBusyId === classroom.id ? "מוחק..." : "מחק חדר"}
-                      </button>
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          onClick={() => setEditingClassroom(classroom)}
+                          className="flex-1 px-3 py-2 rounded-lg bg-blue-500/10 text-blue-600 font-bold text-xs hover:bg-blue-500/20 transition-all"
+                        >
+                          ערוך
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClassroom(classroom.id)}
+                          disabled={rowBusyId === classroom.id}
+                          className="flex-1 px-3 py-2 rounded-lg bg-red-500/10 text-red-600 font-bold text-xs hover:bg-red-500/20 transition-all disabled:opacity-50"
+                        >
+                          {rowBusyId === classroom.id ? "מוחק..." : "מחק"}
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -355,6 +370,18 @@ export default function ManageClassroomsPage() {
             loadClassrooms();
           }}
           isDark={isDark}
+        />
+      )}
+
+      {editingClassroom && (
+        <CreateClassroomModal
+          onClose={() => setEditingClassroom(null)}
+          onSuccess={() => {
+            setEditingClassroom(null);
+            loadClassrooms();
+          }}
+          isDark={isDark}
+          initialData={editingClassroom}
         />
       )}
     </div>

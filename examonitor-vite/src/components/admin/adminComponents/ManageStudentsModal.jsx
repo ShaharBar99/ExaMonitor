@@ -6,7 +6,6 @@ export default function ManageStudentsModal({ course, onClose, isDark }) {
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const fileInputRef = useRef(null);
-
   const loadStudents = async () => {
     setLoading(true);
     try {
