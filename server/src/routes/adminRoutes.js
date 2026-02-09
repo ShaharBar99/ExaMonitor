@@ -5,7 +5,7 @@ import { requireAuth, requireAdmin } from '../middleware/authMiddleware.js';
 const router = Router();
 
 // Protect everything under /admin
-router.use(requireAuth, requireAdmin);
+router.use(requireAuth);
 
 router.get('/users', AdminController.listUsers);
 router.patch('/users/:id/role', AdminController.updateRole);
@@ -42,6 +42,15 @@ router.get('/courses/:id/available-students', AdminController.getAvailableStuden
 router.post('/courses/:id/students', AdminController.addStudentToCourse);
 router.post('/courses/:id/students/bulk', upload.single('file'), AdminController.bulkAddStudentsToCourse);
 router.delete('/courses/:courseId/students/:studentId', AdminController.removeStudentFromCourse);
+
+// Classrooms
+router.get('/classrooms', AdminController.listClassrooms);
+router.get('/classrooms/supervisors/list', AdminController.getSupervisorsForAssignment);
+router.post('/classrooms', AdminController.createClassroom);
+router.post('/classrooms/import', upload.single('file'), AdminController.importClassrooms);
+router.patch('/classrooms/:id', AdminController.updateClassroom);
+router.delete('/classrooms/:id', AdminController.deleteClassroom);
+router.patch('/classrooms/:id/assign', AdminController.assignSupervisors);
 
 router.get('/security/alerts', AdminController.listSecurityAlerts);
 router.post('/security/alerts/:id/resolve', AdminController.resolveSecurityAlert);

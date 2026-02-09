@@ -1,5 +1,6 @@
 import { classroomApi } from '../api/classroomApi';
 import { attendanceApi } from '../api/attendanceApi';
+import * as classroomsApiDefault from "../api/classroomsApi";
 
 export const classroomHandler = {
   /**
@@ -90,3 +91,89 @@ export const classroomHandler = {
     }
   }
 };
+
+// Admin Handlers for classroom management
+export async function fetchClassrooms(filters = {}, deps = {}) {
+  const classroomsApi = deps.classroomsApi || classroomsApiDefault;
+  
+  const data = await classroomsApi.listClassrooms(filters);
+  const classrooms = data?.classrooms || [];
+  console.log("fetchClassrooms: retrieved", classrooms.length, "classrooms");
+  return { ok: true, data: { classrooms } };
+}
+
+export async function createNewClassroom(classroomData, deps = {}) {
+  const classroomsApi = deps.classroomsApi || classroomsApiDefault;
+  
+  if (!classroomData.exam_id || !classroomData.room_number) {
+    throw new Error("exam_id and room_number are required");
+  }
+
+  const data = await classroomsApi.createClassroom(classroomData);
+  return { ok: true, data };
+}
+
+export async function updateClassroomDetails(classroomId, classroomData, deps = {}) {
+  const classroomsApi = deps.classroomsApi || classroomsApiDefault;
+  
+  const data = await classroomsApi.updateClassroom(classroomId, classroomData);
+  return { ok: true, data };
+}
+
+export async function deleteClassroomHandler(classroomId, deps = {}) {
+  const classroomsApi = deps.classroomsApi || classroomsApiDefault;
+  
+  const data = await classroomsApi.deleteClassroom(classroomId);
+  return { ok: true, data };
+}
+
+export async function assignSupervisorsHandler(classroomId, assignmentData, deps = {}) {
+  const classroomsApi = deps.classroomsApi || classroomsApiDefault;
+  
+  const data = await classroomsApi.assignSupervisorsToClassroom(classroomId, assignmentData);
+  return { ok: true, data };
+}
+
+export async function getClassroomHandler(classroomId, deps = {}) {
+  const classroomsApi = deps.classroomsApi || classroomsApiDefault;
+  
+  const data = await classroomsApi.getClassroomById(classroomId);
+  return { ok: true, data };
+}
+
+export async function fetchSupervisors(deps = {}) {
+  const classroomsApi = deps.classroomsApi || classroomsApiDefault;
+  
+  const data = await classroomsApi.getSupervisors();
+  const supervisors = data?.supervisors || [];
+  return { ok: true, data: { supervisors } };
+}
+
+export function filterClassrooms(classrooms, filters = {}) {
+  const list = Array.isArray(classrooms) ? classrooms : [];
+  const q = String(filters.search || "").trim().toLowerCase();
+  const examId = filters.exam_id;
+
+  return list.filter((c) => {
+    const room = String(c?.room_number || "").toLowerCase();
+    const examMatch = !examId || c?.exam_id === examId;
+    const searchMatch = !q || room.includes(q);
+
+    return examMatch && searchMatch;
+  });
+}
+
+export async function importClassroomsFromExcel(formData, deps = {}) {
+  const classroomsApi = deps.classroomsApi || classroomsApiDefault;
+  
+  const data = await classroomsApi.importClassrooms(formData);
+  return { ok: true, data };
+}
+
+export async function fetchExamsForAssignment(filters = {}, deps = {}) {
+  const classroomsApi = deps.classroomsApi || classroomsApiDefault;
+  
+  const data = await classroomsApi.listExams(filters);
+  const exams = data?.items || data?.exams || [];
+  return { ok: true, data: { exams } };
+}

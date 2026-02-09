@@ -53,3 +53,27 @@ export async function requireAdmin(req, res, next) {
     next(err);
   }
 }
+/**
+ * Allow access to users with specific roles: admin, supervisor, floor_supervisor
+ */
+export async function requireClassroomAccess(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (!error && profile) {
+      const allowedRoles = ['admin', 'supervisor', 'floor_supervisor'];
+      if (allowedRoles.includes(profile.role)) {
+        return next();
+      }
+    }
+
+    return res.status(403).json({ error: 'Classroom access required. Admin, Supervisor, or Floor Supervisor role needed.' });
+  } catch (err) {
+    next(err);
+  }
+}

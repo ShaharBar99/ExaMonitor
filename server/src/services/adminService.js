@@ -1173,4 +1173,417 @@ export const AdminService = {
 
     return results;
   },
+
+  // ========== CLASSROOMS (ADMIN) ==========
+
+  async listClassroomsForAdmin(filters = {}) {
+    let query = supabaseAdmin
+      .from('classrooms')
+      .select(`
+        id,
+        exam_id,
+        room_number,
+        supervisor_id,
+        floor_supervisor_id,
+        created_at,
+        exams:exam_id (
+          id,
+          course_id,
+          original_start_time,
+          status
+        ),
+        supervisor:supervisor_id (
+          id,
+          full_name,
+          email
+        ),
+        floor_supervisor:floor_supervisor_id (
+          id,
+          full_name,
+          email
+        )
+      `)
+      .order('room_number', { ascending: true });
+
+    if (filters.exam_id) {
+      query = query.eq('exam_id', filters.exam_id);
+    }
+
+    if (filters.search) {
+      query = query.ilike('room_number', `%${filters.search}%`);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return (data || []).map(classroom => ({
+      id: classroom.id,
+      room_number: classroom.room_number,
+      exam_id: classroom.exam_id,
+      supervisor_id: classroom.supervisor_id,
+      floor_supervisor_id: classroom.floor_supervisor_id,
+      supervisor_name: classroom.supervisor?.full_name || null,
+      floor_supervisor_name: classroom.floor_supervisor?.full_name || null,
+      exam_course_id: classroom.exams?.course_id || null,
+      exam_start_time: classroom.exams?.original_start_time || null,
+      created_at: classroom.created_at,
+    }));
+  },
+
+  async createClassroomForAdmin(classroomData) {
+    const { exam_id, room_number, supervisor_id, floor_supervisor_id } = classroomData;
+
+    if (!exam_id || !room_number) {
+      const err = new Error('exam_id and room_number are required');
+      err.status = 400;
+      throw err;
+    }
+
+    // Verify exam exists
+    const { data: exam, error: examError } = await supabaseAdmin
+      .from('exams')
+      .select('id')
+      .eq('id', exam_id)
+      .single();
+
+    if (examError || !exam) {
+      const err = new Error('Exam not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('classrooms')
+      .insert({
+        exam_id,
+        room_number: String(room_number).trim(),
+        supervisor_id: supervisor_id || null,
+        floor_supervisor_id: floor_supervisor_id || null,
+      })
+      .select(`
+        id,
+        exam_id,
+        room_number,
+        supervisor_id,
+        floor_supervisor_id,
+        created_at,
+        supervisor:supervisor_id (
+          id,
+          full_name
+        ),
+        floor_supervisor:floor_supervisor_id (
+          id,
+          full_name
+        )
+      `)
+      .single();
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return {
+      classroom: {
+        id: data.id,
+        room_number: data.room_number,
+        exam_id: data.exam_id,
+        supervisor_id: data.supervisor_id,
+        floor_supervisor_id: data.floor_supervisor_id,
+        supervisor_name: data.supervisor?.full_name || null,
+        floor_supervisor_name: data.floor_supervisor?.full_name || null,
+      },
+    };
+  },
+
+  async updateClassroomForAdmin(classroomId, classroomData) {
+    const { room_number, supervisor_id, floor_supervisor_id } = classroomData;
+
+    const updateData = {};
+    if (room_number !== undefined) updateData.room_number = String(room_number).trim();
+    if (supervisor_id !== undefined) updateData.supervisor_id = supervisor_id;
+    if (floor_supervisor_id !== undefined) updateData.floor_supervisor_id = floor_supervisor_id;
+
+    const { data, error } = await supabaseAdmin
+      .from('classrooms')
+      .update(updateData)
+      .eq('id', classroomId)
+      .select(`
+        id,
+        exam_id,
+        room_number,
+        supervisor_id,
+        floor_supervisor_id,
+        supervisor:supervisor_id (
+          id,
+          full_name
+        ),
+        floor_supervisor:floor_supervisor_id (
+          id,
+          full_name
+        )
+      `)
+      .single();
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return {
+      classroom: {
+        id: data.id,
+        room_number: data.room_number,
+        exam_id: data.exam_id,
+        supervisor_id: data.supervisor_id,
+        floor_supervisor_id: data.floor_supervisor_id,
+        supervisor_name: data.supervisor?.full_name || null,
+        floor_supervisor_name: data.floor_supervisor?.full_name || null,
+      },
+    };
+  },
+
+  async deleteClassroomForAdmin(classroomId) {
+    const { error } = await supabaseAdmin
+      .from('classrooms')
+      .delete()
+      .eq('id', classroomId);
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return { success: true };
+  },
+
+  async assignSupervisorsToClassroom(classroomId, assignmentData) {
+    const { supervisor_id, floor_supervisor_id } = assignmentData;
+
+    const updateData = {};
+    if (supervisor_id !== undefined) updateData.supervisor_id = supervisor_id;
+    if (floor_supervisor_id !== undefined) updateData.floor_supervisor_id = floor_supervisor_id;
+
+    if (Object.keys(updateData).length === 0) {
+      const err = new Error('At least one supervisor field is required');
+      err.status = 400;
+      throw err;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('classrooms')
+      .update(updateData)
+      .eq('id', classroomId)
+      .select(`
+        id,
+        exam_id,
+        room_number,
+        supervisor_id,
+        floor_supervisor_id,
+        supervisor:supervisor_id (
+          id,
+          full_name
+        ),
+        floor_supervisor:floor_supervisor_id (
+          id,
+          full_name
+        )
+      `)
+      .single();
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return {
+      classroom: {
+        id: data.id,
+        room_number: data.room_number,
+        exam_id: data.exam_id,
+        supervisor_id: data.supervisor_id,
+        floor_supervisor_id: data.floor_supervisor_id,
+        supervisor_name: data.supervisor?.full_name || null,
+        floor_supervisor_name: data.floor_supervisor?.full_name || null,
+      },
+    };
+  },
+
+  async getSupervisorsForAssignment() {
+    const { data, error } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name, email, role')
+      .in('role', ['supervisor', 'floor_supervisor'])
+      .eq('is_active', true)
+      .order('full_name', { ascending: true });
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return (data || []).map(supervisor => ({
+      id: supervisor.id,
+      full_name: supervisor.full_name,
+      email: supervisor.email,
+      role: supervisor.role,
+    }));
+  },
+
+  async importClassroomsFromExcel(buffer) {
+    console.log("Starting classroom import...");
+    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rows = xlsx.utils.sheet_to_json(sheet, { raw: false });
+
+    console.log(`Processing ${rows.length} rows from Excel`);
+
+    const results = {
+      imported: 0,
+      updated: 0,
+      failed: 0,
+      errors: []
+    };
+
+    let rowIndex = 1;
+
+    for (const row of rows) {
+      rowIndex++;
+
+      // Normalize keys
+      const normalized = {};
+      Object.keys(row).forEach(k => normalized[k.trim().toLowerCase()] = row[k]);
+
+      const roomNumber = normalized['room number'] || normalized['room_number'] || normalized['رقم الحجرة'];
+      const examId = normalized['exam id'] || normalized['exam_id'] || normalized['معرف الاختبار'];
+      const supervisorEmail = normalized['supervisor email'] || normalized['supervisor_email'] || normalized['بريد المراقب'];
+      const floorSupervisorEmail = normalized['floor supervisor email'] || normalized['floor_supervisor_email'] || normalized['بريد مراقب الطابق'];
+
+      console.log(`Row ${rowIndex}: room="${roomNumber}", exam="${examId}", supervisor="${supervisorEmail}"`);
+
+      // Validate required fields
+      if (!roomNumber || !examId) {
+        results.failed++;
+        results.errors.push({
+          row: rowIndex,
+          error: 'Missing room_number or exam_id'
+        });
+        console.log(`  -> FAILED: Missing required fields`);
+        continue;
+      }
+
+      try {
+        // Find supervisor if email provided
+        let supervisorId = null;
+        if (supervisorEmail) {
+          const { data: supervisor } = await supabaseAdmin
+            .from('profiles')
+            .select('id, role')
+            .eq('email', supervisorEmail.trim())
+            .single();
+
+          if (supervisor) {
+            console.log(`  -> Found supervisor: ${supervisor.id}, role=${supervisor.role}`);
+            if (supervisor.role === 'supervisor') {
+              supervisorId = supervisor.id;
+            } else {
+              console.log(`  -> Supervisor role mismatch: expected 'supervisor', got '${supervisor.role}'`);
+            }
+          } else {
+            console.log(`  -> Supervisor not found with email: ${supervisorEmail.trim()}`);
+          }
+        }
+
+        // Find floor supervisor if email provided
+        let floorSupervisorId = null;
+        if (floorSupervisorEmail) {
+          const { data: floorSupervisor } = await supabaseAdmin
+            .from('profiles')
+            .select('id, role')
+            .eq('email', floorSupervisorEmail.trim())
+            .single();
+
+          if (floorSupervisor) {
+            console.log(`  -> Found floor supervisor: ${floorSupervisor.id}, role=${floorSupervisor.role}`);
+            if (floorSupervisor.role === 'floor_supervisor') {
+              floorSupervisorId = floorSupervisor.id;
+            } else {
+              console.log(`  -> Floor supervisor role mismatch: expected 'floor_supervisor', got '${floorSupervisor.role}'`);
+            }
+          } else {
+            console.log(`  -> Floor supervisor not found with email: ${floorSupervisorEmail.trim()}`);
+          }
+        }
+
+        // Check if classroom with same room_number AND exam_id already exists
+        const { data: existingClassroom, error: selectError } = await supabaseAdmin
+          .from('classrooms')
+          .select('id')
+          .eq('room_number', String(roomNumber).trim())
+          .eq('exam_id', String(examId).trim())
+          .single();
+
+        if (existingClassroom) {
+          // UPDATE existing classroom with new supervisor assignments
+          const { data: updatedClassroom, error: updateError } = await supabaseAdmin
+            .from('classrooms')
+            .update({
+              supervisor_id: supervisorId,
+              floor_supervisor_id: floorSupervisorId,
+            })
+            .eq('id', existingClassroom.id)
+            .select('id')
+            .single();
+
+          if (updateError) {
+            throw new Error(`Failed to update classroom: ${updateError.message}`);
+          }
+
+          results.updated++;
+          console.log(`  -> UPDATED: Classroom ${existingClassroom.id} with new supervisors`);
+        } else {
+          // CREATE new classroom
+          const { data: newClassroom, error: classroomError } = await supabaseAdmin
+            .from('classrooms')
+            .insert({
+              room_number: String(roomNumber).trim(),
+              exam_id: String(examId).trim(),
+              supervisor_id: supervisorId,
+              floor_supervisor_id: floorSupervisorId,
+            })
+            .select('id')
+            .single();
+
+          if (classroomError) {
+            throw new Error(`Failed to create classroom: ${classroomError.message}`);
+          }
+
+          results.imported++;
+          console.log(`  -> CREATED: New classroom ${newClassroom.id}`);
+        }
+      } catch (err) {
+        results.failed++;
+        results.errors.push({
+          row: rowIndex,
+          roomNumber: roomNumber,
+          error: err.message
+        });
+        console.log(`  -> FAILED: ${err.message}`);
+      }
+    }
+
+    console.log(`Import complete: imported=${results.imported}, updated=${results.updated}, failed=${results.failed}`);
+    return results;
+  },
 };

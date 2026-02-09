@@ -272,4 +272,76 @@ export const AdminController = {
       next(err);
     }
   },
+
+  // ========== CLASSROOMS ==========
+
+  async listClassrooms(req, res, next) {
+    try {
+      const filters = {
+        search: req.query.q,
+        exam_id: req.query.exam_id,
+      };
+      const classrooms = await AdminService.listClassroomsForAdmin(filters);
+      res.json({ classrooms });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async createClassroom(req, res, next) {
+    try {
+      const result = await AdminService.createClassroomForAdmin(req.body);
+      res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async updateClassroom(req, res, next) {
+    try {
+      const result = await AdminService.updateClassroomForAdmin(req.params.id, req.body);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async deleteClassroom(req, res, next) {
+    try {
+      const result = await AdminService.deleteClassroomForAdmin(req.params.id);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async assignSupervisors(req, res, next) {
+    try {
+      const result = await AdminService.assignSupervisorsToClassroom(req.params.id, req.body);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async importClassrooms(req, res, next) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+      const result = await AdminService.importClassroomsFromExcel(req.file.buffer);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getSupervisorsForAssignment(req, res, next) {
+    try {
+      const supervisors = await AdminService.getSupervisorsForAssignment();
+      res.json({ supervisors });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

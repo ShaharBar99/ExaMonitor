@@ -68,6 +68,7 @@ export default function AdminNavbar() {
         <nav className="flex items-center justify-center sm:justify-start gap-1 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
           <NavLink to="/admin/users" className={getLinkClass}>משתמשים</NavLink>
           <NavLink to="/admin/courses" className={getLinkClass}>קורסים</NavLink>
+          <NavLink to="/admin/classrooms" className={getLinkClass}>חדרים</NavLink>
           <NavLink to="/admin/exams" className={getLinkClass}>מבחנים</NavLink>
           <NavLink to="/admin/audit" className={getLinkClass}>Audit</NavLink>
           <NavLink to="/admin/security" className={getLinkClass}>אבטחה</NavLink>
