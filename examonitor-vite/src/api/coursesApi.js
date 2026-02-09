@@ -150,6 +150,7 @@ export async function removeStudentFromCourse(courseId, studentId, token) {
  * Import courses from Excel file
  */
 export async function importCourses(formData) {
+  console.log("coursesApi: importCourses called");
   if (useMock) {
     return { ok: true, imported: 0 };
   }
@@ -162,15 +163,18 @@ export async function importCourses(formData) {
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const apiUrl = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+  console.log(`coursesApi: Sending POST request to ${apiUrl}/admin/courses/import`);
   const response = await fetch(`${apiUrl}/admin/courses/import`, {
     method: "POST",
     headers,
     body: formData,
     credentials: "include",
   });
+  console.log("coursesApi: Response status:", response.status);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
+    console.error("coursesApi: Response error:", error);
     throw new Error(error.error || "Failed to import courses");
   }
 

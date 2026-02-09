@@ -26,7 +26,7 @@ export default function ManageExamsPage() {
       setExams(data.items || []);
     } catch (err) {
       console.error("Failed to load exams", err);
-      alert("Failed to load exams");
+      alert("שגיאה בטעינת הבחינות");
     } finally {
       setLoading(false);
     }
@@ -60,13 +60,13 @@ export default function ManageExamsPage() {
   };
 
   const handleDelete = async (examId) => {
-    if (!window.confirm("Are you sure you want to delete this exam? This cannot be undone.")) return;
+    if (!window.confirm("האם אתה בטוח שברצונך למחוק בחינה זו? פעולה זו אינה הפיכה.")) return;
     setRowBusyId(examId);
     try {
       await deleteExam(examId);
       loadExams();
     } catch (err) {
-      alert(`Failed to delete exam: ${err.message}`);
+      alert(`שגיאה במחיקת הבחינה: ${err.message}`);
     } finally {
       setRowBusyId(null);
     }
@@ -80,10 +80,10 @@ export default function ManageExamsPage() {
       const formData = new FormData();
       formData.append("file", file);
       const res = await importExams(formData);
-      alert(`Imported: ${res.success}, Failed: ${res.failed}`);
+      alert(`יובאו בהצלחה: ${res.success}, נכשלו: ${res.failed}`);
       loadExams();
     } catch (err) {
-      alert(`Import failed: ${err.message}`);
+      alert(`שגיאה בייבוא: ${err.message}`);
     } finally {
       setLoading(false);
       if (fileInputRef.current) {

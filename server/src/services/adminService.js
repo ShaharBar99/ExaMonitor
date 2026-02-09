@@ -1217,10 +1217,16 @@ export const AdminService = {
    * Import courses from Excel file
    */
   async importCoursesFromExcel(buffer) {
+    console.log("Starting course import...");
     const workbook = xlsx.read(buffer, { type: 'buffer' });
+    console.log("Workbook Sheets:", workbook.SheetNames);
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     const rows = xlsx.utils.sheet_to_json(sheet, { raw: false });
+    console.log(`Processing ${rows.length} rows from Excel`);
+    if (rows.length > 0) {
+      console.log("First row sample:", JSON.stringify(rows[0]));
+    }
 
     const results = {
       imported: 0,
@@ -1244,6 +1250,7 @@ export const AdminService = {
 
       // Validate required fields
       if (!courseCode || !courseName) {
+        console.warn(`Row ${rowIndex} skipped. Missing courseCode/Name. Normalized:`, normalized);
         results.failed++;
         results.errors.push({
           row: rowIndex,
@@ -1271,11 +1278,17 @@ export const AdminService = {
           const { data: lecturer } = await supabaseAdmin
             .from('profiles')
             .select('id, role')
-            .eq('email', lecturerEmail.trim())
+            .eq('email', String(lecturerEmail).trim().toLowerCase())
             .single();
 
-          if (lecturer && lecturer.role === 'lecturer') {
-            lecturerId = lecturer.id;
+          if (lecturer) {
+            if (lecturer.role === 'lecturer') {
+              lecturerId = lecturer.id;
+            } else {
+              throw new Error(`User ${lecturerEmail} is not a lecturer (role: ${lecturer.role})`);
+            }
+          } else {
+            throw new Error(`Lecturer with email ${lecturerEmail} not found`);
           }
         }
 
@@ -1296,6 +1309,7 @@ export const AdminService = {
 
         results.imported++;
       } catch (err) {
+        console.error(`Row ${rowIndex} failed:`, err);
         results.failed++;
         results.errors.push({
           courseCode: courseCode,
@@ -1304,6 +1318,7 @@ export const AdminService = {
       }
     }
 
+    console.log(`Course import complete: imported=${results.imported}, skipped=${results.skipped}, failed=${results.failed}`);
     return results;
   },
 
@@ -1649,13 +1664,10 @@ export const AdminService = {
   },
 
   async importClassroomsFromExcel(buffer, adminUserId) {
-    console.log("Starting classroom import...");
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     const rows = xlsx.utils.sheet_to_json(sheet, { raw: false });
-
-    console.log(`Processing ${rows.length} rows from Excel`);
 
     const results = {
       imported: 0,
@@ -1674,20 +1686,81 @@ export const AdminService = {
       Object.keys(row).forEach(k => normalized[k.trim().toLowerCase()] = row[k]);
 
       const roomNumber = normalized['room number'] || normalized['room_number'] || normalized['رقم الحجرة'];
-      const examId = normalized['exam id'] || normalized['exam_id'] || normalized['معرف الاختبار'];
+      let examId = normalized['exam id'] || normalized['exam_id'] || normalized['معرف الاختبار'];
+      const courseCode = normalized['course code'] || normalized['course_code'] || normalized['קוד קורס'];
+      const dateStr = normalized['date'] || normalized['exam date'] || normalized['תאריך'];
       const supervisorEmail = normalized['supervisor email'] || normalized['supervisor_email'] || normalized['بريد المراقب'];
       const floorSupervisorEmail = normalized['floor supervisor email'] || normalized['floor_supervisor_email'] || normalized['بريد مراقب الطابق'];
 
-      console.log(`Row ${rowIndex}: room="${roomNumber}", exam="${examId}", supervisor="${supervisorEmail}"`);
+      // If exam_id is missing, try to find it via course_code and date
+      if (!examId && courseCode && dateStr) {
+        console.log(`[Import Classrooms] Resolving exam for course=${courseCode}, date=${dateStr}`);
+        try {
+          const { data: course } = await supabaseAdmin
+            .from('courses')
+            .select('id')
+            .eq('course_code', String(courseCode).trim())
+            .single();
+
+          if (course) {
+            const { data: exams } = await supabaseAdmin
+              .from('exams')
+              .select('id, original_start_time')
+              .eq('course_id', course.id);
+
+            if (exams && exams.length > 0) {
+              const d = new Date(dateStr);
+              if (isNaN(d.getTime())) {
+                console.warn(`[Import Classrooms] Invalid date format: ${dateStr}`);
+                throw new Error(`Invalid date format: ${dateStr}`);
+              }
+              
+              let targetDate;
+              if (/^\d{4}-\d{2}-\d{2}/.test(String(dateStr))) {
+                targetDate = d.toISOString().split('T')[0];
+              } else {
+                const offset = d.getTimezoneOffset() * 60000;
+                targetDate = new Date(d.getTime() - offset).toISOString().split('T')[0];
+              }
+
+              const matchedExam = exams.find(e => {
+                const examDateStr = new Date(e.original_start_time).toISOString().split('T')[0];
+                console.log(`[Import Classrooms] Comparing DB date ${examDateStr} with CSV date ${targetDate}`);
+                
+                if (examDateStr === targetDate) return true;
+
+                // Fuzzy match (+/- 1 day) to handle timezone shifts
+                const diffTime = Math.abs(new Date(examDateStr) - new Date(targetDate));
+                if (diffTime <= 86400000) { // 24 hours in ms
+                   console.log(`[Import Classrooms] Fuzzy match accepted: DB ${examDateStr} vs CSV ${targetDate}`);
+                   return true;
+                }
+                return false;
+              });
+              if (matchedExam) {
+                examId = matchedExam.id;
+                console.log(`[Import Classrooms] Found exam: ${examId}`);
+              } else {
+                console.log(`[Import Classrooms] No exam matched for date ${targetDate}`);
+              }
+            } else {
+              console.log(`[Import Classrooms] No exams found for course ${course.id}`);
+            }
+          } else {
+            console.log(`[Import Classrooms] Course not found: ${courseCode}`);
+          }
+        } catch (lookupErr) {
+          console.warn(`Row ${rowIndex}: Failed to lookup exam by code/date`, lookupErr);
+        }
+      }
 
       // Validate required fields
       if (!roomNumber || !examId) {
         results.failed++;
         results.errors.push({
           row: rowIndex,
-          error: 'Missing room_number or exam_id'
+          error: 'Missing room_number or unable to resolve exam (provide exam_id OR course_code + date)'
         });
-        console.log(`  -> FAILED: Missing required fields`);
         continue;
       }
 
@@ -1702,14 +1775,9 @@ export const AdminService = {
             .single();
 
           if (supervisor) {
-            console.log(`  -> Found supervisor: ${supervisor.id}, role=${supervisor.role}`);
             if (supervisor.role === 'supervisor') {
               supervisorId = supervisor.id;
-            } else {
-              console.log(`  -> Supervisor role mismatch: expected 'supervisor', got '${supervisor.role}'`);
             }
-          } else {
-            console.log(`  -> Supervisor not found with email: ${supervisorEmail.trim()}`);
           }
         }
 
@@ -1723,14 +1791,9 @@ export const AdminService = {
             .single();
 
           if (floorSupervisor) {
-            console.log(`  -> Found floor supervisor: ${floorSupervisor.id}, role=${floorSupervisor.role}`);
             if (floorSupervisor.role === 'floor_supervisor') {
               floorSupervisorId = floorSupervisor.id;
-            } else {
-              console.log(`  -> Floor supervisor role mismatch: expected 'floor_supervisor', got '${floorSupervisor.role}'`);
             }
-          } else {
-            console.log(`  -> Floor supervisor not found with email: ${floorSupervisorEmail.trim()}`);
           }
         }
 
@@ -1754,7 +1817,6 @@ export const AdminService = {
         if (conflicts && conflicts.length > 0) {
           results.failed++;
           results.errors.push({ row: rowIndex, roomNumber: roomNumber, error: conflicts.join('; ') });
-          console.log(`  -> FAILED: Conflicts: ${conflicts.join('; ')}`);
           continue;
         }
 
@@ -1775,7 +1837,6 @@ export const AdminService = {
           }
 
           results.updated++;
-          console.log(`  -> UPDATED: Classroom ${existingClassroom.id} with new supervisors`);
         } else {
           // CREATE new classroom
           const { data: newClassroom, error: classroomError } = await supabaseAdmin
@@ -1794,7 +1855,6 @@ export const AdminService = {
           }
 
           results.imported++;
-          console.log(`  -> CREATED: New classroom ${newClassroom.id}`);
         }
       } catch (err) {
         results.failed++;
@@ -1803,11 +1863,9 @@ export const AdminService = {
           roomNumber: roomNumber,
           error: err.message
         });
-        console.log(`  -> FAILED: ${err.message}`);
       }
     }
 
-    console.log(`Import complete: imported=${results.imported}, updated=${results.updated}, failed=${results.failed}`);
     try {
       await logAudit(adminUserId, 'import_classrooms', { summary: results });
     } catch (err) {

@@ -73,7 +73,7 @@ export async function check_conflicts(type, payload = {}) {
         
         // A conflict exists if times overlap AND it's for a different exam.
         if (timesOverlap(examWindow.start, examWindow.end, s, e) && c.exam_id !== payload.exam_id) {
-          errors.push(`Floor Supervisor is already assigned to Room ${c.room_number} for an overlapping exam.`);
+          errors.push(`המשגיח הראשי (Floor Supervisor) כבר משובץ לחדר ${c.room_number} בבחינה מקבילה.`);
         }
       }
     }
@@ -94,7 +94,7 @@ export async function check_conflicts(type, payload = {}) {
         const e = new Date(s.getTime() + dur * 60000);
         if (timesOverlap(examWindow.start, examWindow.end, s, e)) {
           if (payload.existing_classroom_id && payload.existing_classroom_id === r.id && r.exam_id === payload.exam_id) continue;
-          errors.push(`Room ${payload.room_number} is already assigned to another exam (${r.exam_id}) during this time slot`);
+          errors.push(`חדר ${payload.room_number} כבר משובץ לבחינה אחרת (${r.exam_id}) בטווח הזמן הזה.`);
         }
       }
     }
@@ -121,7 +121,7 @@ export async function check_conflicts(type, payload = {}) {
         const dur = Number(c.exams.original_duration || 0) + Number(c.exams.extra_time || 0);
         const e = new Date(s.getTime() + dur * 60000);
         if (timesOverlap(examWindow.start, examWindow.end, s, e)) {
-          errors.push(`Student ID ${payload.student_id} already registered/in attendance for an exam in room ${c.room_number} during this time`);
+          errors.push(`סטודנט עם ת"ז ${payload.student_id} כבר רשום או נמצא בנוכחות בבחינה בחדר ${c.room_number} בטווח הזמן הזה.`);
         }
       }
     }
@@ -144,7 +144,7 @@ export async function check_conflicts(type, payload = {}) {
       err.status = 500;
       throw err;
     } else if (conflictingBreaks && conflictingBreaks.length > 0) {
-      errors.push('Another student is already on a toilet break in this classroom.');
+      errors.push('סטודנט אחר מהכיתה הזו כבר נמצא בהפסקת שירותים.');
     }
   }
 

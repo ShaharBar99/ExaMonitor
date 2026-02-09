@@ -272,13 +272,16 @@ export const AdminController = {
   },
 
   async importCourses(req, res, next) {
+    console.log('AdminController.importCourses: Request received');
     try {
       if (!req.file) {
+        console.log('AdminController.importCourses: No file uploaded');
         return res.status(400).json({ error: 'No file uploaded' });
       }
       const result = await AdminService.importCoursesFromExcel(req.file.buffer);
       res.json(result);
     } catch (err) {
+      console.error('AdminController.importCourses: Error', err);
       next(err);
     }
   },

@@ -64,23 +64,30 @@ export default function ManageCoursesPage() {
   };
 
   const handleImportCourses = async (e) => {
+    console.log("ManageCoursesPage: handleImportCourses triggered");
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log("ManageCoursesPage: No file selected");
+      return;
+    }
     
     setLoading(true);
     try {
+      console.log("ManageCoursesPage: Preparing FormData with file:", file.name);
       const formData = new FormData();
       formData.append("file", file);
       const res = await importCoursesFromExcel(formData);
+      console.log("ManageCoursesPage: importCoursesFromExcel result:", res);
       if (res.ok) {
         loadCourses();
         alert("קורסים יובאו בהצלחה");
       }
     } catch (err) {
+      console.error("ManageCoursesPage: Import error:", err);
       alert("שגיאה בייבוא: " + err.message);
     } finally {
       setLoading(false);
-      e.target.value = "";
+      if (coursesFileInputRef.current) coursesFileInputRef.current.value = "";
     }
   };
 
@@ -227,7 +234,6 @@ export default function ManageCoursesPage() {
         />
       )}
 
-      <input type="file" hidden ref={coursesFileInputRef} onChange={() => {}} accept=".xlsx,.xls,.csv" />
     </div>
   );
 }

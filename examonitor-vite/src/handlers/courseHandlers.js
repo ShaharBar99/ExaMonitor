@@ -108,6 +108,7 @@ export function filterCourses(courses, filters = {}) {
  * Import courses from Excel file
  */
 export async function importCoursesFromExcel(formData, deps = {}) {
+  console.log("courseHandlers: importCoursesFromExcel called");
   const coursesApi = deps.coursesApi || coursesApiDefault;
   
   const data = await coursesApi.importCourses(formData);

@@ -159,7 +159,7 @@ export default function ManageClassroomsPage() {
             </div>
             <div className="text-[10px] md:text-[11px] text-slate-500 overflow-x-auto whitespace-nowrap">
               פורמט Excel:
-              <span className="font-mono ml-1">room | exam_id | supervisor | floor_sup</span>
+              <span className="font-mono ml-1">room | course_code | date | supervisor | floor_sup</span>
             </div>
           </div>
         </div>

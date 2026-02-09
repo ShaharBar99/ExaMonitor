@@ -25,7 +25,7 @@ export default function ManageUsersPage() {
       setUsers(data.users || []);
     } catch (err) {
       console.error("Failed to load users", err);
-      alert("Failed to load users");
+      alert("שגיאה בטעינת המשתמשים");
     } finally {
       setLoading(false);
     }
@@ -56,13 +56,13 @@ export default function ManageUsersPage() {
   };
 
   const handleDelete = async (userId) => {
-    if (!window.confirm("Are you sure you want to delete this user? This cannot be undone.")) return;
+    if (!window.confirm("האם אתה בטוח שברצונך למחוק משתמש זה? פעולה זו אינה הפיכה.")) return;
     setRowBusyId(userId);
     try {
       await deleteUser(userId);
       loadUsers();
     } catch (err) {
-      alert(`Failed to delete user: ${err.message}`);
+      alert(`שגיאה במחיקת המשתמש: ${err.message}`);
     } finally {
       setRowBusyId(null);
     }
@@ -76,10 +76,10 @@ export default function ManageUsersPage() {
       const formData = new FormData();
       formData.append("file", file);
       const res = await importUsers(formData);
-      alert(`Imported: ${res.data.success}, Failed: ${res.data.failed}`);
+      alert(`יובאו בהצלחה: ${res.data.success}, נכשלו: ${res.data.failed}`);
       loadUsers();
     } catch (err) {
-      alert(`Import failed: ${err.message}`);
+      alert(`שגיאה בייבוא: ${err.message}`);
     } finally {
       setLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
