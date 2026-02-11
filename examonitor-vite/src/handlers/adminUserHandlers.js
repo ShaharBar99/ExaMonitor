@@ -27,8 +27,7 @@ export function filterUsers(users, filters = {}) { // Filter users by search/rol
 // Fetch users (REST or mock) via usersApi. // Thin handler
 export async function fetchUsers(filters = {}, deps = {}) { // Get users list
   const usersApi = deps.usersApi || usersApiDefault; // Use injected or default
-  const token = (localStorage.getItem("token") || sessionStorage.getItem("token")) ?? null; // Get token from local storage
-  const data = await usersApi.listUsers({ ...filters, token }); // Call api
+  const data = await usersApi.listUsers({ ...filters }); // Call api
   const users = data?.users || []; // Extract users array
   console.log('fetchUsers: retrieved', users, 'users'); // Debug log
   return { ok: true, data: { users } }; // Return standard shape
@@ -37,34 +36,30 @@ export async function fetchUsers(filters = {}, deps = {}) { // Get users list
 // Update user status via API. // Thin handler
 export async function changeUserStatus(userId, status, deps = {}) { // Change status
   const usersApi = deps.usersApi || usersApiDefault; // API module
-  const token = deps.token ?? (localStorage.getItem('token') || sessionStorage.getItem('token')); // Optional token
   const safeStatus = normalizeStatus(status); // Normalize
-  const data = await usersApi.setUserStatus(String(userId), safeStatus, token); // Call api
+  const data = await usersApi.setUserStatus(String(userId), safeStatus); // Call api
   return { ok: true, data }; // Return updated user
 } // End changeUserStatus
 
 // Update user role via API. // Thin handler
 export async function changeUserRole(userId, role, deps = {}) { // Change role
   const usersApi = deps.usersApi || usersApiDefault; // API module
-  const token = deps.token ?? (localStorage.getItem('token') || sessionStorage.getItem('token')); // Optional token
   const safeRole = normalizeRole(role); // Normalize
-  const data = await usersApi.setUserRole(String(userId), safeRole, token); // Call api
+  const data = await usersApi.setUserRole(String(userId), safeRole); // Call api
   return { ok: true, data }; // Return updated user
 } // End changeUserRole
 
 // Update user permissions via API. // Thin handler
 export async function changeUserPermissions(userId, permissions, deps = {}) { // Change permissions
   const usersApi = deps.usersApi || usersApiDefault; // API module
-  const token = deps.token ?? (localStorage.getItem('token') || sessionStorage.getItem('token')); // Optional token
   const perms = Array.isArray(permissions) ? permissions : []; // Normalize perms
-  const data = await usersApi.updateUserPermissions(String(userId), perms, token); // Call api
+  const data = await usersApi.updateUserPermissions(String(userId), perms); // Call api
   return { ok: true, data }; // Return updated user
 } // End changeUserPermissions
 
 export async function createNewUser(userData, deps = {}) {
   const usersApi = deps.usersApi || usersApiDefault;
-  const token = deps.token ?? (localStorage.getItem("token") || sessionStorage.getItem("token"));
-  const data = await usersApi.createUser(userData, token);
+  const data = await usersApi.createUser(userData);
   return { ok: true, data };
 }
 
@@ -77,21 +72,12 @@ export async function updateUser(userId, userData, deps = {}) {
 
 export async function deleteUser(userId, deps = {}) {
   const usersApi = deps.usersApi || usersApiDefault;
-  const token = deps.token ?? (localStorage.getItem("token") || sessionStorage.getItem("token"));
-  // We need to implement deleteUser in logic or assume apiFetch direct usage or add to usersApi
-  // Let's add it to usersApi first or call it directly if usage allows.
-  // Given the pattern, let's call usersApi wrapper if exists, but usersApi seems to be a wrapper.
-  // Let's check usersApi.js content via previous context... it doesn't have delete.
-  // So we should add deleteUser to usersApi.js first or implement it here using apiFetch if exposed.
-  // But this file imports * as userApiDefault. 
-  // Let's assume we will add it to usersApi.js.
-  const data = await usersApi.deleteUser(String(userId), token);
+  const data = await usersApi.deleteUser(String(userId));
   return { ok: true, data };
 }
 
 export async function importUsers(formData, deps = {}) {
   const usersApi = deps.usersApi || usersApiDefault;
-  const token = deps.token ?? (localStorage.getItem("token") || sessionStorage.getItem("token"));
-  const data = await usersApi.bulkCreateUsers(formData, token);
+  const data = await usersApi.bulkCreateUsers(formData);
   return { ok: true, data };
 }

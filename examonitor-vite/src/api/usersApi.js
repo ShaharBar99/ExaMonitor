@@ -16,10 +16,10 @@ export async function listUsers(params = {}) { // GET /admin/users
   if (params.status) q.set("status", params.status); // status filter
 
   const suffix = q.toString() ? `?${q.toString()}` : ""; // Query suffix
-  return apiFetch(`/admin/users${suffix}`, { method: "GET", token: params.token }); // Call REST
+  return apiFetch(`/admin/users${suffix}`, { method: "GET" }); // Call REST
 } // End listUsers
 
-export async function setUserStatus(userId, status, token) { // PATCH /admin/users/:id/status
+export async function setUserStatus(userId, status) { // PATCH /admin/users/:id/status
   if (useMock) { // Mock path
     const res = updateMockUser(userId, { status }); // Update status in memory
     if (!res.ok) throw new Error(res.message); // Throw for handler to catch
@@ -29,11 +29,10 @@ export async function setUserStatus(userId, status, token) { // PATCH /admin/use
   return apiFetch(`/admin/users/${encodeURIComponent(userId)}/status`, { // REST call
     method: "PATCH", // PATCH
     body: { status }, // JSON body
-    token, // Auth token
   }); // End apiFetch
 } // End setUserStatus
 
-export async function updateUserPermissions(userId, permissions, token) { // PUT /admin/users/:id/permissions
+export async function updateUserPermissions(userId, permissions) { // PUT /admin/users/:id/permissions
   if (useMock) { // Mock path
     const res = updateMockUser(userId, { permissions }); // Update permissions in memory
     if (!res.ok) throw new Error(res.message); // Throw error
@@ -43,11 +42,10 @@ export async function updateUserPermissions(userId, permissions, token) { // PUT
   return apiFetch(`/admin/users/${encodeURIComponent(userId)}/permissions`, { // REST call
     method: "PUT", // PUT
     body: { permissions }, // JSON body
-    token, // Auth token
   }); // End apiFetch
 } // End updateUserPermissions
 
-export async function setUserRole(userId, role, token) { // PATCH /admin/users/:id/role
+export async function setUserRole(userId, role) { // PATCH /admin/users/:id/role
   if (useMock) { // Mock path
     const res = updateMockUser(userId, { role }); // Update role in memory
     if (!res.ok) throw new Error(res.message); // Throw error
@@ -57,37 +55,41 @@ export async function setUserRole(userId, role, token) { // PATCH /admin/users/:
   return apiFetch(`/admin/users/${encodeURIComponent(userId)}/role`, { // REST call
     method: "PATCH", // PATCH
     body: { role }, // JSON body
-    token, // Auth token
   }); // End apiFetch
 } // End setUserRole
 
-export async function createUser(userData, token) {
+export async function updateUser(userId, userData) {
+  if (useMock) {
+    const res = updateMockUser(userId, userData);
+    if (!res.ok) throw new Error(res.message);
+    return { user: res.user };
+  }
+  return apiFetch(`/admin/users/${encodeURIComponent(userId)}`, {
+    method: "PATCH",
+    body: userData,
+  });
+}
+
+export async function createUser(userData) {
   if (useMock) {
     return { user: { ...userData, id: "mock-new-id" } };
   }
   return apiFetch("/admin/users", {
     method: "POST",
     body: userData,
-    token,
-  });
-  return apiFetch("/admin/users", {
-    method: "POST",
-    body: userData,
-    token,
   });
 }
 
-export async function deleteUser(userId, token) {
+export async function deleteUser(userId) {
   if (useMock) {
     return { success: true };
   }
   return apiFetch(`/admin/users/${userId}`, {
     method: "DELETE",
-    token
   });
 }
 
-export async function bulkCreateUsers(formData, token) {
+export async function bulkCreateUsers(formData) {
   if (useMock) {
     return { success: 1, failed: 0, errors: [] };
   }
@@ -96,7 +98,6 @@ export async function bulkCreateUsers(formData, token) {
   return apiFetch("/admin/users/bulk", {
     method: "POST",
     body: formData,
-    token,
   });
 }
 
