@@ -45,8 +45,18 @@ export const examsApi = {
       body: { lecturerId },
     }),
 
+  removeExamLecturer: (examId, lecturerId) =>
+    apiFetch(`/exams/${examId}/lecturers/${lecturerId}`, {
+      method: 'DELETE',
+    }),
 
+  listExamsByLecturer: async (lecturerId) => {
+    return apiFetch(`/exams/by-lecturer/${lecturerId}`, { method: 'GET' });
+  },
 
+  getAvailableExamLecturers: async (examId) => {
+    return apiFetch(`/exams/${examId}/available-lecturers`, { method: 'GET' });
+  },
 
   updateExamStatus: async (examId, status, userId) =>
     apiFetch(`/exams/${examId}/status`, {

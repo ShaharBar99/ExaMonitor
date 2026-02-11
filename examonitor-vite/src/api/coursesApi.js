@@ -194,3 +194,62 @@ export async function getAvailableStudents(courseId) {
     method: "GET",
   });
 }
+
+/**
+ * GET /admin/courses/:id/lecturers
+ * Get lecturers assigned to a course
+ */
+export async function getCourseLecturers(courseId) {
+  if (useMock) {
+    return { lecturers: [] };
+  }
+
+  return apiFetch(`/admin/courses/${encodeURIComponent(courseId)}/lecturers`, {
+    method: "GET",
+  });
+}
+
+/**
+ * GET /admin/courses/:id/available-lecturers
+ * Get lecturers not yet assigned to a course
+ */
+export async function getAvailableLecturers(courseId) {
+  if (useMock) {
+    return { lecturers: [] };
+  }
+
+  return apiFetch(`/admin/courses/${encodeURIComponent(courseId)}/available-lecturers`, {
+    method: "GET",
+  });
+}
+
+/**
+ * POST /admin/courses/:id/lecturers
+ * Add a lecturer to a course
+ */
+export async function addLecturerToCourse(courseId, lecturerData, token) {
+  if (useMock) {
+    return { ok: true, assignment: { id: "mock-id", ...lecturerData } };
+  }
+
+  return apiFetch(`/admin/courses/${encodeURIComponent(courseId)}/lecturers`, {
+    method: "POST",
+    body: lecturerData,
+    token,
+  });
+}
+
+/**
+ * DELETE /admin/courses/:courseId/lecturers/:lecturerId
+ * Remove a lecturer from a course
+ */
+export async function removeLecturerFromCourse(courseId, lecturerId, token) {
+  if (useMock) {
+    return { ok: true };
+  }
+
+  return apiFetch(`/admin/courses/${encodeURIComponent(courseId)}/lecturers/${encodeURIComponent(lecturerId)}`, {
+    method: "DELETE",
+    token,
+  });
+}

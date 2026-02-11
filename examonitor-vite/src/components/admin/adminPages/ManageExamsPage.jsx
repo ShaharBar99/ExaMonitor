@@ -3,6 +3,7 @@ import { useTheme } from "../../state/ThemeContext";
 import { fetchExams, deleteExam, importExams } from "../../../handlers/adminExamHandlers";
 import CreateExamModal from "../adminComponents/CreateExamModal";
 import AdminTable from "../adminComponents/AdminTable";
+import ManageExamLecturersModal from "../adminComponents/ManageExamLecturersModal";
 
 export default function ManageExamsPage() {
   const { isDark } = useTheme();
@@ -13,7 +14,9 @@ export default function ManageExamsPage() {
   const [rowBusyId, setRowBusyId] = useState(null);
 
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showLecturersModal, setShowLecturersModal] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
+  const [selectedLecturerExam, setSelectedLecturerExam] = useState(null);
   const fileInputRef = useRef(null);
 
   const loadExams = async () => {
@@ -34,7 +37,7 @@ export default function ManageExamsPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-        loadExams();
+      loadExams();
     }, 300); // Debounce search
     return () => clearTimeout(timer);
   }, [search, statusFilter]);
@@ -57,6 +60,11 @@ export default function ManageExamsPage() {
   const handleSuccess = () => {
     handleCloseModal();
     loadExams();
+  };
+
+  const handleOpenLecturers = (exam) => {
+    setSelectedLecturerExam(exam);
+    setShowLecturersModal(true);
   };
 
   const handleDelete = async (examId) => {
@@ -157,17 +165,17 @@ export default function ManageExamsPage() {
                   <td className="px-6 py-4 text-sm">{new Date(exam.date).toLocaleString('he-IL')}</td>
                   <td className="px-6 py-4 text-sm">{exam.duration} דקות</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                      exam.status === 'active' ? 'bg-green-500/10 text-green-500' :
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${exam.status === 'active' ? 'bg-green-500/10 text-green-500' :
                       exam.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                      'bg-slate-500/10 text-slate-500'
-                    }`}>
+                        'bg-slate-500/10 text-slate-500'
+                      }`}>
                       {exam.status}
                     </span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => handleOpenEdit(exam)} className="px-4 py-1.5 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 font-bold text-xs transition-all">ערוך</button>
+                      <button onClick={() => handleOpenLecturers(exam)} className="px-4 py-1.5 rounded-lg bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 font-bold text-xs transition-all">שיבוץ מרצים</button>
                       <button onClick={() => handleDelete(exam.id)} disabled={rowBusyId === exam.id} className="px-4 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 font-bold text-xs transition-all">מחק</button>
                     </div>
                   </td>
@@ -185,15 +193,14 @@ export default function ManageExamsPage() {
                     <div className="font-bold text-lg">{exam.course_name}</div>
                     <div className="text-xs opacity-70 font-mono">{exam.course_code}</div>
                   </div>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                    exam.status === 'active' ? 'bg-green-500/10 text-green-500' :
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${exam.status === 'active' ? 'bg-green-500/10 text-green-500' :
                     exam.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                    'bg-slate-500/10 text-slate-500'
-                  }`}>
+                      'bg-slate-500/10 text-slate-500'
+                    }`}>
                     {exam.status}
                   </span>
                 </div>
-                
+
                 <div className="text-sm space-y-1 mb-4 opacity-80">
                   <div>📅 {new Date(exam.date).toLocaleString('he-IL')}</div>
                   <div>⏱️ {exam.duration} דקות</div>
@@ -201,6 +208,7 @@ export default function ManageExamsPage() {
 
                 <div className="flex gap-2">
                   <button onClick={() => handleOpenEdit(exam)} className="flex-1 py-2 rounded-lg bg-blue-500/10 text-blue-500 font-bold text-xs">ערוך</button>
+                  <button onClick={() => handleOpenLecturers(exam)} className="flex-1 py-2 rounded-lg bg-purple-500/10 text-purple-500 font-bold text-xs">שיבוץ מרצים</button>
                   <button onClick={() => handleDelete(exam.id)} disabled={rowBusyId === exam.id} className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-500 font-bold text-xs">מחק</button>
                 </div>
               </div>
@@ -215,6 +223,14 @@ export default function ManageExamsPage() {
           initialData={editingExam}
           onClose={handleCloseModal}
           onSuccess={handleSuccess}
+        />
+      )}
+
+      {showLecturersModal && selectedLecturerExam && (
+        <ManageExamLecturersModal
+          isDark={isDark}
+          exam={selectedLecturerExam}
+          onClose={() => setShowLecturersModal(false)}
         />
       )}
     </div>

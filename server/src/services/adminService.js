@@ -132,15 +132,15 @@ export const AdminService = {
       }
     }
     if (updates.email) {
-        const { data: existing } = await supabaseAdmin
-            .from('profiles')
-            .select('id')
-            .eq('email', updates.email)
-            .neq('id', userId)
-            .single();
-        if (existing) {
-            const err = new Error('Email already in use'); err.status = 409; throw err;
-        }
+      const { data: existing } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('email', updates.email)
+        .neq('id', userId)
+        .single();
+      if (existing) {
+        const err = new Error('Email already in use'); err.status = 409; throw err;
+      }
     }
 
     // --- Auth User Update ---
@@ -152,8 +152,8 @@ export const AdminService = {
     if (updates.role) user_metadata.role = updates.role;
     if (updates.username) user_metadata.username = updates.username;
     if (Object.keys(user_metadata).length > 0) {
-        const { data: { user: currentUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
-        authUpdates.user_metadata = { ...currentUser.user_metadata, ...user_metadata };
+      const { data: { user: currentUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
+      authUpdates.user_metadata = { ...currentUser.user_metadata, ...user_metadata };
     }
 
     if (Object.keys(authUpdates).length > 0) {
@@ -168,21 +168,21 @@ export const AdminService = {
     // --- Profile Update ---
     let data, error;
     if (Object.keys(updates).length > 0) {
-        const { data: profileData, error: profileError } = await supabaseAdmin
-            .from('profiles')
-            .update(updates)
-            .eq('id', userId).select('id, full_name, email, role, created_at, username, is_active, student_id')
-            .single();
-        data = profileData;
-        error = profileError;
+      const { data: profileData, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId).select('id, full_name, email, role, created_at, username, is_active, student_id')
+        .single();
+      data = profileData;
+      error = profileError;
     } else {
-        // If only password was changed, we still need to fetch the user data to return
-        const { data: profileData, error: profileError } = await supabaseAdmin
-            .from('profiles').select('id, full_name, email, role, created_at, username, is_active, student_id')
-            .eq('id', userId)
-            .single();
-        data = profileData;
-        error = profileError;
+      // If only password was changed, we still need to fetch the user data to return
+      const { data: profileData, error: profileError } = await supabaseAdmin
+        .from('profiles').select('id, full_name, email, role, created_at, username, is_active, student_id')
+        .eq('id', userId)
+        .single();
+      data = profileData;
+      error = profileError;
     }
     if (error) {
       const err = new Error(error.message);
@@ -580,35 +580,59 @@ export const AdminService = {
     return { id: userId, deleted: true };
   },
 
-  async createExam({ courseCode, courseName, lecturerEmail, examDate, examTime, duration }, adminUserId) {
+  async createExam({ courseCode, courseName, lecturerEmail, lecturer_id, examDate, examTime, duration }, adminUserId) {
     // 1. Identify/Validate Lecturer
-    const { data: lecturer, error: lecturerError } = await supabaseAdmin
-      .from('profiles')
-      .select('id, role')
-      .eq('email', String(lecturerEmail).trim())
-      .single();
+    // If lecturer_id is provided directly (new flow), use it.
+    // Otherwise fallback to email lookup (legacy flow).
+    let lecturerId = lecturer_id;
 
-    if (lecturerError || !lecturer) throw new Error(`Lecturer not found: ${lecturerEmail}`);
-    if (lecturer.role !== 'lecturer') throw new Error(`User ${lecturerEmail} is not a lecturer`);
+    if (lecturerId) {
+      const { data: lecturer, error: lecturerError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role')
+        .eq('id', lecturerId)
+        .single();
+
+      if (lecturerError || !lecturer) throw new Error(`Lecturer ID ${lecturerId} not found`);
+      if (lecturer.role !== 'lecturer') throw new Error(`User ID ${lecturerId} is not a lecturer`);
+    } else if (lecturerEmail) {
+      const { data: lecturer, error: lecturerError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, role')
+        .eq('email', String(lecturerEmail).trim())
+        .single();
+
+      if (lecturerError || !lecturer) throw new Error(`Lecturer not found: ${lecturerEmail}`);
+      if (lecturer.role !== 'lecturer') throw new Error(`User ${lecturerEmail} is not a lecturer`);
+      lecturerId = lecturer.id;
+    }
 
     // 2. Handle Course
     let courseId;
     const { data: existingCourse } = await supabaseAdmin
       .from('courses')
-      .select('id')
+      .select('id, lecturer_id')
       .eq('course_code', String(courseCode).trim())
       .single();
 
     if (existingCourse) {
       courseId = existingCourse.id;
+      // If no explicit lecturer for exam, default to course lecturer
+      if (!lecturerId && existingCourse.lecturer_id) {
+        lecturerId = existingCourse.lecturer_id;
+      }
     } else {
       if (!courseName) throw new Error(`Course ${courseCode} not found and no name provided`);
+
+      // If creating new course, we need a lecturer for it? 
+      // The old code used lecturer.id from email lookup.
+      // We'll use lecturerId if we have one.
       const { data: newCourse, error: createCourseError } = await supabaseAdmin
         .from('courses')
         .insert({
           course_code: String(courseCode).trim(),
           course_name: String(courseName).trim(),
-          lecturer_id: lecturer.id
+          lecturer_id: lecturerId || null
         })
         .select('id')
         .single();
@@ -646,17 +670,19 @@ export const AdminService = {
 
     if (insertExamError) throw new Error(`Insert exam failed: ${insertExamError.message}`);
 
-    // 6. Link Lecturer
-    await supabaseAdmin.from('exam_lecturers').insert({
-      exam_id: newExam.id,
-      lecturer_id: lecturer.id
-    });
+    // 6. Link Lecturer (Main Lecturer)
+    if (lecturerId) {
+      await supabaseAdmin.from('exam_lecturers').insert({
+        exam_id: newExam.id,
+        lecturer_id: lecturerId
+      });
+    }
 
     // Audit
     await supabaseAdmin.from('audit_trail').insert({
       user_id: adminUserId,
       action: 'CREATE_EXAM',
-      metadata: { exam_id: newExam.id, course: courseCode }
+      metadata: { exam_id: newExam.id, course: courseCode, main_lecturer: lecturerId }
     });
 
     return newExam;
@@ -858,6 +884,21 @@ export const AdminService = {
       throw err;
     }
 
+    // NEW: Automatically add main lecturer to course_lecturers
+    if (data.lecturer_id) {
+      const { error: clError } = await supabaseAdmin
+        .from('course_lecturers')
+        .insert({
+          course_id: data.id,
+          lecturer_id: data.lecturer_id
+        });
+
+      if (clError) {
+        console.error("Failed to sync main lecturer to course_lecturers:", clError);
+        // We log but don't fail the request, as the course itself was created.
+      }
+    }
+
     // Fetch lecturer info if exists
     let lecturerName = 'Unassigned';
     if (data.lecturer_id) {
@@ -922,6 +963,25 @@ export const AdminService = {
       const err = new Error(error.message);
       err.status = 400;
       throw err;
+    }
+
+    // NEW: Sync updated main lecturer to course_lecturers
+    if (updates.lecturer_id) {
+      // Check if already in list to avoid duplicates
+      const { count } = await supabaseAdmin
+        .from('course_lecturers')
+        .select('*', { count: 'exact', head: true })
+        .eq('course_id', courseId)
+        .eq('lecturer_id', updates.lecturer_id);
+
+      if (count === 0) {
+        await supabaseAdmin
+          .from('course_lecturers')
+          .insert({
+            course_id: courseId,
+            lecturer_id: updates.lecturer_id
+          });
+      }
     }
 
     return { course: data };
@@ -1203,6 +1263,132 @@ export const AdminService = {
       .delete()
       .eq('course_id', courseId)
       .eq('student_id', studentId);
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return { deleted: true };
+  },
+
+  // ========== COURSE LECTURERS ==========
+
+  /**
+   * Get lecturers assigned to a course
+   */
+  async getCourseLecturers(courseId) {
+    const { data, error } = await supabaseAdmin
+      .from('course_lecturers')
+      .select(`
+        id,
+        lecturer_id,
+        profiles:lecturer_id ( id, full_name, email )
+      `)
+      .eq('course_id', courseId);
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 400;
+      throw err;
+    }
+
+    return (data || []).map(cl => ({
+      id: cl.profiles?.id || cl.lecturer_id,
+      full_name: cl.profiles?.full_name || 'Unknown',
+      email: cl.profiles?.email || '',
+      assignment_id: cl.id,
+    }));
+  },
+
+  /**
+   * Get available lecturers for a course (lecturers not yet assigned)
+   */
+  async getAvailableLecturers(courseId) {
+    // Get all lecturers
+    const { data: allLecturers, error: allError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name, email')
+      .eq('role', 'lecturer');
+
+    if (allError) {
+      const err = new Error(allError.message);
+      err.status = 400;
+      throw err;
+    }
+
+    // Get lecturers already in this course
+    const { data: assigned, error: assignError } = await supabaseAdmin
+      .from('course_lecturers')
+      .select('lecturer_id')
+      .eq('course_id', courseId);
+
+    if (assignError) {
+      const err = new Error(assignError.message);
+      err.status = 400;
+      throw err;
+    }
+
+    const assignedIds = new Set((assigned || []).map(r => r.lecturer_id));
+
+    return (allLecturers || [])
+      .filter(l => !assignedIds.has(l.id))
+      .map(l => ({
+        id: l.id,
+        full_name: l.full_name || 'Unknown',
+        email: l.email || '',
+      }));
+  },
+
+  /**
+   * Add lecturer to course
+   */
+  async addLecturerToCourse(courseId, { id: lecturerId }) {
+    if (!lecturerId) {
+      const err = new Error('Lecturer ID is required');
+      err.status = 400;
+      throw err;
+    }
+
+    // Check if already assigned
+    const { data: existing } = await supabaseAdmin
+      .from('course_lecturers')
+      .select('id')
+      .eq('course_id', courseId)
+      .eq('lecturer_id', lecturerId)
+      .maybeSingle();
+
+    if (existing) {
+      const err = new Error('Lecturer already assigned to this course');
+      err.status = 409;
+      throw err;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('course_lecturers')
+      .insert({ course_id: courseId, lecturer_id: lecturerId })
+      .select('id')
+      .single();
+
+    if (error) {
+      const err = new Error(error.message);
+      err.status = 500;
+      throw err;
+    }
+
+    return { assignment: { id: data.id, lecturer_id: lecturerId } };
+  },
+
+  /**
+   * Remove lecturer from course
+   */
+  async removeLecturerFromCourse(courseId, lecturerId) {
+    const { error } = await supabaseAdmin
+      .from('course_lecturers')
+      .delete()
+      .eq('course_id', courseId)
+      .eq('lecturer_id', lecturerId);
 
     if (error) {
       const err = new Error(error.message);
@@ -1714,7 +1900,7 @@ export const AdminService = {
                 console.warn(`[Import Classrooms] Invalid date format: ${dateStr}`);
                 throw new Error(`Invalid date format: ${dateStr}`);
               }
-              
+
               let targetDate;
               if (/^\d{4}-\d{2}-\d{2}/.test(String(dateStr))) {
                 targetDate = d.toISOString().split('T')[0];
@@ -1726,14 +1912,14 @@ export const AdminService = {
               const matchedExam = exams.find(e => {
                 const examDateStr = new Date(e.original_start_time).toISOString().split('T')[0];
                 console.log(`[Import Classrooms] Comparing DB date ${examDateStr} with CSV date ${targetDate}`);
-                
+
                 if (examDateStr === targetDate) return true;
 
                 // Fuzzy match (+/- 1 day) to handle timezone shifts
                 const diffTime = Math.abs(new Date(examDateStr) - new Date(targetDate));
                 if (diffTime <= 86400000) { // 24 hours in ms
-                   console.log(`[Import Classrooms] Fuzzy match accepted: DB ${examDateStr} vs CSV ${targetDate}`);
-                   return true;
+                  console.log(`[Import Classrooms] Fuzzy match accepted: DB ${examDateStr} vs CSV ${targetDate}`);
+                  return true;
                 }
                 return false;
               });

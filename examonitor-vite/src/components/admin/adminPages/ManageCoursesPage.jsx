@@ -4,6 +4,7 @@ import { useAuth } from "../../state/AuthContext";
 import AdminTable from "../adminComponents/AdminTable";
 import CreateCourseModal from "../adminComponents/CreateCourseModal.jsx";
 import CourseStudentsModal from "../adminComponents/ManageStudentsModal";
+import ManageLecturersModal from "../adminComponents/ManageLecturersModal";
 import { fetchCourses, deleteCourseHandler, filterCourses, importCoursesFromExcel } from "../../../handlers/courseHandlers";
 
 export default function ManageCoursesPage() {
@@ -19,8 +20,10 @@ export default function ManageCoursesPage() {
   // Modal Visibility States
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showStudentsModal, setShowStudentsModal] = useState(false);
+  const [showLecturersModal, setShowLecturersModal] = useState(false);
   const [editingCourse, setEditingCourse] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedLecturerCourse, setSelectedLecturerCourse] = useState(null);
 
   const coursesFileInputRef = useRef(null);
 
@@ -58,6 +61,11 @@ export default function ManageCoursesPage() {
     setShowStudentsModal(true);
   };
 
+  const openLecturersModal = (course) => {
+    setSelectedLecturerCourse(course);
+    setShowLecturersModal(true);
+  };
+
   const openEditModal = (course) => {
     setEditingCourse(course);
     setShowCreateModal(true);
@@ -70,7 +78,7 @@ export default function ManageCoursesPage() {
       console.log("ManageCoursesPage: No file selected");
       return;
     }
-    
+
     setLoading(true);
     try {
       console.log("ManageCoursesPage: Preparing FormData with file:", file.name);
@@ -104,7 +112,7 @@ export default function ManageCoursesPage() {
   return (
     <div className={`min-h-screen pb-20 ${isDark ? "text-slate-100" : "text-slate-900"}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -113,18 +121,17 @@ export default function ManageCoursesPage() {
           </div>
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <input 
-                type="file" 
-                hidden 
-                ref={coursesFileInputRef} 
-                onChange={handleImportCourses} 
-                accept=".xlsx,.xls,.csv" 
+              <input
+                type="file"
+                hidden
+                ref={coursesFileInputRef}
+                onChange={handleImportCourses}
+                accept=".xlsx,.xls,.csv"
               />
               <button
                 onClick={() => coursesFileInputRef.current?.click()}
-                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-bold border transition-all active:scale-95 ${
-                  isDark ? "bg-slate-800 border-white/10 text-green-400" : "bg-white border-green-200 text-green-600"
-                }`}
+                className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-sm font-bold border transition-all active:scale-95 ${isDark ? "bg-slate-800 border-white/10 text-green-400" : "bg-white border-green-200 text-green-600"
+                  }`}
               >
                 📥 ייבוא
               </button>
@@ -151,9 +158,8 @@ export default function ManageCoursesPage() {
               placeholder="חיפוש קורס לפי שם או קוד..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className={`w-full pr-12 pl-4 py-3.5 rounded-2xl border outline-none transition-all focus:ring-2 focus:ring-blue-500/50 ${
-                isDark ? "bg-slate-800/50 border-white/10 text-white" : "bg-white border-slate-200"
-              }`}
+              className={`w-full pr-12 pl-4 py-3.5 rounded-2xl border outline-none transition-all focus:ring-2 focus:ring-blue-500/50 ${isDark ? "bg-slate-800/50 border-white/10 text-white" : "bg-white border-slate-200"
+                }`}
             />
           </div>
         </div>
@@ -176,11 +182,12 @@ export default function ManageCoursesPage() {
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => openEditModal(course)} className="px-4 py-1.5 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 font-bold text-xs transition-all">ערוך</button>
                       <button onClick={() => openStudentsModal(course)} className="px-4 py-1.5 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 font-bold text-xs transition-all">שיבוץ סטודנטים</button>
+                      <button onClick={() => openLecturersModal(course)} className="px-4 py-1.5 rounded-lg bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 font-bold text-xs transition-all">שיבוץ מרצים</button>
                       <button onClick={() => handleDeleteCourse(course.id)} disabled={rowBusyId === course.id} className="px-4 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 font-bold text-xs transition-all">מחק</button>
                     </div>
                   </td>
                 </tr>
-                
+
               ))}
             </AdminTable>
           </div>
@@ -202,6 +209,7 @@ export default function ManageCoursesPage() {
                 <div className="flex gap-2">
                   <button onClick={() => openEditModal(course)} className="flex-1 py-2 rounded-lg bg-blue-500/10 text-blue-500 font-bold text-xs">ערוך</button>
                   <button onClick={() => openStudentsModal(course)} className="flex-1 py-2 rounded-lg bg-green-500/10 text-green-500 font-bold text-xs">שיבוץ סטודנטים</button>
+                  <button onClick={() => openLecturersModal(course)} className="flex-1 py-2 rounded-lg bg-purple-500/10 text-purple-500 font-bold text-xs">שיבוץ מרצים</button>
                   <button onClick={() => handleDeleteCourse(course.id)} disabled={rowBusyId === course.id} className="flex-1 py-2 rounded-lg bg-red-500/10 text-red-500 font-bold text-xs">מחק</button>
                 </div>
               </div>
@@ -230,7 +238,15 @@ export default function ManageCoursesPage() {
           isDark={isDark}
           course={selectedCourse}
           onClose={() => setShowStudentsModal(false)}
-          
+
+        />
+      )}
+
+      {showLecturersModal && selectedLecturerCourse && (
+        <ManageLecturersModal
+          isDark={isDark}
+          course={selectedLecturerCourse}
+          onClose={() => setShowLecturersModal(false)}
         />
       )}
 

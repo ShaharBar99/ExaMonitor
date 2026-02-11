@@ -54,9 +54,9 @@ export const ExamService = {
 
 
   async listCourseLecturers(courseId) {
-  const { data, error } = await supabaseAdmin
-    .from('course_lecturers')
-    .select(`
+    const { data, error } = await supabaseAdmin
+      .from('course_lecturers')
+      .select(`
       lecturer_id,
       profiles:lecturer_id (
         id,
@@ -64,11 +64,11 @@ export const ExamService = {
         email
       )
     `)
-    .eq('course_id', courseId);
+      .eq('course_id', courseId);
 
-  if (error) throw Object.assign(new Error(error.message), { status: 400 });
-  return (data || []).map(r => r.profiles).filter(Boolean);
-},
+    if (error) throw Object.assign(new Error(error.message), { status: 400 });
+    return (data || []).map(r => r.profiles).filter(Boolean);
+  },
 
 
 
@@ -77,11 +77,18 @@ export const ExamService = {
   async listExamLecturers(examId) {
     const { data, error } = await supabaseAdmin
       .from('exam_lecturers')
-      .select('lecturer_id')
+      .select(`
+        lecturer_id,
+        profiles:lecturer_id (
+          id,
+          full_name,
+          email
+        )
+      `)
       .eq('exam_id', examId);
 
     if (error) throw Object.assign(new Error(error.message), { status: 400 });
-    return (data || []).map(r => r.lecturer_id);
+    return (data || []).map(r => r.profiles).filter(Boolean);
   },
 
   async addExamLecturer(examId, lecturerId) {
@@ -105,6 +112,101 @@ export const ExamService = {
     return data;
   },
 
+  async removeExamLecturer(examId, lecturerId) {
+    const { error } = await supabaseAdmin
+      .from('exam_lecturers')
+      .delete()
+      .eq('exam_id', examId)
+      .eq('lecturer_id', lecturerId);
+
+    if (error) throw Object.assign(new Error(error.message), { status: 400 });
+    return { deleted: true };
+  },
+
+  async listExamsByLecturer(lecturerId) {
+    const { data, error } = await supabaseAdmin
+      .from('exam_lecturers')
+      .select(`
+        exam_id,
+        exams:exam_id (
+          id,
+          course_id,
+          original_start_time,
+          original_duration,
+          extra_time,
+          status,
+          courses:course_id (
+            id,
+            course_name,
+            course_code
+          )
+        )
+      `)
+      .eq('lecturer_id', lecturerId);
+
+    if (error) throw Object.assign(new Error(error.message), { status: 400 });
+    return (data || []).map(r => r.exams).filter(Boolean);
+  },
+
+  async getAvailableExamLecturers(examId) {
+    // 1. Get Exam -> Course details (including main lecturer)
+    const { data: exam, error: examError } = await supabaseAdmin
+      .from('exams')
+      .select(`
+        course_id,
+        courses (
+          id,
+          lecturer_id
+        )
+      `)
+      .eq('id', examId)
+      .single();
+
+    if (examError || !exam || !exam.courses) {
+      throw new Error("Exam or Course not found");
+    }
+
+    const courseId = exam.course_id;
+    const mainLecturerId = exam.courses.lecturer_id;
+
+    // 2. Get Course Lecturers (from course_lecturers table)
+    const { data: courseLecturers, error: clError } = await supabaseAdmin
+      .from('course_lecturers')
+      .select('lecturer_id')
+      .eq('course_id', courseId);
+
+    if (clError) throw new Error(clError.message);
+
+    // 3. Get Lecturers ALREADY in this exam (to exclude)
+    const { data: assigned, error: assignError } = await supabaseAdmin
+      .from('exam_lecturers')
+      .select('lecturer_id')
+      .eq('exam_id', examId);
+
+    if (assignError) throw new Error(assignError.message);
+
+    // 4. Calculate final list of allowed lecturer IDs
+    const allowedIds = new Set();
+    if (mainLecturerId) allowedIds.add(mainLecturerId);
+    (courseLecturers || []).forEach(cl => allowedIds.add(cl.lecturer_id));
+
+    const assignedIds = new Set((assigned || []).map(r => r.lecturer_id));
+
+    // Filter out already assigned
+    const finalIds = [...allowedIds].filter(id => !assignedIds.has(id));
+
+    if (finalIds.length === 0) return [];
+
+    // 5. Fetch profiles
+    const { data: profiles, error: pError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name, email')
+      .in('id', finalIds);
+
+    if (pError) throw new Error(pError.message);
+
+    return profiles || [];
+  },
 
 
 
@@ -222,18 +324,18 @@ export const ExamService = {
           .select('id')
           .in('classroom_id', roomIds)
           .eq('status', 'exited_temporarily');
-        
+
         if (breakFetchErr) {
           console.error("Error fetching students on break:", breakFetchErr);
         } else if (studentsOnBreak && studentsOnBreak.length > 0) {
           const attendanceIdsOnBreak = studentsOnBreak.map(a => a.id);
-          
+
           const { error: breakUpdateErr } = await supabaseAdmin
             .from('student_breaks')
             .update({ return_time: now })
             .in('attendance_id', attendanceIdsOnBreak)
             .is('return_time', null);
-            
+
           if (breakUpdateErr) {
             console.error("Error closing open breaks:", breakUpdateErr);
           }
@@ -242,8 +344,8 @@ export const ExamService = {
         // שלב ב': עדכון כל הסטודנטים בחדרים האלו שנמצאים בסטטוס פעיל
         const { error: attError } = await supabaseAdmin
           .from('attendance')
-          .update({ 
-            status: 'submitted', 
+          .update({
+            status: 'submitted',
             check_out_time: now
           })
           .in('classroom_id', roomIds) // שימוש ב-classroom_id במקום exam_id
@@ -271,7 +373,7 @@ export const ExamService = {
       exitCounts[studentName] = (exitCounts[studentName] || 0) + 1;
     });
 
-    const topName = Object.keys(exitCounts).reduce((a, b) => 
+    const topName = Object.keys(exitCounts).reduce((a, b) =>
       exitCounts[a] > exitCounts[b] ? a : b
     );
 
@@ -281,7 +383,7 @@ export const ExamService = {
     };
   },
 
-    async finalizeAndSaveReport(examId, userId, classroomId) {
+  async finalizeAndSaveReport(examId, userId, classroomId) {
     // 1. נפיק נתונים *רק* עבור הכיתה הספציפית הזו
     const reportData = await this.getClassroomReport(classroomId);
 
@@ -294,7 +396,7 @@ export const ExamService = {
         generated_by: userId,
         summary_stats: reportData,
         created_at: new Date().toISOString()
-      }, { 
+      }, {
         onConflict: 'classroom_id' // המפתח לייחודיות הוא הכיתה, לא המבחן!
       })
       .select()
@@ -340,8 +442,8 @@ export const ExamService = {
       }
     });
 
-    const avgBreak = brkData.length > 0 
-      ? (totalBreakMinutes / brkData.length).toFixed(1) 
+    const avgBreak = brkData.length > 0
+      ? (totalBreakMinutes / brkData.length).toFixed(1)
       : "0.0";
 
     // מציאת הסטודנט שיצא הכי הרבה פעמים בחדר הזה
@@ -419,7 +521,7 @@ export const ExamService = {
 
   async broadcastAnnouncement(examId, message, userId) {
     console.log(`Broadcasting announcement for exam ${examId}: ${message}`);
-    
+
     await AuditTrailService.log({
       userId: userId,
       action: 'exam.broadcast',
@@ -439,15 +541,15 @@ export const ExamService = {
       .single();
 
     if (error) {
-        console.error("Error fetching timing:", error);
-        throw error;
+      console.error("Error fetching timing:", error);
+      throw error;
     }
     console.log("Fetched timing data:", data);
     // חשוב: ה-Frontend מצפה לשמות שדות ב-camelCase
     return {
-        startTime: data.original_start_time,
-        originalDuration: data.original_duration,
-        extraTime: data.extra_time || 0
+      startTime: data.original_start_time,
+      originalDuration: data.original_duration,
+      extraTime: data.extra_time || 0
     };
   }
 

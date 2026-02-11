@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import FormField from "../../shared/FormField";
 import { createExam, updateExam } from "../../../handlers/adminExamHandlers";
-import { fetchCourses } from "../../../handlers/courseHandlers"; // To get course list
+import { fetchCourses, fetchCourseLecturers } from "../../../handlers/courseHandlers"; // fetchCourseLecturers needed here
 
 export default function CreateExamModal({ onClose, onSuccess, isDark, initialData = null }) {
   const [formData, setFormData] = useState({
@@ -10,11 +10,14 @@ export default function CreateExamModal({ onClose, onSuccess, isDark, initialDat
     examTime: "",
     duration: "120",
     extra_time: "0",
+    lecturer_id: "",
   });
   const [courses, setCourses] = useState([]);
+  const [lecturers, setLecturers] = useState([]);
   const [loading, setLoading] = useState(false);
   const isEditing = !!initialData;
 
+  // 1. Load courses on mount
   useEffect(() => {
     async function loadCoursesForSelect() {
       try {
@@ -25,7 +28,48 @@ export default function CreateExamModal({ onClose, onSuccess, isDark, initialDat
       }
     }
     loadCoursesForSelect();
+  }, []);
 
+  // 2. Load lecturers when course changes (or courses list loads)
+  useEffect(() => {
+    async function loadLecturers() {
+      if (!formData.course_id) {
+        setLecturers([]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // 1. Get Main Lecturer from course details (if available)
+        const selectedCourse = courses.find(c => c.id === formData.course_id);
+        const mainLecturer = selectedCourse && selectedCourse.lecturer_id ? {
+          id: selectedCourse.lecturer_id,
+          full_name: selectedCourse.lecturer_name || 'Main Lecturer',
+          email: selectedCourse.lecturer_email || ''
+        } : null;
+
+        // 2. Get Course Lecturers
+        const { data } = await fetchCourseLecturers(formData.course_id);
+        const cLecturers = [
+          ...(mainLecturer ? [mainLecturer] : []),
+          ...(data?.lecturers || [])
+        ];
+
+        // Unique by ID
+        const uniqueLecturers = Array.from(new Map(cLecturers.map(item => [item.id, item])).values());
+
+        setLecturers(uniqueLecturers);
+      } catch (err) {
+        console.error("Failed to load course lecturers", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadLecturers();
+  }, [formData.course_id, courses]); // Re-run when course changes or courses load
+
+  // 3. Initialize form data for editing
+  useEffect(() => {
     if (isEditing && initialData) {
       const startDate = new Date(initialData.date);
       setFormData({
@@ -34,6 +78,7 @@ export default function CreateExamModal({ onClose, onSuccess, isDark, initialDat
         examTime: startDate.toTimeString().split(' ')[0].substring(0, 5),
         duration: initialData.duration?.toString() || "120",
         extra_time: initialData.extra_time?.toString() || "0",
+        lecturer_id: initialData.lecturer_id || "", // Ensure loaded
       });
     }
   }, [initialData, isEditing]);
@@ -47,7 +92,7 @@ export default function CreateExamModal({ onClose, onSuccess, isDark, initialDat
     try {
       let res;
       const combinedDateTime = `${formData.examDate}T${formData.examTime}:00`;
-      
+
       if (isEditing) {
         const updateData = {
           original_start_time: new Date(combinedDateTime).toISOString(),
@@ -66,7 +111,10 @@ export default function CreateExamModal({ onClose, onSuccess, isDark, initialDat
           lecturerEmail: selectedCourse.lecturer_email,
           examDate: formData.examDate,
           examTime: formData.examTime,
+          examDate: formData.examDate,
+          examTime: formData.examTime,
           duration: Number(formData.duration),
+          lecturer_id: formData.lecturer_id || undefined,
         };
         res = await createExam(createData);
       }
@@ -96,7 +144,17 @@ export default function CreateExamModal({ onClose, onSuccess, isDark, initialDat
             <label className="block text-sm font-bold">קורס</label>
             <select
               value={formData.course_id}
-              onChange={e => setFormData({...formData, course_id: e.target.value})}
+              onChange={e => {
+                const newCourseId = e.target.value;
+                const selectedCourse = courses.find(c => c.id === newCourseId);
+                // Auto-select lecturer if course has one and not already set manually?
+                // Or just set it if field is empty.
+                let newLecturerId = formData.lecturer_id;
+                if (selectedCourse && selectedCourse.lecturer_id) {
+                  newLecturerId = selectedCourse.lecturer_id;
+                }
+                setFormData({ ...formData, course_id: newCourseId, lecturer_id: newLecturerId || "" });
+              }}
               className={`w-full px-4 py-2.5 rounded-xl border outline-none transition-all ${isDark ? "bg-slate-800 border-white/10" : "bg-white border-slate-200"}`}
             >
               <option value="">בחר קורס</option>
@@ -107,15 +165,31 @@ export default function CreateExamModal({ onClose, onSuccess, isDark, initialDat
               ))}
             </select>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="תאריך" type="date" value={formData.examDate} onChange={e => setFormData({...formData, examDate: e.target.value})} isDark={isDark} />
-            <FormField label="שעת התחלה" type="time" value={formData.examTime} onChange={e => setFormData({...formData, examTime: e.target.value})} isDark={isDark} />
+
+          <div className="space-y-2">
+            <label className="block text-sm font-bold">מרצה ראשי (אופציונלי - ברירת מחדל מרצה הקורס)</label>
+            <select
+              value={formData.lecturer_id}
+              onChange={e => setFormData({ ...formData, lecturer_id: e.target.value })}
+              className={`w-full px-4 py-2.5 rounded-xl border outline-none transition-all ${isDark ? "bg-slate-800 border-white/10" : "bg-white border-slate-200"}`}
+            >
+              <option value="">בחר מרצה ראשי</option>
+              {lecturers.map(lecturer => (
+                <option key={lecturer.id} value={lecturer.id}>
+                  {lecturer.full_name} ({lecturer.email})
+                </option>
+              ))}
+            </select>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="משך (דקות)" type="number" value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} isDark={isDark} />
-            <FormField label="תוספת זמן (דקות)" type="number" value={formData.extra_time} onChange={e => setFormData({...formData, extra_time: e.target.value})} isDark={isDark} />
+            <FormField label="תאריך" type="date" value={formData.examDate} onChange={e => setFormData({ ...formData, examDate: e.target.value })} isDark={isDark} />
+            <FormField label="שעת התחלה" type="time" value={formData.examTime} onChange={e => setFormData({ ...formData, examTime: e.target.value })} isDark={isDark} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="משך (דקות)" type="number" value={formData.duration} onChange={e => setFormData({ ...formData, duration: e.target.value })} isDark={isDark} />
+            <FormField label="תוספת זמן (דקות)" type="number" value={formData.extra_time} onChange={e => setFormData({ ...formData, extra_time: e.target.value })} isDark={isDark} />
           </div>
 
           <div className="flex gap-3 pt-4">

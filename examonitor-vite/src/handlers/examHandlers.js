@@ -14,29 +14,29 @@ export const examHandlers = {
     },
 
     // טעינת מבחנים יחד עם חדרים/כיתות
-    fetchExamsWithClassrooms: async (status = 'all', supervisorId = null,lecturerId = null) => {
+    fetchExamsWithClassrooms: async (status = 'all', supervisorId = null, lecturerId = null) => {
         try {
-            let exams = await examsApi.listExams(status);
+            let exams;
             let classrooms = await classroomApi.getClassrooms();
-            let courses = [];
-            if (lecturerId!==null) courses = await examsApi.listCourses();
-            console.log('Fetched exams:', exams);
+
+            if (lecturerId) {
+                // Use the exam_lecturers table to get exams assigned to this lecturer
+                exams = await examsApi.listExamsByLecturer(lecturerId);
+            } else {
+                exams = await examsApi.listExams(status);
+            }
+
             // אם יש supervisor_id, סנן קודם את החדרים שהוקצו לעובד הפרטי הזה
             if (supervisorId) {
                 classrooms = classrooms.filter(room => room.supervisor_id === supervisorId);
-                
+
                 // אז סנן את המבחנים כדי להראות רק את אלו שיש להם חדרים שהוקצו למשגיח הזה
                 const assignedExamIds = new Set(classrooms.map(room => room.exam_id));
                 exams = exams.filter(exam => assignedExamIds.has(exam.id));
             }
-            if(lecturerId){
-                // אז סנן את המבחנים כדי להראות רק את אלו שיש להם חדרים שהוקצו למרצה הזה
-                courses = courses.filter(course => course.lecturer_id === lecturerId);
-                const assignedCourseIds = new Set(courses.map(course => course.id));
-                exams = exams.filter(exam => assignedCourseIds.has(exam.course_id));
-            }
-             // צירוף חדרים לפי exam_id בדיוק
-           
+
+            // צירוף חדרים לפי exam_id בדיוק
+
             const examsWithClassrooms = exams.map(exam => ({
                 ...exam,
                 classrooms: classrooms.filter(room => room.exam_id === exam.id)
@@ -59,6 +59,17 @@ export const examHandlers = {
         }
     },
 
+    fetchAvailableExamLecturers: async (examId) => {
+        try {
+            if (!examId) throw new Error("Missing exam ID");
+            const res = await examsApi.getAvailableExamLecturers(examId);
+            return { ok: true, data: { lecturers: res } };
+        } catch (err) {
+            console.error("Error fetching available lecturers:", err);
+            return { ok: false, message: err.message };
+        }
+    },
+
     // פונקציית סינון המבחנים לפי טקסט חופשי
     filterExams: (exams, query) => {
         try {
@@ -69,7 +80,7 @@ export const examHandlers = {
 
             return exams.filter(exam => {
                 return (
-                    exam.courseName?.toLowerCase().includes(lowerQuery) || 
+                    exam.courseName?.toLowerCase().includes(lowerQuery) ||
                     exam.id?.toString().includes(lowerQuery) ||
                     exam.room?.toLowerCase().includes(lowerQuery)
                 );
@@ -117,9 +128,9 @@ export const examHandlers = {
                 'paused': 'מוקפא',
                 'finished': 'סיום'
             };
-            
-            const confirmMsg = newStatus === 'finished' 
-                ? "האם אתה בטוח שברצונך לסיים את המבחן? לא ניתן לבטל פעולה זו." 
+
+            const confirmMsg = newStatus === 'finished'
+                ? "האם אתה בטוח שברצונך לסיים את המבחן? לא ניתן לבטל פעולה זו."
                 : `האם לשנות את סטטוס המבחן ל-${statusNames[newStatus] || newStatus}?`;
 
             if (!window.confirm(confirmMsg)) return false;
@@ -128,13 +139,13 @@ export const examHandlers = {
             if (response) {
                 // עדכון ה-State המקומי רק אם הפונקציה קיימת
                 if (typeof setExamData === 'function') {
-                    setExamData(prev => ({ 
-                        ...prev, 
+                    setExamData(prev => ({
+                        ...prev,
                         status: newStatus,
                         startTime: (newStatus === 'active' && !prev.startTime) ? new Date().toISOString() : prev.startTime
                     }));
                 }
-                
+
                 console.log(`Status updated to: ${newStatus}`);
                 return true;
             } else {
@@ -149,24 +160,24 @@ export const examHandlers = {
 
     },
     handleAddExtraTime: async (examId, setExamData) => {
-      try {
-          const additionalMinutes = 15; // ברירת מחדל
-          if (!window.confirm(`האם להוסיף ${additionalMinutes} דקות לכל הסטודנטים במבחן?`)) return;
+        try {
+            const additionalMinutes = 15; // ברירת מחדל
+            if (!window.confirm(`האם להוסיף ${additionalMinutes} דקות לכל הסטודנטים במבחן?`)) return;
 
-          const updatedExam = await examsApi.addExtraTime(examId, additionalMinutes);
-          
-          if (updatedExam) {
-              setExamData(prev => ({
-                  ...prev,
-                  extra_time: updatedExam.extra_time
-              }));
-              alert(`נוספו ${additionalMinutes}  דקות בהצלחה, המתן כ-10 שניות לאחר האישור`);
-          }
-      } catch (error) {
-          console.error("Failed to add extra time:", error);
-          alert("נכשל בעדכון זמן ההארכה");
-      }
-  },
+            const updatedExam = await examsApi.addExtraTime(examId, additionalMinutes);
+
+            if (updatedExam) {
+                setExamData(prev => ({
+                    ...prev,
+                    extra_time: updatedExam.extra_time
+                }));
+                alert(`נוספו ${additionalMinutes}  דקות בהצלחה, המתן כ-10 שניות לאחר האישור`);
+            }
+        } catch (error) {
+            console.error("Failed to add extra time:", error);
+            alert("נכשל בעדכון זמן ההארכה");
+        }
+    },
 
 
     //added for new tables
@@ -177,11 +188,15 @@ export const examHandlers = {
 
     loadExamLecturers: async (examId) => {
         const res = await examsApi.getExamLecturers(examId);
-        return res?.lecturerIds || [];
+        return res?.lecturers || []; // Now returns array of profiles
     },
 
     handleAddSubstituteLecturer: async (examId, lecturerId) => {
         await examsApi.addExamLecturer(examId, lecturerId);
+    },
+
+    handleRemoveSubstituteLecturer: async (examId, lecturerId) => {
+        await examsApi.removeExamLecturer(examId, lecturerId);
     },
 
 };

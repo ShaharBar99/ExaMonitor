@@ -45,6 +45,12 @@ router.post('/courses/:id/students', AdminController.addStudentToCourse);
 router.post('/courses/:id/students/bulk', upload.single('file'), AdminController.bulkAddStudentsToCourse);
 router.delete('/courses/:courseId/students/:studentId', AdminController.removeStudentFromCourse);
 
+// Course Lecturers
+router.get('/courses/:id/lecturers', AdminController.getCourseLecturers);
+router.get('/courses/:id/available-lecturers', AdminController.getAvailableLecturers);
+router.post('/courses/:id/lecturers', AdminController.addLecturerToCourse);
+router.delete('/courses/:courseId/lecturers/:lecturerId', AdminController.removeLecturerFromCourse);
+
 // Classrooms
 router.get('/classrooms', AdminController.listClassrooms);
 router.get('/classrooms/supervisors/list', AdminController.getSupervisorsForAssignment);

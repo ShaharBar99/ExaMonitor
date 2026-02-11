@@ -37,8 +37,8 @@ export const ExamController = {
   async listExamLecturers(req, res, next) {
     try {
       const { id: examId } = req.params;
-      const lecturerIds = await ExamService.listExamLecturers(examId);
-      res.json({ lecturerIds });
+      const lecturers = await ExamService.listExamLecturers(examId);
+      res.json({ lecturers });
     } catch (err) { next(err); }
   },
 
@@ -50,6 +50,30 @@ export const ExamController = {
 
       const row = await ExamService.addExamLecturer(examId, lecturerId);
       res.status(201).json({ row });
+    } catch (err) { next(err); }
+  },
+
+  async removeExamLecturer(req, res, next) {
+    try {
+      const { id: examId, lecturerId } = req.params;
+      const result = await ExamService.removeExamLecturer(examId, lecturerId);
+      res.json(result);
+    } catch (err) { next(err); }
+  },
+
+  async listExamsByLecturer(req, res, next) {
+    try {
+      const { lecturerId } = req.params;
+      const exams = await ExamService.listExamsByLecturer(lecturerId);
+      res.json(exams);
+    } catch (err) { next(err); }
+  },
+
+  async getAvailableExamLecturers(req, res, next) {
+    try {
+      const { id: examId } = req.params;
+      const lecturers = await ExamService.getAvailableExamLecturers(examId);
+      res.json(lecturers);
     } catch (err) { next(err); }
   },
 
@@ -106,7 +130,7 @@ export const ExamController = {
         });
       }
 
-      const {exam, updatedStudents, report} = await ExamService.updateStatus(req.params.id, status, userId);
+      const { exam, updatedStudents, report } = await ExamService.updateStatus(req.params.id, status, userId);
       res.json({ exam, updatedStudents, report });
     } catch (err) {
       next(err);

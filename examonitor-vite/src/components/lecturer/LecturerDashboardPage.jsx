@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { attendanceHandlers } from '../../handlers/attendanceHandlers'; 
+import { attendanceHandlers } from '../../handlers/attendanceHandlers';
 import { classroomHandler } from '../../handlers/classroomHandlers';
-import { incidentHandlers } from '../../handlers/incidentHandlers'; 
+import { incidentHandlers } from '../../handlers/incidentHandlers';
 import { useAuth } from '../state/AuthContext';
 import { useSocket } from '../state/SocketContext';
 import { useLocation } from 'react-router-dom';
@@ -33,9 +33,9 @@ export default function LecturerDashboardPage() {
   const { isDark } = useTheme(); // שימוש במשתנה ה-Theme
   const { user } = useAuth();
   const location = useLocation();
-  
+
   // ניהול מצב
-  const [activeTab, setActiveTab] = useState('notifications'); 
+  const [activeTab, setActiveTab] = useState('notifications');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Changed to false by default for mobile
   const [notifications, setNotifications] = useState([]);
   const [remainingTime, setRemainingTime] = useState(null);
@@ -58,7 +58,7 @@ export default function LecturerDashboardPage() {
       className={`px-4 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all flex items-center gap-2 md:gap-3
         ${activeMainTab === id
           ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-          : isDark 
+          : isDark
             ? 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
             : 'bg-slate-100 text-slate-500 hover:bg-white hover:text-indigo-600 border border-slate-200'}`}
     >
@@ -66,7 +66,7 @@ export default function LecturerDashboardPage() {
     </button>
   );
 
-  
+
 
   // אתחול הקונסול
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function LecturerDashboardPage() {
       await notificationHandlers.loadNotifications(examId, setNotifications, setIsLoading);
 
       await attendanceHandlers.loadAttendanceByExam(examId, setAttendance, setIsLoading);
-    
+
       await attendanceHandlers.loadBreaksCountByExam(examId, setBreaksCount);
 
       await classroomHandler.loadDisplayData(
@@ -86,19 +86,19 @@ export default function LecturerDashboardPage() {
       );
 
       await incidentHandlers.loadIncidents(examId, setIncidents);
-      
+
       const seconds = await timerHandlers.getRemainingSeconds(examId);
       setRemainingTime(seconds);
       setIsLoading(false);
     };
     const exam = location.state?.exam;
     if (exam?.id) {
-    setExamData({
-      id: exam.id,
-      courseName: exam.courses?.course_name || exam.course_id || null,
-      ...exam,
-    });
-  }
+      setExamData({
+        id: exam.id,
+        courseName: exam.courses?.course_name || exam.course_id || null,
+        ...exam,
+      });
+    }
 
     initLecturerConsole();
   }, [examId]);
@@ -117,7 +117,8 @@ export default function LecturerDashboardPage() {
       setLecturersLoading(true);
       try {
         const lecturers = await examHandlers.loadCourseLecturers(courseId);
-        const ids = await examHandlers.loadExamLecturers(examId);
+        const profiles = await examHandlers.loadExamLecturers(examId);
+        const ids = profiles.map(p => p.id);
 
         setCourseLecturers(lecturers);
         setExamLecturerIds(ids);
@@ -158,15 +159,15 @@ export default function LecturerDashboardPage() {
 
     // חישוב זמן הגשה ממוצע
     const finished = attendance.filter(a =>
-        (a.status === 'submitted' || a.status === 'finished') && a.check_in_time && a.check_out_time);
+      (a.status === 'submitted' || a.status === 'finished') && a.check_in_time && a.check_out_time);
     const avgMinutes =
       finished.length > 0
         ? finished.reduce((sum, a) => {
-            const start = new Date(a.check_in_time).getTime();
-            const end = new Date(a.check_out_time).getTime();
-            const diffMin = Math.max(0, (end - start) / 60000);
-            return sum + diffMin;
-          }, 0) / finished.length
+          const start = new Date(a.check_in_time).getTime();
+          const end = new Date(a.check_out_time).getTime();
+          const diffMin = Math.max(0, (end - start) / 60000);
+          return sum + diffMin;
+        }, 0) / finished.length
         : 0;
     const totalMinutes = Math.round(avgMinutes);
     const hours = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
@@ -176,7 +177,7 @@ export default function LecturerDashboardPage() {
     const extraTimeRequests = attendance.filter(a =>
       Number(a?.profiles?.personal_extra_time || 0) > 0).length;
 
-    
+
     return {
       totalStudents: total,
       submitted: attendance.filter(a => a.status === 'submitted').length,
@@ -260,10 +261,10 @@ export default function LecturerDashboardPage() {
   return (
     <DashboardLayout
       sidebar={(
-        <Sidebar 
-          tabs={tabs} 
+        <Sidebar
+          tabs={tabs}
           activeTab={activeTab}
-          setActiveTab={setActiveTab} 
+          setActiveTab={setActiveTab}
           isSidebarOpen={isSidebarOpen}
           setIsSidebarOpen={setIsSidebarOpen}
           logoText="מרצה"
@@ -274,100 +275,99 @@ export default function LecturerDashboardPage() {
         </Sidebar>
       )}
 
-header={(
-  /* Changed py-4 md:py-8 to be more compact on mobile */
-  <div className="flex flex-col lg:flex-row justify-between items-center w-full px-4 md:px-8 lg:px-12 py-3 md:py-8 gap-4 md:gap-8" dir="rtl">
-    
-    {/* Left Section: Title + Navbar */}
-    <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 lg:gap-12 w-full lg:w-auto">
-      
-      {/* Title & Mobile Toggle */}
-      <div className="flex items-center justify-between w-full md:w-auto">
-          <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 rounded-lg bg-slate-200 text-slate-700 dark:bg-indigo-500/20 dark:text-indigo-100 dark:border dark:border-indigo-500/30 text-xl">
-            ☰
-          </button>
-          <div className="text-right flex-1 px-4 md:px-0">
-            <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
-              {activeMainTab === 'dashboard' && 'מסך נתונים'}
-              {activeMainTab === 'rooms' && 'ניהול כיתות'}
-              {activeMainTab === 'stats' && 'סטטיסטיקות'}
-              {activeMainTab === 'logs' && 'אירועים חריגים'}
-              {activeMainTab === 'lecturers' && 'מרצים בקורס'}
-            </h1>
-            <div className="flex items-center justify-end md:justify-start gap-2 mt-1">
-              <span className={`w-2 h-2 rounded-full animate-pulse ${examData?.status === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
-              <p className={`font-black uppercase tracking-widest text-[8px] md:text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                {examData?.name || 'בחינה כללית'} • {examData?.courseId}
-              </p>
-            </div>
-          </div>
-      </div>
+      header={(
+        /* Changed py-4 md:py-8 to be more compact on mobile */
+        <div className="flex flex-col lg:flex-row justify-between items-center w-full px-4 md:px-8 lg:px-12 py-3 md:py-8 gap-4 md:gap-8" dir="rtl">
 
-      {/* FIXED NAVBAR: Added flex-wrap so it breaks into 2 rows on mobile */}
-      <div className={`flex flex-wrap gap-1.5 md:gap-2 p-1.5 rounded-2xl md:rounded-3xl border backdrop-blur-md transition-all w-full md:w-auto justify-center ${
-        isDark ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200 shadow-sm'
-      }`}>
-        
-        {/* Helper style: Using 'flex-1' or 'grow' ensures they fill the width when wrapping */}
-        <button
-          onClick={() => setActiveMainTab('dashboard')}
-          className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+          {/* Left Section: Title + Navbar */}
+          <div className="flex flex-col md:flex-row items-center gap-4 md:gap-8 lg:gap-12 w-full lg:w-auto">
+
+            {/* Title & Mobile Toggle */}
+            <div className="flex items-center justify-between w-full md:w-auto">
+              <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 rounded-lg bg-slate-200 text-slate-700 dark:bg-indigo-500/20 dark:text-indigo-100 dark:border dark:border-indigo-500/30 text-xl">
+                ☰
+              </button>
+              <div className="text-right flex-1 px-4 md:px-0">
+                <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold leading-tight ${isDark ? 'text-white' : 'text-slate-800'}`}>
+                  {activeMainTab === 'dashboard' && 'מסך נתונים'}
+                  {activeMainTab === 'rooms' && 'ניהול כיתות'}
+                  {activeMainTab === 'stats' && 'סטטיסטיקות'}
+                  {activeMainTab === 'logs' && 'אירועים חריגים'}
+                  {activeMainTab === 'lecturers' && 'מרצים בקורס'}
+                </h1>
+                <div className="flex items-center justify-end md:justify-start gap-2 mt-1">
+                  <span className={`w-2 h-2 rounded-full animate-pulse ${examData?.status === 'paused' ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                  <p className={`font-black uppercase tracking-widest text-[8px] md:text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+                    {examData?.name || 'בחינה כללית'} • {examData?.courseId}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* FIXED NAVBAR: Added flex-wrap so it breaks into 2 rows on mobile */}
+            <div className={`flex flex-wrap gap-1.5 md:gap-2 p-1.5 rounded-2xl md:rounded-3xl border backdrop-blur-md transition-all w-full md:w-auto justify-center ${isDark ? 'bg-black/20 border-white/5' : 'bg-slate-100 border-slate-200 shadow-sm'
+              }`}>
+
+              {/* Helper style: Using 'flex-1' or 'grow' ensures they fill the width when wrapping */}
+              <button
+                onClick={() => setActiveMainTab('dashboard')}
+                className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
             ${activeMainTab === 'dashboard' ? 'bg-indigo-600 text-white shadow-lg' : isDark ? 'text-slate-400' : 'text-slate-500 hover:bg-white'}
           `}
-        >
-          📊 ראשי
-        </button>
+              >
+                📊 ראשי
+              </button>
 
-        <button
-          onClick={() => setActiveMainTab('rooms')}
-          className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+              <button
+                onClick={() => setActiveMainTab('rooms')}
+                className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
             ${activeMainTab === 'rooms' ? 'bg-indigo-600 text-white shadow-lg' : isDark ? 'text-slate-400' : 'text-slate-500 hover:bg-white'}
           `}
-        >
-          🏫 כיתות
-        </button>
+              >
+                🏫 כיתות
+              </button>
 
-        <button
-          onClick={() => setActiveMainTab('stats')}
-          className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+              <button
+                onClick={() => setActiveMainTab('stats')}
+                className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
             ${activeMainTab === 'stats' ? 'bg-indigo-600 text-white shadow-lg' : isDark ? 'text-slate-400' : 'text-slate-500 hover:bg-white'}
           `}
-        >
-          📊 נתונים
-        </button>
+              >
+                📊 נתונים
+              </button>
 
-        <button
-          onClick={() => setActiveMainTab('logs')}
-          className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+              <button
+                onClick={() => setActiveMainTab('logs')}
+                className={`flex-1 md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
             ${activeMainTab === 'logs' ? 'bg-indigo-600 text-white shadow-lg' : isDark ? 'text-slate-400' : 'text-slate-500 hover:bg-white'}
           `}
-        >
-          ⚠️ חריגים
-        </button>
+              >
+                ⚠️ חריגים
+              </button>
 
-        <button
-          onClick={() => setActiveMainTab('lecturers')}
-          className={`w-full md:w-auto md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
+              <button
+                onClick={() => setActiveMainTab('lecturers')}
+                className={`w-full md:w-auto md:flex-none px-3 md:px-6 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-[10px] md:text-[11px] uppercase tracking-widest transition-all whitespace-nowrap
             ${activeMainTab === 'lecturers' ? 'bg-indigo-600 text-white shadow-lg' : isDark ? 'text-slate-400' : 'text-slate-500 hover:bg-white'}
           `}
-        >
-          👨‍🏫 מרצים בקורס
-        </button>
-      </div>
-    </div>
+              >
+                👨‍🏫 מרצים בקורס
+              </button>
+            </div>
+          </div>
 
-    {/* Right: Timer */}
-    <div className="scale-90 md:scale-125 lg:mx-6">
-      {remainingTime !== null && (
-        <ExamTimer
-          initialSeconds={remainingTime}
-          isPaused={examData?.status === 'paused'}
-          isDark={isDark}
-        />
+          {/* Right: Timer */}
+          <div className="scale-90 md:scale-125 lg:mx-6">
+            {remainingTime !== null && (
+              <ExamTimer
+                initialSeconds={remainingTime}
+                isPaused={examData?.status === 'paused'}
+                isDark={isDark}
+              />
+            )}
+          </div>
+        </div>
       )}
-    </div>
-  </div>
-)}
     >
 
       {/* ================= MAIN CONTENT ================= */}
@@ -384,26 +384,25 @@ header={(
           </div>
 
           {/* לוח ניתוח נתונים מרכזי */}
-          <div className={`rounded-[30px] md:rounded-[50px] p-6 md:p-12 border transition-all ${
-            isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-100 shadow-2xl shadow-slate-200/50'
-          }`}>
-             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-20">
-                <div className="space-y-8 md:space-y-12">
-                   <ProgressRow label="נוכחות" percent={stats.attendanceRate} color="bg-emerald-500" isDark={isDark} />
-                   <ProgressRow label="שיעור הגשה" percent={stats.submittingPct} color="bg-indigo-600" isDark={isDark} />
+          <div className={`rounded-[30px] md:rounded-[50px] p-6 md:p-12 border transition-all ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-100 shadow-2xl shadow-slate-200/50'
+            }`}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-20">
+              <div className="space-y-8 md:space-y-12">
+                <ProgressRow label="נוכחות" percent={stats.attendanceRate} color="bg-emerald-500" isDark={isDark} />
+                <ProgressRow label="שיעור הגשה" percent={stats.submittingPct} color="bg-indigo-600" isDark={isDark} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 md:gap-6">
+                <div className={`p-6 md:p-8 rounded-[30px] md:rounded-[40px] transition-colors ${isDark ? 'bg-slate-800/40' : 'bg-slate-50'}`}>
+                  <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 md:mb-2">זמן הגשה ממוצע</p>
+                  <p className={`text-2xl md:text-4xl font-black ${isDark ? 'text-white' : 'text-[#0f172a]'}`}>{stats.avgCompletionTime}</p>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-4 md:gap-6">
-                   <div className={`p-6 md:p-8 rounded-[30px] md:rounded-[40px] transition-colors ${isDark ? 'bg-slate-800/40' : 'bg-slate-50'}`}>
-                      <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 md:mb-2">זמן הגשה ממוצע</p>
-                      <p className={`text-2xl md:text-4xl font-black ${isDark ? 'text-white' : 'text-[#0f172a]'}`}>{stats.avgCompletionTime}</p>
-                   </div>
-                   <div className={`p-6 md:p-8 rounded-[30px] md:rounded-[40px] transition-colors ${isDark ? 'bg-slate-800/40' : 'bg-slate-50'}`}>
-                      <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 md:mb-2">סה"כ יציאות</p>
-                      <p className={`text-2xl md:text-4xl font-black ${isDark ? 'text-white' : 'text-[#0f172a]'}`}>{stats.breaksCount}</p>
-                   </div>
+                <div className={`p-6 md:p-8 rounded-[30px] md:rounded-[40px] transition-colors ${isDark ? 'bg-slate-800/40' : 'bg-slate-50'}`}>
+                  <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 md:mb-2">סה"כ יציאות</p>
+                  <p className={`text-2xl md:text-4xl font-black ${isDark ? 'text-white' : 'text-[#0f172a]'}`}>{stats.breaksCount}</p>
                 </div>
-             </div>
+              </div>
+            </div>
           </div>
 
         </main>
@@ -506,10 +505,16 @@ header={(
             examLecturerIds={examLecturerIds}
             isDark={isDark}
             isLoading={lecturersLoading}
+            currentUserId={user?.id}
             onAddLecturer={async (lecturerId) => {
               await examHandlers.handleAddSubstituteLecturer(examId, lecturerId);
-              const ids = await examHandlers.loadExamLecturers(examId); // refresh
-              setExamLecturerIds(ids);
+              const profiles = await examHandlers.loadExamLecturers(examId); // refresh
+              setExamLecturerIds(profiles.map(p => p.id));
+            }}
+            onRemoveLecturer={async (lecturerId) => {
+              await examHandlers.handleRemoveSubstituteLecturer(examId, lecturerId);
+              const profiles = await examHandlers.loadExamLecturers(examId); // refresh
+              setExamLecturerIds(profiles.map(p => p.id));
             }}
           />
         </div>
@@ -524,11 +529,10 @@ header={(
 // --- רכיבי עזר פנימיים ---
 
 const SummaryBox = ({ icon, label, value, isDark }) => (
-  <div className={`p-6 md:p-10 rounded-[30px] md:rounded-[40px] flex flex-col items-center justify-center text-center border group transition-all duration-500 ${
-    isDark 
-      ? 'bg-slate-800/40 border-white/5 hover:bg-slate-800/60 shadow-xl shadow-black/20' 
-      : 'bg-white border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl'
-  }`}>
+  <div className={`p-6 md:p-10 rounded-[30px] md:rounded-[40px] flex flex-col items-center justify-center text-center border group transition-all duration-500 ${isDark
+    ? 'bg-slate-800/40 border-white/5 hover:bg-slate-800/60 shadow-xl shadow-black/20'
+    : 'bg-white border-slate-100 shadow-xl shadow-slate-200/50 hover:shadow-2xl'
+    }`}>
     <span className="text-3xl md:text-4xl mb-2 md:mb-4 group-hover:scale-125 transition-transform duration-500">{icon}</span>
     <p className={`text-[12px] md:text-[15px] font-black uppercase mb-1 md:mb-2 tracking-widest ${isDark ? 'text-slate-400' : 'text-[#0f172a]'}`}>{label}</p>
     <p className={`text-2xl md:text-3xl font-black leading-none tabular-nums ${isDark ? 'text-white' : 'text-[#0f172a]'}`}>{value}</p>
@@ -538,14 +542,12 @@ const SummaryBox = ({ icon, label, value, isDark }) => (
 const ProgressRow = ({ label, percent, color, isDark }) => (
   <div className="space-y-2 md:space-y-4 group">
     <div className="flex justify-between items-end px-2">
-      <span className={`text-[12px] md:text-[15px] font-black uppercase tracking-widest transition-colors ${
-        isDark ? 'text-slate-300' : 'text-black group-hover:text-slate-800'
-      }`}>{label}</span>
+      <span className={`text-[12px] md:text-[15px] font-black uppercase tracking-widest transition-colors ${isDark ? 'text-slate-300' : 'text-black group-hover:text-slate-800'
+        }`}>{label}</span>
       <span className={`text-base md:text-lg font-black tabular-nums ${isDark ? 'text-white' : 'text-black'}`}>{percent}%</span>
     </div>
-    <div className={`h-4 md:h-6 rounded-full overflow-hidden p-1 md:p-1.5 shadow-inner transition-colors ${
-      isDark ? 'bg-slate-800' : 'bg-slate-100'
-    }`}>
+    <div className={`h-4 md:h-6 rounded-full overflow-hidden p-1 md:p-1.5 shadow-inner transition-colors ${isDark ? 'bg-slate-800' : 'bg-slate-100'
+      }`}>
       <div className={`h-full ${color} rounded-full transition-all duration-1000 shadow-lg group-hover:brightness-110`} style={{ width: `${percent}%` }}></div>
     </div>
   </div>

@@ -295,6 +295,44 @@ export const AdminController = {
     }
   },
 
+  // ========== COURSE LECTURERS ==========
+
+  async getCourseLecturers(req, res, next) {
+    try {
+      const lecturers = await AdminService.getCourseLecturers(req.params.id);
+      res.json({ lecturers });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async getAvailableLecturers(req, res, next) {
+    try {
+      const lecturers = await AdminService.getAvailableLecturers(req.params.id);
+      res.json({ lecturers });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async addLecturerToCourse(req, res, next) {
+    try {
+      const result = await AdminService.addLecturerToCourse(req.params.id, req.body);
+      res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async removeLecturerFromCourse(req, res, next) {
+    try {
+      const result = await AdminService.removeLecturerFromCourse(req.params.courseId, req.params.lecturerId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+
   // ========== CLASSROOMS ==========
 
   async listClassrooms(req, res, next) {
