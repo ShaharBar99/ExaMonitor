@@ -1,6 +1,10 @@
 import logo from './logo.svg';
 import './App.css';
 
+/**
+ * Default Create React App component.
+ * @returns {JSX.Element} The default UI.
+ */
 function App() {
   return (
     <div className="App">

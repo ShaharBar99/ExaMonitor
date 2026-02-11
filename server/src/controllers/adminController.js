@@ -1,6 +1,13 @@
 import { AdminService } from '../services/adminService.js';
 
+/**
+ * Controller for administrative operations.
+ * Handles requests related to users, courses, exams, classrooms, and system audits.
+ */
 export const AdminController = {
+  /**
+   * Lists all users in the system.
+   */
   async listUsers(req, res, next) {
     try {
       const users = await AdminService.listUsers();
@@ -10,6 +17,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Updates a user's profile information.
+   */
   async updateUser(req, res, next) {
     try {
       const user = await AdminService.updateUser(req.params.id, req.body);
@@ -19,6 +29,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Updates a user's role.
+   */
   async updateRole(req, res, next) {
     try {
       const { role } = req.body;
@@ -31,6 +44,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Updates a user's active status.
+   */
   async updateStatus(req, res, next) {
     try {
       const { status } = req.body;
@@ -58,6 +74,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Updates a user's permissions.
+   */
   async updatePermissions(req, res, next) {
     try {
       const { permissions } = req.body;
@@ -72,6 +91,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Retrieves audit logs with pagination.
+   */
   async getAudit(req, res, next) {
     try {
       const limit = Number(req.query.limit ?? 50);
@@ -84,6 +106,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Lists security alerts (failed login attempts).
+   */
   async listSecurityAlerts(req, res, next) {
     try {
       const alerts = await AdminService.listSecurityAlerts(req.query.status);
@@ -93,6 +118,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Resolves a security alert.
+   */
   async resolveSecurityAlert(req, res, next) {
     try {
       const result = await AdminService.resolveSecurityAlert(req.params.id);
@@ -102,6 +130,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Creates a new user.
+   */
   async createUser(req, res, next) {
     try {
       const user = await AdminService.createUser(req.body);
@@ -111,6 +142,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Lists exams with optional filtering.
+   */
   async listExams(req, res, next) {
     try {
       const limit = Number(req.query.limit ?? 50);
@@ -126,6 +160,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Creates a new exam.
+   */
   async createExam(req, res, next) {
     try {
       const adminUserId = req.user.id;
@@ -136,6 +173,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Updates an existing exam.
+   */
   async updateExam(req, res, next) {
     try {
       const adminUserId = req.user.id;
@@ -146,6 +186,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Imports exams from an Excel file.
+   */
   async importExams(req, res, next) {
     try {
       if (!req.file) {
@@ -160,6 +203,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Deletes an exam.
+   */
   async deleteExam(req, res, next) {
     try {
       await AdminService.deleteExam(req.params.id);
@@ -169,6 +215,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Deletes a user.
+   */
   async deleteUser(req, res, next) {
     try {
       await AdminService.deleteUser(req.params.id);
@@ -178,6 +227,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Bulk creates users from an Excel file.
+   */
   async bulkCreateUsers(req, res, next) {
     try {
       if (!req.file) {
@@ -192,6 +244,9 @@ export const AdminController = {
 
   // ========== COURSES ==========
 
+  /**
+   * Lists courses with optional filtering.
+   */
   async listCourses(req, res, next) {
     try {
       const filters = {
@@ -205,6 +260,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Creates a new course.
+   */
   async createCourse(req, res, next) {
     try {
       const result = await AdminService.createCourse(req.body);
@@ -214,6 +272,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Updates a course.
+   */
   async updateCourse(req, res, next) {
     try {
       const result = await AdminService.updateCourse(req.params.id, req.body);
@@ -223,6 +284,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Deletes a course.
+   */
   async deleteCourse(req, res, next) {
     try {
       const result = await AdminService.deleteCourse(req.params.id);
@@ -232,6 +296,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Gets students enrolled in a course.
+   */
   async getCourseStudents(req, res, next) {
     try {
       const students = await AdminService.getCourseStudents(req.params.id);
@@ -241,6 +308,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Gets available students for a course.
+   */
   async getAvailableStudents(req, res, next) {
     try {
       const students = await AdminService.getAvailableStudents(req.params.id);
@@ -250,6 +320,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Adds a student to a course.
+   */
   async addStudentToCourse(req, res, next) {
     try {
       const result = await AdminService.addStudentToCourse(req.params.id, req.body);
@@ -259,6 +332,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Bulk adds students to a course from Excel.
+   */
   async bulkAddStudentsToCourse(req, res, next) {
     try {
       if (!req.file) {
@@ -271,6 +347,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Imports courses from an Excel file.
+   */
   async importCourses(req, res, next) {
     console.log('AdminController.importCourses: Request received');
     try {
@@ -286,6 +365,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Removes a student from a course.
+   */
   async removeStudentFromCourse(req, res, next) {
     try {
       const result = await AdminService.removeStudentFromCourse(req.params.courseId, req.params.studentId);
@@ -297,6 +379,9 @@ export const AdminController = {
 
   // ========== COURSE LECTURERS ==========
 
+  /**
+   * Gets lecturers assigned to a course.
+   */
   async getCourseLecturers(req, res, next) {
     try {
       const lecturers = await AdminService.getCourseLecturers(req.params.id);
@@ -306,6 +391,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Gets available lecturers for a course.
+   */
   async getAvailableLecturers(req, res, next) {
     try {
       const lecturers = await AdminService.getAvailableLecturers(req.params.id);
@@ -315,6 +403,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Adds a lecturer to a course.
+   */
   async addLecturerToCourse(req, res, next) {
     try {
       const result = await AdminService.addLecturerToCourse(req.params.id, req.body);
@@ -324,6 +415,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Removes a lecturer from a course.
+   */
   async removeLecturerFromCourse(req, res, next) {
     try {
       const result = await AdminService.removeLecturerFromCourse(req.params.courseId, req.params.lecturerId);
@@ -335,6 +429,9 @@ export const AdminController = {
 
   // ========== CLASSROOMS ==========
 
+  /**
+   * Lists classrooms with optional filtering.
+   */
   async listClassrooms(req, res, next) {
     try {
       const filters = {
@@ -348,6 +445,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Creates a new classroom.
+   */
   async createClassroom(req, res, next) {
     try {
       const result = await AdminService.createClassroomForAdmin(req.body, req.user?.id);
@@ -357,6 +457,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Updates a classroom.
+   */
   async updateClassroom(req, res, next) {
     try {
       const result = await AdminService.updateClassroomForAdmin(req.params.id, req.body, req.user?.id);
@@ -366,6 +469,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Deletes a classroom.
+   */
   async deleteClassroom(req, res, next) {
     try {
       const result = await AdminService.deleteClassroomForAdmin(req.params.id);
@@ -375,6 +481,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Assigns supervisors to a classroom.
+   */
   async assignSupervisors(req, res, next) {
     try {
       const result = await AdminService.assignSupervisorsToClassroom(req.params.id, req.body, req.user?.id);
@@ -384,6 +493,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Imports classrooms from an Excel file.
+   */
   async importClassrooms(req, res, next) {
     try {
       if (!req.file) {
@@ -396,6 +508,9 @@ export const AdminController = {
     }
   },
 
+  /**
+   * Gets supervisors available for assignment.
+   */
   async getSupervisorsForAssignment(req, res, next) {
     try {
       const supervisors = await AdminService.getSupervisorsForAssignment();

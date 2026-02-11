@@ -15,10 +15,6 @@ export default function ViewClassroomsPage() {
 
   const userRole = user?.role || 'floor_supervisor'; 
   const isLecturer = userRole === 'lecturer';
-  const handleAddExtraTime = () => {
-    if (!examData?.id) return;
-    examHandlers.handleAddExtraTime(examData.id);
-  };
   
   const [classrooms, setClassrooms] = useState([]); 
   const [loading, setLoading] = useState(true);
@@ -88,24 +84,6 @@ export default function ViewClassroomsPage() {
           ? 'bg-white/5 border-white/10' 
           : 'bg-white border-slate-200 shadow-xl shadow-slate-200/50'
       }`}>
-
-
-
-
-        
-
-
-        {/* {user?.role === 'lecturer' && examData?.id && (
-          <button
-            onClick={handleAddExtraTime}
-            className="mt-4 lg:mt-0 bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold text-sm
-                      hover:bg-indigo-500 shadow-lg active:scale-95 transition-all"
-          >
-            ⏳ הוסף הארכה
-          </button>
-        )} */}
-
-
         
         <div className="w-full lg:w-auto">
           <h1 className={`text-2xl md:text-4xl font-black tracking-tight uppercase ${isDark ? 'text-white' : 'text-slate-800'}`}>

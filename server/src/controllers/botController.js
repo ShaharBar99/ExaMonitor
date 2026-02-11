@@ -1,6 +1,12 @@
 import { BotService } from '../services/botService.js';
 
+/**
+ * Controller for AI Bot interactions.
+ */
 export const BotController = {
+  /**
+   * Handles chat messages sent to the bot.
+   */
   async chat(req, res, next) {
     try {
       const { message, role, examId , stats} = req.body;
@@ -11,6 +17,9 @@ export const BotController = {
     }
   },
 
+  /**
+   * Checks the status of the bot service.
+   */
   async status(req, res, next) {
     try {
       const status = await BotService.getStatus();

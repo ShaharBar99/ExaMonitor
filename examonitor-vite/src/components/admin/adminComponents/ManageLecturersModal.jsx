@@ -2,6 +2,14 @@ import React, { useState, useEffect } from "react";
 import { fetchCourseLecturers, removeLecturerFromCourseHandler } from "../../../handlers/courseHandlers";
 import AddLecturerModal from "./AddLecturerModal";
 
+/**
+ * Modal for managing lecturers assigned to a course.
+ *
+ * @param {object} props
+ * @param {object} props.course - The course object.
+ * @param {Function} props.onClose - Callback to close the modal.
+ * @param {boolean} props.isDark - Theme mode.
+ */
 export default function ManageLecturersModal({ course, onClose, isDark }) {
     const [lecturers, setLecturers] = useState([]);
     const [loading, setLoading] = useState(false);

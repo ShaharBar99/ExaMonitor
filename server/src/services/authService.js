@@ -34,13 +34,19 @@ async function logFailedLoginAttempt({ username, role, ip, reason }) { // Log fa
     //  .eq('id', authUser.id)
 
 
+/**
+ * Service for authentication and user management.
+ */
 export const AuthService = {
   /**
    * Uses Supabase Auth to sign in.
    * Validates requested role against profiles.role.
-   * Returns the access token + user (including role).
+   * @param {string} username - The username.
+   * @param {string} password - The password.
+   * @param {string} requestedRole - The role the user is trying to login as.
+   * @param {object} [meta={}] - Metadata like IP address.
+   * @returns {Promise<object>} The access token and user info.
    */
-
   async login(username, password, requestedRole, meta = {}) { // Login + role validation + active check
     const ctx = { // Context for logging
       username, // Attempted username
@@ -126,6 +132,11 @@ export const AuthService = {
     }; // End return
   },
 
+  /**
+   * Retrieves the current user based on the access token.
+   * @param {string} accessToken - The access token.
+   * @returns {Promise<object>} The user object.
+   */
   async getMe(accessToken) {
     const { data, error } = await supabase.auth.getUser(accessToken);
 
@@ -138,6 +149,11 @@ export const AuthService = {
     return { user: data.user };
   },
 
+  /**
+   * Refreshes the session using a refresh token.
+   * @param {string} refreshToken - The refresh token.
+   * @returns {Promise<object>} New tokens.
+   */
   async refreshToken(refreshToken) {
     const { data, error } = await supabase.auth.refreshSession({
       refresh_token: refreshToken
@@ -164,6 +180,15 @@ export const AuthService = {
     };
   },
 
+  /**
+   * Registers a new user.
+   * @param {string} name - Full name.
+   * @param {string} username - Username.
+   * @param {string} email - Email address.
+   * @param {string} password - Password.
+   * @param {string} role - User role.
+   * @returns {Promise<object>} The created user.
+   */
   async register(name, username, email, password, role) {
     // "username" in the contract is your login identifier.
     // In your project you use email auth, so treat username as email.

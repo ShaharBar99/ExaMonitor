@@ -1,3 +1,6 @@
+/**
+ * @fileoverview Express application setup. Configures middleware and routes.
+ */
 import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';

@@ -5,6 +5,9 @@ import AdminTable from "../adminComponents/AdminTable";
 import { useTheme } from "../../state/ThemeContext"; 
 import { useNavigate } from "react-router-dom"; 
 
+/**
+ * Admin page for viewing system audit logs.
+ */
 export default function AuditTrailPage() { 
   const navigate = useNavigate();
   const { isDark } = useTheme(); 

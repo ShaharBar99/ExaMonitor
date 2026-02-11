@@ -5,6 +5,9 @@ import { Outlet } from "react-router-dom";
 import AdminNavbar from "./AdminNavbar";
 import { useTheme } from "../../state/ThemeContext";
 
+/**
+ * Layout wrapper for admin pages.
+ */
 export default function AdminLayout() {
   const { isDark } = useTheme();
 

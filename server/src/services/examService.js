@@ -1,8 +1,15 @@
 import { supabaseAdmin } from '../lib/supabaseClient.js';
 import { AuditTrailService } from './auditTrailService.js';
 
+/**
+ * Service for managing exams.
+ */
 export const ExamService = {
-  // GET /exams?status=active
+  /**
+   * Lists exams based on status.
+   * @param {string} status - The status to filter by.
+   * @returns {Promise<Array>} A list of exams.
+   */
   async listExams(status) {
     let query = supabaseAdmin
       .from('exams')
@@ -37,6 +44,10 @@ export const ExamService = {
   },
 
 
+  /**
+   * Lists all courses.
+   * @returns {Promise<Array>} List of courses.
+   */
   async listAllCourses() {
     const { data, error } = await supabaseAdmin
       .from('courses')
@@ -53,6 +64,11 @@ export const ExamService = {
 
 
 
+  /**
+   * Lists lecturers for a specific course.
+   * @param {string} courseId - The course ID.
+   * @returns {Promise<Array>} List of lecturers.
+   */
   async listCourseLecturers(courseId) {
     const { data, error } = await supabaseAdmin
       .from('course_lecturers')
@@ -74,6 +90,11 @@ export const ExamService = {
 
 
   //added for new tables
+  /**
+   * Lists lecturers assigned to a specific exam.
+   * @param {string} examId - The exam ID.
+   * @returns {Promise<Array>} List of lecturers.
+   */
   async listExamLecturers(examId) {
     const { data, error } = await supabaseAdmin
       .from('exam_lecturers')
@@ -91,6 +112,12 @@ export const ExamService = {
     return (data || []).map(r => r.profiles).filter(Boolean);
   },
 
+  /**
+   * Adds a lecturer to an exam.
+   * @param {string} examId - The exam ID.
+   * @param {string} lecturerId - The lecturer ID.
+   * @returns {Promise<object>} The created assignment.
+   */
   async addExamLecturer(examId, lecturerId) {
     // prevent duplicates (since DB has no unique constraint on exam_id+lecturer_id)
     const { data: existing } = await supabaseAdmin
@@ -112,6 +139,12 @@ export const ExamService = {
     return data;
   },
 
+  /**
+   * Removes a lecturer from an exam.
+   * @param {string} examId - The exam ID.
+   * @param {string} lecturerId - The lecturer ID.
+   * @returns {Promise<{deleted: boolean}>} Result.
+   */
   async removeExamLecturer(examId, lecturerId) {
     const { error } = await supabaseAdmin
       .from('exam_lecturers')
@@ -123,6 +156,11 @@ export const ExamService = {
     return { deleted: true };
   },
 
+  /**
+   * Lists exams assigned to a specific lecturer.
+   * @param {string} lecturerId - The lecturer ID.
+   * @returns {Promise<Array>} List of exams.
+   */
   async listExamsByLecturer(lecturerId) {
     const { data, error } = await supabaseAdmin
       .from('exam_lecturers')
@@ -148,6 +186,11 @@ export const ExamService = {
     return (data || []).map(r => r.exams).filter(Boolean);
   },
 
+  /**
+   * Gets available lecturers for an exam (not yet assigned).
+   * @param {string} examId - The exam ID.
+   * @returns {Promise<Array>} List of available lecturers.
+   */
   async getAvailableExamLecturers(examId) {
     // 1. Get Exam -> Course details (including main lecturer)
     const { data: exam, error: examError } = await supabaseAdmin
@@ -210,7 +253,11 @@ export const ExamService = {
 
 
 
-  // GET /exams/:id
+  /**
+   * Gets an exam by ID.
+   * @param {string} examId - The exam ID.
+   * @returns {Promise<object>} The exam details.
+   */
   async getExamById(examId) {
     const { data, error } = await supabaseAdmin
       .from('exams')
@@ -239,7 +286,13 @@ export const ExamService = {
     return data;
   },
 
-  // POST /exams
+  /**
+   * Creates a new exam.
+   * @param {object} examData - Exam data.
+   * @param {string} examData.course_code - Course code.
+   * @param {string} examData.original_start_time - Start time.
+   * @returns {Promise<object>} The created exam.
+   */
   async createExam({ course_code, original_start_time, original_duration }) {
     // First, look up the course by course_code to get the course_id (uuid)
     const { data: course, error: courseError } = await supabaseAdmin
@@ -289,7 +342,13 @@ export const ExamService = {
     return data;
   },
 
-  // PATCH /exams/:id/status
+  /**
+   * Updates the status of an exam.
+   * @param {string} examId - The exam ID.
+   * @param {string} status - The new status.
+   * @param {string} userId - The ID of the user performing the update.
+   * @returns {Promise<{exam: object, report: object}>} The updated exam and optional report.
+   */
   async updateStatus(examId, status, userId) {
     // 1. עדכון המבחן עצמו
     const { data: examData, error: examError } = await supabaseAdmin
@@ -364,6 +423,11 @@ export const ExamService = {
   },
 
 
+  /**
+   * Helper to find the student with the most exits.
+   * @param {Array} breaksData - Array of break records.
+   * @returns {object|null} The student with most exits.
+   */
   getStudentWithMostExits(breaksData) {
     if (!breaksData || breaksData.length === 0) return null;
 
@@ -383,6 +447,13 @@ export const ExamService = {
     };
   },
 
+  /**
+   * Finalizes and saves the exam report.
+   * @param {string} examId - The exam ID.
+   * @param {string} userId - The user ID.
+   * @param {string} classroomId - The classroom ID.
+   * @returns {Promise<object>} The saved report.
+   */
   async finalizeAndSaveReport(examId, userId, classroomId) {
     // 1. נפיק נתונים *רק* עבור הכיתה הספציפית הזו
     const reportData = await this.getClassroomReport(classroomId);
@@ -405,6 +476,11 @@ export const ExamService = {
     if (error) throw error;
     return data;
   },
+  /**
+   * Generates a report for a specific classroom.
+   * @param {string} classroomId - The classroom ID.
+   * @returns {Promise<object>} The report data.
+   */
   async getClassroomReport(classroomId) {
     console.log(`[DEBUG] Fetching classroom report for ID: ${classroomId}`);
 
@@ -474,7 +550,12 @@ export const ExamService = {
       }
     };
   },
-  // PATCH /exams/:id/extra-time  (adds minutes)
+  /**
+   * Adds extra time to an exam.
+   * @param {string} examId - The exam ID.
+   * @param {number} additionalMinutes - Minutes to add.
+   * @returns {Promise<object>} The updated exam.
+   */
   async addExtraTime(examId, additionalMinutes) {
     // read current extra_time first
     const { data: current, error: readErr } = await supabaseAdmin
@@ -519,6 +600,13 @@ export const ExamService = {
     return data;
   },
 
+  /**
+   * Broadcasts an announcement.
+   * @param {string} examId - The exam ID.
+   * @param {string} message - The message.
+   * @param {string} userId - The user ID.
+   * @returns {Promise<{success: boolean}>} Result.
+   */
   async broadcastAnnouncement(examId, message, userId) {
     console.log(`Broadcasting announcement for exam ${examId}: ${message}`);
 
@@ -533,6 +621,11 @@ export const ExamService = {
 
     return { success: true };
   },
+  /**
+   * Gets timing information for an exam.
+   * @param {string} examId - The exam ID.
+   * @returns {Promise<object>} Timing data.
+   */
   async getExamTiming(examId) {
     const { data, error } = await supabaseAdmin
       .from('exams')

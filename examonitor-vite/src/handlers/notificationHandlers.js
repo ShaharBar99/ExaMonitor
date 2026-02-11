@@ -1,9 +1,15 @@
 import { notificationsApi } from '../api/notificationsApi';
 
+/**
+ * Handlers for notification management.
+ */
 export const notificationHandlers = {
   /**
-   * טעינת התראות ויומן אירועים (Audit Log)
+   * Loads notifications and audit logs for a context.
    * Route: GET /notifications?contextId=:id
+   * @param {string} contextId - The context ID.
+   * @param {Function} setNotifications - State setter for notifications.
+   * @param {Function} setLoading - State setter for loading status.
    */
   loadNotifications: async (contextId, setNotifications, setLoading) => {
     try {
@@ -25,8 +31,10 @@ export const notificationHandlers = {
   },
 
   /**
-   * סימון התראה ספציפית כנקראה
+   * Marks a specific notification as read.
    * 204 No Content is treated as success and returns null
+   * @param {string} notificationId - The notification ID.
+   * @param {Function} setNotifications - State setter to update local UI.
    */
   handleMarkAsRead: async (notificationId, setNotifications) => {
     try {

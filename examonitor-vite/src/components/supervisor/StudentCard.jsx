@@ -1,6 +1,14 @@
 import React from 'react';
 import { useTheme } from '../state/ThemeContext';
 
+/**
+ * Card component displaying student information and actions in the supervisor dashboard.
+ *
+ * @param {object} props
+ * @param {object} props.student - The student data object.
+ * @param {Function} props.onStatusChange - Callback to change student status (e.g., break, submit).
+ * @param {Function} props.onMoveClass - Callback to initiate moving the student to another class.
+ */
 const StudentCard = ({ student, onStatusChange, onMoveClass }) => {
   const { isDark } = useTheme();
   const isOut = student.status === 'exited_temporarily';

@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { fetchCourseStudents, removeStudentFromCourseHandler, importStudentsToCourse } from "../../../handlers/courseHandlers";
 import AddStudentModal from "./AddStudentModal";
+
+/**
+ * Modal for managing students enrolled in a course.
+ * Supports manual addition and bulk import via Excel.
+ *
+ * @param {object} props
+ * @param {object} props.course - The course object.
+ * @param {Function} props.onClose - Callback to close the modal.
+ * @param {boolean} props.isDark - Theme mode.
+ */
 export default function ManageStudentsModal({ course, onClose, isDark }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);

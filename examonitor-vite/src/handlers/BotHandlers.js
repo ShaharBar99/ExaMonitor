@@ -1,8 +1,19 @@
 // src/handlers/botHandlers.js
 import { botAPI } from '../api/BotApi';
 
+/**
+ * Handlers for the ExamBot interaction.
+ */
 export const botHandlers = {
-  // הפונקציה המרכזית שהקומפוננטה תפעיל
+  /**
+   * Handles sending a message to the bot and processing the response.
+   *
+   * @param {string} text - The message text from the user.
+   * @param {object} context - Context data (role, examId).
+   * @param {Function} onReply - Callback function to handle the bot's reply.
+   * @param {Function} setTyping - State setter for typing indicator.
+   * @param {object} stats - Current exam statistics to send to the bot.
+   */
   handleSendMessage: async (text, context, onReply, setTyping, stats) => {
     if (!text.trim()) return;
 
@@ -39,7 +50,10 @@ export const botHandlers = {
     }
   },
 
-  // דוגמה לשיטה נוספת שה-Handler יכול לקרוא לה בטעינת הדף
+  /**
+   * Initializes the bot status.
+   * @param {Function} setBotStatus - State setter for bot status.
+   */
   initializeBot: async (setBotStatus) => {
     try {
       const status = await botAPI.getBotStatus();

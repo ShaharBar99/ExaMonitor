@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { fetchAvailableLecturers, addLecturerToCourseHandler } from "../../../handlers/courseHandlers";
 
+/**
+ * Modal for adding a lecturer to a course.
+ *
+ * @param {object} props
+ * @param {string} props.courseId - The ID of the course.
+ * @param {Function} props.onClose - Callback to close the modal.
+ * @param {Function} props.onAdded - Callback when a lecturer is successfully added.
+ * @param {boolean} props.isDark - Theme mode.
+ */
 export default function AddLecturerModal({ courseId, onClose, onAdded, isDark }) {
     const [available, setAvailable] = useState([]);
     const [search, setSearch] = useState("");
@@ -29,7 +38,7 @@ export default function AddLecturerModal({ courseId, onClose, onAdded, isDark })
     };
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-110 flex items-center justify-center p-4">
             <div className={`w-full max-w-md rounded-2xl p-6 shadow-2xl ${isDark ? "bg-slate-800 text-white" : "bg-white"}`}>
                 <div className="flex justify-between mb-4">
                     <h3 className="font-black">הוספת מרצה לקורס</h3>

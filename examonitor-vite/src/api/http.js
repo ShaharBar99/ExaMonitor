@@ -3,8 +3,17 @@
 // Read API base URL from Vite env. // Vite exposes env vars via import.meta.env
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000"; // Example: "http://localhost:5000"
 
-// Custom error type for API failures. // Lets UI/handlers handle status/messages cleanly
+/**
+ * Custom error class for API related errors.
+ * Allows UI/handlers to handle status codes and messages cleanly.
+ * @extends Error
+ */
 export class ApiError extends Error { // ApiError extends Error
+  /**
+   * @param {string} message - Error message.
+   * @param {number} status - HTTP status code.
+   * @param {object} [details] - Optional backend error body.
+   */
   constructor(message, status, details) { // Create error with extra fields
     super(message); // Call parent Error constructor
     this.name = "ApiError"; // Set error name
@@ -13,7 +22,14 @@ export class ApiError extends Error { // ApiError extends Error
   } // End constructor
 } // End ApiError
 
-// Core fetch wrapper for JSON REST calls. // Handles headers, JSON parse, errors
+/**
+ * Core fetch wrapper for JSON REST calls.
+ * Handles headers, JSON parsing, and error throwing.
+ *
+ * @param {string} path - The API endpoint path (relative to API_BASE).
+ * @param {object} [options={}] - Fetch options (method, body, token, signal).
+ * @returns {Promise<any>} The parsed JSON response, or null if 204 No Content.
+ */
 export async function apiFetch(path, options = {}) { // Main REST function
   const method = options.method || "GET"; // Default method is GET
   const body = options.body ?? null; // Default body is null

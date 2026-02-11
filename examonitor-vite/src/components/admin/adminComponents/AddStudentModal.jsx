@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { fetchAvailableStudents, addStudentToCourseHandler } from "../../../handlers/courseHandlers";
 
+/**
+ * Modal for manually adding a student to a course.
+ *
+ * @param {object} props
+ * @param {string} props.courseId - The ID of the course.
+ * @param {Function} props.onClose - Callback to close the modal.
+ * @param {Function} props.onAdded - Callback when a student is successfully added.
+ * @param {boolean} props.isDark - Theme mode.
+ */
 export default function AddStudentModal({ courseId, onClose, onAdded, isDark }) {
   const [available, setAvailable] = useState([]);
   const [search, setSearch] = useState("");

@@ -23,6 +23,12 @@ async function getExamWindow(examId) {
   return { start, end };
 }
 
+/**
+ * Checks for conflicts in scheduling or resource allocation.
+ * @param {string} type - The type of check ('classroom_create', 'assign_supervisor', etc.).
+ * @param {object} payload - The data to validate.
+ * @returns {Promise<Array<string>>} An array of error messages, empty if no conflicts.
+ */
 export async function check_conflicts(type, payload = {}) {
   // type: 'classroom_create' | 'classroom_update' | 'assign_supervisor' | 'import_row' | 'exam_update'
   // payload varies

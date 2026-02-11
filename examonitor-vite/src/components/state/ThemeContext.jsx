@@ -2,6 +2,9 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const ThemeContext = createContext();
 
+/**
+ * Context provider for managing application theme (light/dark).
+ */
 export function ThemeProvider({ children }) {
   const [isDark, setIsDark] = useState(() => {
     // Check local storage or system preference

@@ -2,6 +2,11 @@
 
 import { supabaseAdmin } from "../lib/supabaseClient.js";
 
+/**
+ * Retrieves exams for a specific student based on their course registrations.
+ * @param {string} studentId - The ID of the student.
+ * @returns {Promise<Array>} A list of exams the student is registered for.
+ */
 async function getStudentExamsByStudentId(studentId) {
   const { data, error } = await supabaseAdmin
     .from("course_registrations")
@@ -50,4 +55,7 @@ async function getStudentExamsByStudentId(studentId) {
   return flattened;
 }
 
+/**
+ * Service for student-related operations.
+ */
 export const studentService = { getStudentExamsByStudentId };

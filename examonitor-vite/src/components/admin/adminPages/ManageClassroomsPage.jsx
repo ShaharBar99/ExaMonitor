@@ -10,6 +10,9 @@ import {
   fetchExamsForAssignment 
 } from "../../../handlers/classroomHandlers";
 
+/**
+ * Admin page for managing classrooms (create, edit, delete, import, assign supervisors).
+ */
 export default function ManageClassroomsPage() {
   const { isDark } = useTheme();
   const { user } = useAuth();

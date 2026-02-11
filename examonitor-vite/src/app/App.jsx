@@ -6,6 +6,12 @@ import { AuthProvider } from "../components/state/AuthContext"; // Context provi
 import { SocketProvider } from "../components/state/SocketContext";
 import { ThemeProvider } from '../components/state/ThemeContext';
 
+/**
+ * The root component of the application.
+ * Sets up global providers (Theme, Auth, Socket, Exam) and the Router.
+ *
+ * @returns {JSX.Element} The rendered application.
+ */
 export default function App() { // Main app component
   return ( // Return app UI
     <ThemeProvider>

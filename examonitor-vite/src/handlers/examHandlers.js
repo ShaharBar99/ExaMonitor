@@ -1,8 +1,15 @@
 import { examsApi } from '../api/examsApi';
 import { classroomApi } from '../api/classroomApi';
 
+/**
+ * Handlers for exam management logic, including fetching, filtering, and status updates.
+ */
 export const examHandlers = {
-    // טעינת רשימת מבחנים מהשרת
+    /**
+     * Fetches a list of exams from the server.
+     * @param {string} [status='all'] - Filter exams by status ('active', 'pending', 'finished', 'all').
+     * @returns {Promise<Array>} A promise that resolves to an array of exam objects.
+     */
     fetchExams: async (status = 'all') => {
         try {
             const exams = await examsApi.listExams(status);
@@ -13,7 +20,15 @@ export const examHandlers = {
         }
     },
 
-    // טעינת מבחנים יחד עם חדרים/כיתות
+    /**
+     * Fetches exams along with their associated classrooms.
+     * Supports filtering by status, supervisor, or lecturer.
+     *
+     * @param {string} [status='all'] - Filter by exam status.
+     * @param {string} [supervisorId=null] - Filter classrooms assigned to a specific supervisor.
+     * @param {string} [lecturerId=null] - Filter exams assigned to a specific lecturer.
+     * @returns {Promise<Array>} A promise that resolves to an array of exams with a 'classrooms' property.
+     */
     fetchExamsWithClassrooms: async (status = 'all', supervisorId = null, lecturerId = null) => {
         try {
             let exams;
@@ -48,7 +63,11 @@ export const examHandlers = {
         }
     },
 
-    // טעינת מבחן ספציפי לפי ID
+    /**
+     * Fetches a specific exam by its ID.
+     * @param {string} examId - The ID of the exam to fetch.
+     * @returns {Promise<object>} A promise that resolves to the exam object.
+     */
     getExam: async (examId) => {
         try {
             const exam = await examsApi.getExamById(examId);
@@ -59,6 +78,11 @@ export const examHandlers = {
         }
     },
 
+    /**
+     * Fetches available lecturers that can be assigned to a specific exam.
+     * @param {string} examId - The ID of the exam.
+     * @returns {Promise<{ok: boolean, data?: {lecturers: Array}, message?: string}>} The result object.
+     */
     fetchAvailableExamLecturers: async (examId) => {
         try {
             if (!examId) throw new Error("Missing exam ID");
@@ -70,7 +94,14 @@ export const examHandlers = {
         }
     },
 
-    // פונקציית סינון המבחנים לפי טקסט חופשי
+    /**
+     * Filters a list of exams based on a search query.
+     * Matches against course name, exam ID, or room number.
+     *
+     * @param {Array} exams - The list of exams to filter.
+     * @param {string} query - The search query.
+     * @returns {Array} The filtered list of exams.
+     */
     filterExams: (exams, query) => {
         try {
             if (!Array.isArray(exams)) return [];
@@ -91,7 +122,11 @@ export const examHandlers = {
         }
     },
 
-    // לוגיקת בחירת מבחן ומעבר לדף הבא
+    /**
+     * Handles the selection of an exam and navigates to the exam console.
+     * @param {string} examId - The ID of the selected exam.
+     * @param {Function} navigate - The navigation function (e.g., from react-router).
+     */
     handleSelectExam: (examId, navigate) => {
         try {
             if (!examId || !navigate) throw new Error("Missing parameters for navigation");
@@ -103,7 +138,11 @@ export const examHandlers = {
         }
     },
 
-    // שליחת הודעה גלובלית (Broadcast) לכל הכיתות
+    /**
+     * Sends a broadcast message to all classrooms associated with an exam.
+     * Prompts the user for the message content.
+     * @param {string} examId - The ID of the exam.
+     */
     handleBroadcast: async (examId) => {
         try {
             const message = prompt("הקלד את ההודעה להפצה לכל הכיתות:");
@@ -119,7 +158,16 @@ export const examHandlers = {
         }
     },
 
-    // ניהול שינוי סטטוס המבחן (עצירה/חידוש/סיום)
+    /**
+     * Changes the status of an exam (e.g., active, paused, finished).
+     * Includes a confirmation dialog.
+     *
+     * @param {string} examId - The ID of the exam.
+     * @param {string} newStatus - The new status to set.
+     * @param {Function} [setExamData] - Optional state setter to update local state.
+     * @param {string} [userId] - The ID of the user performing the action.
+     * @returns {Promise<boolean>} True if successful, false otherwise.
+     */
     handleChangeStatus: async (examId, newStatus, setExamData, userId) => {
         try {
             // 1. הודעת אישור מותאמת אישית יותר
@@ -159,6 +207,12 @@ export const examHandlers = {
         }
 
     },
+
+    /**
+     * Adds extra time to an exam globally.
+     * @param {string} examId - The ID of the exam.
+     * @param {Function} setExamData - State setter to update local exam data.
+     */
     handleAddExtraTime: async (examId, setExamData) => {
         try {
             const additionalMinutes = 15; // ברירת מחדל
@@ -181,20 +235,40 @@ export const examHandlers = {
 
 
     //added for new tables
+    /**
+     * Loads lecturers associated with a course.
+     * @param {string} courseId - The ID of the course.
+     * @returns {Promise<Array>} List of lecturers.
+     */
     loadCourseLecturers: async (courseId) => {
         const res = await examsApi.getCourseLecturers(courseId);
         return res?.lecturers || [];
     },
 
+    /**
+     * Loads lecturers assigned to a specific exam.
+     * @param {string} examId - The ID of the exam.
+     * @returns {Promise<Array>} List of lecturers (profiles).
+     */
     loadExamLecturers: async (examId) => {
         const res = await examsApi.getExamLecturers(examId);
         return res?.lecturers || []; // Now returns array of profiles
     },
 
+    /**
+     * Adds a substitute lecturer to an exam.
+     * @param {string} examId - The ID of the exam.
+     * @param {string} lecturerId - The ID of the lecturer to add.
+     */
     handleAddSubstituteLecturer: async (examId, lecturerId) => {
         await examsApi.addExamLecturer(examId, lecturerId);
     },
 
+    /**
+     * Removes a substitute lecturer from an exam.
+     * @param {string} examId - The ID of the exam.
+     * @param {string} lecturerId - The ID of the lecturer to remove.
+     */
     handleRemoveSubstituteLecturer: async (examId, lecturerId) => {
         await examsApi.removeExamLecturer(examId, lecturerId);
     },

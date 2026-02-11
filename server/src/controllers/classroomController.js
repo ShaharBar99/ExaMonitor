@@ -1,6 +1,12 @@
 import { ClassroomService } from '../services/classroomService.js';
 
+/**
+ * Controller for handling classroom-related requests.
+ */
 export const ClassroomController = {
+  /**
+   * Lists classrooms, optionally filtered by exam or lecturer.
+   */
   async list(req, res, next) {
     try {
       const examId = req.query.exam_id || null;
@@ -12,6 +18,9 @@ export const ClassroomController = {
     }
   },
 
+  /**
+   * Retrieves details of a specific classroom by ID.
+   */
   async getOne(req, res, next) {
     try {
       const classroom = await ClassroomService.getById(req.params.id);
@@ -21,6 +30,9 @@ export const ClassroomController = {
     }
   },
 
+  /**
+   * Creates a new classroom.
+   */
   async create(req, res, next) {
     try {
       const { exam_id, room_number, supervisor_id, floor_supervisor_id } = req.body;
@@ -42,6 +54,9 @@ export const ClassroomController = {
     }
   },
 
+  /**
+   * Assigns supervisors to a classroom.
+   */
   async assign(req, res, next) {
     try {
       const { supervisor_id, floor_supervisor_id } = req.body;
@@ -64,6 +79,9 @@ export const ClassroomController = {
     }
   },
 
+  /**
+   * Retrieves a list of available supervisors.
+   */
   async getSupervisors(req, res, next) {
     try {
       const supervisors = await ClassroomService.getSupervisors();

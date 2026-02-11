@@ -1,6 +1,17 @@
 // src/components/admin/AdminTable.jsx
 import React from "react";
 
+/**
+ * Reusable table component for admin pages.
+ * Supports responsive layout (table on desktop, cards on mobile).
+ *
+ * @param {object} props
+ * @param {Array} props.columns - Array of column definitions { key, header, className }.
+ * @param {React.ReactNode} props.children - Table rows.
+ * @param {boolean} props.loading - Loading state.
+ * @param {string} [props.emptyText] - Text to display when empty.
+ * @param {boolean} [props.isDark] - Theme mode.
+ */
 export default function AdminTable({
   columns,
   children,

@@ -1,7 +1,13 @@
 import { AttendanceService } from '../services/attendanceService.js';
 import { supabaseAdmin } from '../lib/supabaseClient.js';
 
+/**
+ * Controller for attendance-related endpoints.
+ */
 export const AttendanceController = {
+  /**
+   * Lists attendance records.
+   */
   async list(req, res, next) {
     try {
       const classroomId = req.query.classroom_id || null;
@@ -20,6 +26,9 @@ export const AttendanceController = {
     }
   },
 
+  /**
+   * Marks attendance for a student.
+   */
   async mark(req, res, next) {
     try {
       const { student_id, classroom_id, status } = req.body;
@@ -37,6 +46,9 @@ export const AttendanceController = {
     }
   },
 
+  /**
+   * Starts a break for a student.
+   */
   async startBreak(req, res, next) {
     try {
       const { student_id, reason = 'toilet' } = req.body;
@@ -56,6 +68,9 @@ export const AttendanceController = {
     }
   },
 
+  /**
+   * Ends a break for a student.
+   */
   async endBreak(req, res, next) {
     try {
       const { student_id} = req.body;
@@ -76,6 +91,9 @@ export const AttendanceController = {
   },
 
 
+  /**
+   * Updates a student's status.
+   */
   async updateStudentStatus(req, res, next) {
     try {
       const { studentId } = req.params;
@@ -88,7 +106,9 @@ export const AttendanceController = {
   },
 
 
-  // ספירת הפסקות לפי מבחן
+  /**
+   * Gets the count of breaks for an exam.
+   */
   async getBreaksCount(req, res, next) {
     try {
       const { examId } = req.query;
@@ -102,6 +122,9 @@ export const AttendanceController = {
   },
 
 
+  /**
+   * Gets exams on a specific floor.
+   */
   async getExamsOnFloor(req, res, next) {
     try {
       const { floorId } = req.params;
@@ -112,6 +135,9 @@ export const AttendanceController = {
     }
   },
 
+  /**
+   * Assigns a supervisor to a room.
+   */
   async assignSupervisor(req, res, next) {
     try {
       const { roomId } = req.params;
@@ -123,6 +149,9 @@ export const AttendanceController = {
     }
   },
 
+  /**
+   * Gets a summary for a floor.
+   */
   async getFloorSummary(req, res, next) {
     try {
       const { floorId } = req.query;
@@ -133,6 +162,9 @@ export const AttendanceController = {
     }
   },
 
+  /**
+   * Gets students for a supervisor in a specific exam.
+   */
   async getStudentsForSupervisor(req, res, next) {
     try {
       const { supervisorId, examId } = req.params;
@@ -144,6 +176,9 @@ export const AttendanceController = {
     }
   },
 
+  /**
+   * Manually adds a student to an exam.
+   */
   addStudent: async (req, res, next) => {
       try {
           const { classroomId, studentProfileId, studentId } = req.body;
@@ -154,6 +189,9 @@ export const AttendanceController = {
       }
   },
 
+  /**
+   * Removes a student from an exam.
+   */
   removeStudent: async (req, res, next) => {
       try {
           const { attendanceId } = req.params;
@@ -164,6 +202,9 @@ export const AttendanceController = {
       }
   },
   
+  /**
+   * Searches for eligible students.
+   */
   getEligibleStudents: async (req, res, next) => {
       try {
           const { examId } = req.params;

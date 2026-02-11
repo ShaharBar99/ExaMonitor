@@ -3,9 +3,18 @@ import { AuditTrailService } from './auditTrailService.js';
 
 const ALLOWED_STATUS = new Set(['present', 'absent', 'exited_temporarily', 'submitted']);
 
+/**
+ * Service for handling attendance logic.
+ */
 export const AttendanceService = {
   
-
+  /**
+   * Lists attendance records based on classroom or exam.
+   * @param {object} params
+   * @param {string} [params.classroomId] - Filter by classroom.
+   * @param {string} [params.examId] - Filter by exam.
+   * @returns {Promise<Array>} List of attendance records.
+   */
   async list({ classroomId = null, examId = null }) {
     // Case 1: list by classroom
     if (classroomId) {
@@ -59,6 +68,11 @@ export const AttendanceService = {
   },
 
 
+  /**
+   * Counts the number of breaks for a specific exam.
+   * @param {string} examId - The exam ID.
+   * @returns {Promise<number>} The count of breaks.
+   */
   async countBreaksByExam(examId) {
     const { count, error } = await supabaseAdmin
       .from('student_breaks')
@@ -75,6 +89,12 @@ export const AttendanceService = {
 
 
   
+  /**
+   * Gets students assigned to a supervisor for a specific exam.
+   * @param {string} examId - The exam ID.
+   * @param {string} supervisorId - The supervisor ID.
+   * @returns {Promise<Array>} List of students.
+   */
   async getStudentsForSupervisor(examId, supervisorId) {
     // 1. מציאת החדר הספציפי שהמשגיח הזה משובץ אליו עבור המבחן הזה
     const { data: classrooms, error: roomErr } = await supabaseAdmin
@@ -115,7 +135,10 @@ export const AttendanceService = {
   },
 
   /**
-   * עדכון סטטוס סטודנט בטבלת attendance
+   * Updates a student's attendance status.
+   * @param {string} attendanceId - The attendance record ID.
+   * @param {string} status - The new status.
+   * @returns {Promise<object>} The result of the update.
    */
   async updateStudentStatus(attendanceId, status) {
     // Map Hebrew statuses to English
@@ -165,7 +188,10 @@ export const AttendanceService = {
   },
 
   /**
-   * יציאה לשירותים - יצירת שורה ב-student_breaks ועדכון סטטוס ב-attendance
+   * Starts a break for a student.
+   * @param {object} params
+   * @param {string} params.attendanceId - The attendance record ID.
+   * @param {string} [params.reason='toilet'] - The reason for the break.
    */
   async startBreak({ attendanceId, reason = 'toilet' }) {
     const now = new Date().toISOString();
@@ -225,10 +251,10 @@ export const AttendanceService = {
   },
 
   /**
-   * חזרה מהפסקה - סגירת רשומת ה-break והחזרת הסטטוס ל-present
-   */
- /**
- * חזרה מהפסקה - סגירת רשומת ה-break האחרונה והחזרת הסטטוס ל-present
+ * Ends a break for a student.
+ * Closes the last open break record and resets status to 'present'.
+ * @param {object} params
+ * @param {string} params.attendanceId - The attendance record ID.
  */
 async endBreak({ attendanceId }) {
     const now = new Date().toISOString();
@@ -289,7 +315,9 @@ async endBreak({ attendanceId }) {
   }, 
 
   /**
-   * סיכום סטטיסטי לקומה (עבור מנהל קומה)
+   * Generates a statistical summary for a floor.
+   * @param {string} floorId - The floor ID.
+   * @returns {Promise<object>} The summary data.
    */
   async getFloorSummary(floorId) {
     // שלב א': משיכת כל החדרים בקומה
@@ -319,7 +347,10 @@ async endBreak({ attendanceId }) {
   },
 
   /**
-   * שיבוץ משגיח לחדר
+   * Assigns a supervisor to a classroom.
+   * @param {string} classroomId - The classroom ID.
+   * @param {string} supervisorId - The supervisor ID.
+   * @returns {Promise<object>} The updated classroom data.
    */
   async assignSupervisor(classroomId, supervisorId) {
     const { data, error } = await supabaseAdmin
@@ -336,7 +367,11 @@ async endBreak({ attendanceId }) {
   },
 
 /**
- * הוספת סטודנט לחדר מבחן ידנית - גרסה חסינת כפילויות
+ * Manually adds a student to an exam classroom.
+ * Handles profile resolution and duplicate checks.
+ * @param {string} classroomId - The classroom ID.
+ * @param {string} [studentProfileId] - The student's profile ID.
+ * @param {string} [studentId] - The student's ID number.
  */
 async addStudentToExam(classroomId, studentProfileId = null, studentId = null) {
     let finalProfileId = studentProfileId;
@@ -441,6 +476,11 @@ async addStudentToExam(classroomId, studentProfileId = null, studentId = null) {
     return result;
 },
 
+  /**
+   * Removes a student from an exam (marks as absent).
+   * @param {string} attendanceId - The attendance record ID.
+   * @returns {Promise<object>} Success status.
+   */
   async removeStudentFromExam(attendanceId) {
     // 1. קודם כל נבדוק מה הסטטוס הנוכחי של הסטודנט
     const { data: currentRecord, error: fetchError } = await supabaseAdmin
@@ -470,6 +510,12 @@ async addStudentToExam(classroomId, studentProfileId = null, studentId = null) {
     return { success: true };
   },
 
+  /**
+   * Searches for eligible students for an exam.
+   * @param {string} examId - The exam ID.
+   * @param {string} searchTerm - The search query.
+   * @returns {Promise<Array>} List of eligible student profiles.
+   */
   async searchEligibleStudents(examId, searchTerm) {
     // 1. קבלת ה-course_id מהמבחן
     const { data: exam } = await supabaseAdmin

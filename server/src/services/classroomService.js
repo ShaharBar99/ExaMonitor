@@ -1,8 +1,16 @@
 import { supabaseAdmin } from '../lib/supabaseClient.js';
 import validationService from './validationService.js';
 
+/**
+ * Service for managing classrooms.
+ */
 export const ClassroomService = {
-  // GET /classrooms?exam_id=... or ?lecturer_id=...
+  /**
+   * Lists classrooms, optionally filtered by exam or lecturer.
+   * @param {string} [examId] - Filter by exam ID.
+   * @param {string} [lecturerId] - Filter by lecturer ID.
+   * @returns {Promise<Array>} List of classrooms.
+   */
   async listClassrooms(examId, lecturerId = null) {
     // If lecturerId provided, compute exam ids taught by that lecturer and filter classrooms
     if (lecturerId) {
@@ -138,7 +146,11 @@ export const ClassroomService = {
     }));
   },
 
-  // GET /classrooms/:id
+  /**
+   * Gets a classroom by ID.
+   * @param {string} classroomId - The classroom ID.
+   * @returns {Promise<object>} The classroom details.
+   */
   async getById(classroomId) {
     const { data, error } = await supabaseAdmin
       .from('classrooms')
@@ -189,7 +201,14 @@ export const ClassroomService = {
     };
   },
 
-  // POST /classrooms
+  /**
+   * Creates a new classroom.
+   * @param {object} params
+   * @param {string} params.exam_id - The exam ID.
+   * @param {string} params.room_number - The room number.
+   * @param {string} [params.supervisor_id] - The supervisor ID.
+   * @param {string} [params.floor_supervisor_id] - The floor supervisor ID.
+   */
   async create({ exam_id, room_number, supervisor_id = null, floor_supervisor_id = null }) {
     const { data, error } = await supabaseAdmin
       .from('classrooms')
@@ -240,7 +259,13 @@ export const ClassroomService = {
     };
   },
 
-  // PATCH /classrooms/:id/assign
+  /**
+   * Updates supervisor assignments for a classroom.
+   * @param {string} classroomId - The classroom ID.
+   * @param {object} updates
+   * @param {string} [updates.supervisor_id] - The new supervisor ID.
+   * @param {string} [updates.floor_supervisor_id] - The new floor supervisor ID.
+   */
   async updateAssignments(classroomId, { supervisor_id, floor_supervisor_id }) {
     const update = {};
     if (supervisor_id !== undefined) update.supervisor_id = supervisor_id;
@@ -323,7 +348,10 @@ export const ClassroomService = {
     };
   },
 
-  // GET supervisors for assignment (accessible to floor supervisors)
+  /**
+   * Gets a list of supervisors available for assignment.
+   * @returns {Promise<Array>} List of supervisors.
+   */
   async getSupervisors() {
     const { data, error } = await supabaseAdmin
       .from('profiles')

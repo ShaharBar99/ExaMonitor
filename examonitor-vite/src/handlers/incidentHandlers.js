@@ -1,9 +1,13 @@
 import { incidentsApi } from '../api/incidentsApi';
 
+/**
+ * Handlers for incident reporting and management.
+ */
 export const incidentHandlers = {
   /**
-   * קריאה דחופה למנהל קומה
+   * Sends an urgent call to the floor manager.
    * Route: POST /incidents/call-manager
+   * @param {string} roomId - The room ID.
    */
   handleCallManager: async (roomId) => {
     try {
@@ -27,8 +31,10 @@ export const incidentHandlers = {
   },
 
   /**
-   * שליחת דוח אירוע מפורט (טופס)
+   * Submits a detailed incident report.
    * Route: POST /incidents
+   * @param {object} formData - The report data.
+   * @param {string} reporterId - The ID of the user reporting.
    */
   submitReport: async (formData, reporterId) => { // הוספת reporterId
   try {
@@ -49,8 +55,10 @@ export const incidentHandlers = {
   },
 
   /**
-   * סגירת אירוע או עדכון סטטוס (לשימוש מנהל קומה)
+   * Resolves an incident or updates its status.
    * Route: PATCH /incidents/:id/status
+   * @param {string} incidentId - The incident ID.
+   * @param {Function} setNotifications - State setter to update local UI.
    */
   handleResolveIncident: async (incidentId, setNotifications) => {
     try {
@@ -72,8 +80,10 @@ export const incidentHandlers = {
   },
 
   /**
-   * טעינת רשימת אירועים למבחן
+   * Loads the list of incidents for an exam.
    * Route: GET /incidents?examId=:id
+   * @param {string} examId - The exam ID.
+   * @param {Function} setIncidents - State setter for incidents.
    */
   loadIncidents: async (examId, setIncidents) => {
     try {

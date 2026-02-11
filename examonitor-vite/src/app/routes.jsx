@@ -19,6 +19,12 @@ import AuditTrailPage from "../components/admin/adminPages/AuditTrailPage"; // A
 import SecurityAlertsPage from "../components/admin/adminPages/SecurityAlertsPage"; // Admin route page
 import ManageExamsPage from "../components/admin/adminPages/ManageExamsPage"; // Admin route page
 
+/**
+ * Defines the application's routing structure.
+ * Handles navigation between public, protected, and role-specific pages.
+ *
+ * @returns {JSX.Element} The routing configuration.
+ */
 export default function AppRoutes() { // Export a component that holds the route table
   const navigate = useNavigate(); // Router navigation
   return ( // Return the routing tree

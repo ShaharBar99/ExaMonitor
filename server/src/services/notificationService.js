@@ -1,4 +1,12 @@
+/**
+ * Service for managing notifications.
+ */
 export const NotificationService = {
+  /**
+   * Retrieves notifications for a specific context.
+   * @param {string} contextId - The context ID (e.g., user ID or exam ID).
+   * @returns {Promise<Array>} List of notifications.
+   */
   async getNotifications(contextId) {
     console.log(`Getting notifications for context: ${contextId}`);
     return [

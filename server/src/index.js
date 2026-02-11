@@ -1,3 +1,6 @@
+/**
+ * @fileoverview Server entry point. Sets up HTTP server and Socket.IO.
+ */
 import 'dotenv/config';
 import app from './app.js';
 import http from 'http';
@@ -57,4 +60,3 @@ app.get('/health', (req, res) => {
 server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
-

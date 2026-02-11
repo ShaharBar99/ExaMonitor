@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ExamContext = createContext();
 
+/**
+ * Context provider for managing active exam state.
+ */
 export const ExamProvider = ({ children }) => {
   // נתוני המבחן הפעיל - טעינה מ-localStorage
   const [examData, setExamData] = useState(() => {

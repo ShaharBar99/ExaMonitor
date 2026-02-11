@@ -19,6 +19,10 @@ const PROTOCOL_STEPS = [
   { id: 'forms', text: "שלב 3: חלוקת טפסי הבחינה. האם כל הסטודנטים קיבלו טפסים?", options: [{ label: "כן, חילקתי לכולם", action: "FINISH_PROTOCOL" }] }
 ];
 
+/**
+ * Main dashboard page for exam supervisors.
+ * Manages the exam lifecycle, attendance, timer, and bot interactions.
+ */
 export default function SupervisorDashboard() {
   const { examId } = useParams();
   const { user } = useAuth();

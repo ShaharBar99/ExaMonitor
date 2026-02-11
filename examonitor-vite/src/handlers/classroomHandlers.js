@@ -47,6 +47,11 @@ export const classroomHandler = {
       setLoading(false);
     }
   },
+  /**
+   * Fetches classrooms for a specific exam.
+   * @param {string} examId - The exam ID.
+   * @returns {Promise<Array>} List of classrooms.
+   */
   getClassrooms: async(examId)=>{
     try{
     return await classroomApi.getClassrooms(examId);
@@ -92,7 +97,12 @@ export const classroomHandler = {
   }
 };
 
-// Admin Handlers for classroom management
+/**
+ * Fetches classrooms for admin management with filtering.
+ * @param {object} [filters={}] - Filter criteria.
+ * @param {object} [deps={}] - Dependencies.
+ * @returns {Promise<{ok: boolean, data: {classrooms: Array}}>}
+ */
 export async function fetchClassrooms(filters = {}, deps = {}) {
   const classroomsApi = deps.classroomsApi || classroomsApiDefault;
   
@@ -102,6 +112,12 @@ export async function fetchClassrooms(filters = {}, deps = {}) {
   return { ok: true, data: { classrooms } };
 }
 
+/**
+ * Creates a new classroom.
+ * @param {object} classroomData - Classroom data.
+ * @param {object} [deps={}] - Dependencies.
+ * @returns {Promise<{ok: boolean, data: object}>}
+ */
 export async function createNewClassroom(classroomData, deps = {}) {
   const classroomsApi = deps.classroomsApi || classroomsApiDefault;
   
@@ -113,6 +129,13 @@ export async function createNewClassroom(classroomData, deps = {}) {
   return { ok: true, data };
 }
 
+/**
+ * Updates classroom details.
+ * @param {string} classroomId - Classroom ID.
+ * @param {object} classroomData - Updated data.
+ * @param {object} [deps={}] - Dependencies.
+ * @returns {Promise<{ok: boolean, data: object}>}
+ */
 export async function updateClassroomDetails(classroomId, classroomData, deps = {}) {
   const classroomsApi = deps.classroomsApi || classroomsApiDefault;
   
@@ -120,6 +143,12 @@ export async function updateClassroomDetails(classroomId, classroomData, deps = 
   return { ok: true, data };
 }
 
+/**
+ * Deletes a classroom.
+ * @param {string} classroomId - Classroom ID.
+ * @param {object} [deps={}] - Dependencies.
+ * @returns {Promise<{ok: boolean, data: object}>}
+ */
 export async function deleteClassroomHandler(classroomId, deps = {}) {
   const classroomsApi = deps.classroomsApi || classroomsApiDefault;
   
@@ -127,6 +156,13 @@ export async function deleteClassroomHandler(classroomId, deps = {}) {
   return { ok: true, data };
 }
 
+/**
+ * Assigns supervisors to a classroom.
+ * @param {string} classroomId - Classroom ID.
+ * @param {object} assignmentData - Supervisor IDs.
+ * @param {object} [deps={}] - Dependencies.
+ * @returns {Promise<{ok: boolean, data: object}>}
+ */
 export async function assignSupervisorsHandler(classroomId, assignmentData, deps = {}) {
   const classroomsApi = deps.classroomsApi || classroomsApiDefault;
   
@@ -134,6 +170,12 @@ export async function assignSupervisorsHandler(classroomId, assignmentData, deps
   return { ok: true, data };
 }
 
+/**
+ * Gets a single classroom by ID.
+ * @param {string} classroomId - Classroom ID.
+ * @param {object} [deps={}] - Dependencies.
+ * @returns {Promise<{ok: boolean, data: object}>}
+ */
 export async function getClassroomHandler(classroomId, deps = {}) {
   const classroomsApi = deps.classroomsApi || classroomsApiDefault;
   
@@ -141,6 +183,11 @@ export async function getClassroomHandler(classroomId, deps = {}) {
   return { ok: true, data };
 }
 
+/**
+ * Fetches available supervisors.
+ * @param {object} [deps={}] - Dependencies.
+ * @returns {Promise<{ok: boolean, data: {supervisors: Array}}>}
+ */
 export async function fetchSupervisors(deps = {}) {
   const classroomsApi = deps.classroomsApi || classroomsApiDefault;
   
@@ -149,6 +196,12 @@ export async function fetchSupervisors(deps = {}) {
   return { ok: true, data: { supervisors } };
 }
 
+/**
+ * Filters classrooms locally.
+ * @param {Array} classrooms - List of classrooms.
+ * @param {object} [filters={}] - Filter criteria.
+ * @returns {Array} Filtered list.
+ */
 export function filterClassrooms(classrooms, filters = {}) {
   const list = Array.isArray(classrooms) ? classrooms : [];
   const q = String(filters.search || "").trim().toLowerCase();
@@ -163,6 +216,12 @@ export function filterClassrooms(classrooms, filters = {}) {
   });
 }
 
+/**
+ * Imports classrooms from an Excel file.
+ * @param {FormData} formData - Form data with file.
+ * @param {object} [deps={}] - Dependencies.
+ * @returns {Promise<{ok: boolean, data: object}>}
+ */
 export async function importClassroomsFromExcel(formData, deps = {}) {
   const classroomsApi = deps.classroomsApi || classroomsApiDefault;
   
@@ -170,6 +229,12 @@ export async function importClassroomsFromExcel(formData, deps = {}) {
   return { ok: true, data };
 }
 
+/**
+ * Fetches exams available for assignment.
+ * @param {object} [filters={}] - Filter criteria.
+ * @param {object} [deps={}] - Dependencies.
+ * @returns {Promise<{ok: boolean, data: {exams: Array}}>}
+ */
 export async function fetchExamsForAssignment(filters = {}, deps = {}) {
   const classroomsApi = deps.classroomsApi || classroomsApiDefault;
   

@@ -7,6 +7,9 @@ export const useSocket = () => {
     return useContext(SocketContext);
 };
 
+/**
+ * Context provider for Socket.IO connection.
+ */
 export const SocketProvider = ({ children }) => {
     const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
     console.log('SocketProvider using API_BASE:', API_BASE);

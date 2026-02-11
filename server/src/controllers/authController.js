@@ -1,6 +1,12 @@
 import { AuthService } from '../services/authService.js';
 
+/**
+ * Controller for authentication endpoints.
+ */
 export const AuthController = {
+  /**
+   * Handles user login.
+   */
   async login(req, res, next) {
     try {
       const { username, password, role } = req.body;
@@ -22,6 +28,9 @@ export const AuthController = {
     }
   },
 
+  /**
+   * Gets the current authenticated user.
+   */
   async me(req, res, next) {
     try {
       const authHeader = req.headers.authorization || '';
@@ -40,6 +49,9 @@ export const AuthController = {
     }
   },
 
+  /**
+   * Refreshes the access token.
+   */
   async refresh(req, res, next) {
     try {
       const { refreshToken } = req.body;
@@ -55,6 +67,9 @@ export const AuthController = {
     }
   },
 
+  /**
+   * Logs out the user.
+   */
   async logout(req, res, next) {
     try {
       const result = await AuthService.logout();
@@ -64,6 +79,9 @@ export const AuthController = {
     }
   },
 
+  /**
+   * Registers a new user.
+   */
   async register(req, res, next) {
     try {
       const { name, username, email, password, role } = req.body;

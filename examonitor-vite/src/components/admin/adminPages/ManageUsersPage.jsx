@@ -5,6 +5,9 @@ import CreateUserModal from "../adminComponents/CreateUserModal";
 import AdminTable from "../adminComponents/AdminTable";
 import { AUTH_ROLES } from "../../../handlers/authHandlers";
 
+/**
+ * Admin page for managing users (create, edit, delete, import).
+ */
 export default function ManageUsersPage() {
   const { isDark } = useTheme();
   const [users, setUsers] = useState([]);

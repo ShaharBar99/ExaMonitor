@@ -11,10 +11,13 @@ async function logAudit(userId, action, metadata = {}) {
   }
 }
 
+/**
+ * Service for administrative tasks such as user and exam management.
+ */
 export const AdminService = {
   /**
-   * Returns users from profiles.
-   * Adds placeholder fields if DB doesn't contain them yet.
+   * Lists all users in the system.
+   * @returns {Promise<Array>} A list of user profiles.
    */
   async listUsers() {
     const { data, error } = await supabaseAdmin
@@ -42,6 +45,12 @@ export const AdminService = {
     }));
   },
 
+  /**
+   * Updates a user's role.
+   * @param {string} userId - The ID of the user.
+   * @param {string} role - The new role.
+   * @returns {Promise<object>} The updated user profile.
+   */
   async updateUserRole(userId, role) {
     const { data, error } = await supabaseAdmin
       .from('profiles')
@@ -75,6 +84,12 @@ export const AdminService = {
     };
   },
 
+  /**
+   * Updates a user's active status.
+   * @param {string} userId - The ID of the user.
+   * @param {boolean} is_active - The new status.
+   * @returns {Promise<object>} The updated user profile.
+   */
   async updateUserStatus(userId, is_active) {
     const { data, error } = await supabaseAdmin
       .from('profiles')
@@ -105,6 +120,12 @@ export const AdminService = {
   }
   ,
 
+  /**
+   * Updates a user's profile information.
+   * @param {string} userId - The ID of the user.
+   * @param {object} updates - The fields to update (full_name, username, email, password, role, is_active).
+   * @returns {Promise<object>} The updated user profile.
+   */
   async updateUser(userId, { full_name, username, email, password, role, is_active }) {
     const updates = {};
     if (full_name !== undefined) updates.full_name = full_name;
@@ -195,6 +216,12 @@ export const AdminService = {
     return data;
   },
 
+  /**
+   * Updates a user's permissions (placeholder).
+   * @param {string} userId - The ID of the user.
+   * @param {Array<string>} permissions - The new permissions.
+   * @returns {Promise<object>} The updated user profile.
+   */
   async updateUserPermissions(userId, permissions) {
     // Placeholder because DB might not have permissions column.
     // We'll just return the existing user + requested permissions.
@@ -221,6 +248,12 @@ export const AdminService = {
     };
   },
 
+  /**
+   * Retrieves audit logs.
+   * @param {number} [limit=50] - Number of records to return.
+   * @param {number} [offset=0] - Offset for pagination.
+   * @returns {Promise<{items: Array, total: number}>} The audit logs and total count.
+   */
   async getAudit(limit = 50, offset = 0) {
     const { data, error, count } = await supabaseAdmin
       .from('audit_trail')
@@ -237,6 +270,11 @@ export const AdminService = {
     return { items: data || [], total: count ?? 0 };
   },
 
+  /**
+   * Lists security alerts (failed login attempts).
+   * @param {string} [status] - Filter by status.
+   * @returns {Promise<Array>} List of alerts.
+   */
   async listSecurityAlerts(status) {
     let q = supabaseAdmin
       .from("failed_login_attempts")
@@ -264,6 +302,11 @@ export const AdminService = {
     }));
   },
 
+  /**
+   * Resolves a security alert.
+   * @param {string} id - The ID of the alert.
+   * @returns {Promise<object>} The resolved alert.
+   */
   async resolveSecurityAlert(id) {
     const { data, error } = await supabaseAdmin
       .from("failed_login_attempts")
@@ -292,6 +335,11 @@ export const AdminService = {
   },
 
 
+  /**
+   * Creates a new user.
+   * @param {object} userData - The user data (full_name, username, email, password, role, student_id).
+   * @returns {Promise<object>} The created user profile.
+   */
   async createUser({ full_name, username, email, password, role, student_id }) {
     // 1. Validate student_id if role is student
     if (role === 'student') {
@@ -379,6 +427,11 @@ export const AdminService = {
     };
   },
 
+  /**
+   * Bulk creates users from an Excel file buffer.
+   * @param {Buffer} buffer - The Excel file buffer.
+   * @returns {Promise<{success: number, failed: number, errors: Array, created: Array}>} Summary of the operation.
+   */
   async bulkUsersFromExcel(buffer) {
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
@@ -436,6 +489,12 @@ export const AdminService = {
     return results;
   },
 
+  /**
+   * Imports exams from an Excel file buffer.
+   * @param {Buffer} buffer - The Excel file buffer.
+   * @param {string} adminUserId - The ID of the admin performing the import.
+   * @returns {Promise<{success: number, failed: number, errors: Array}>} Summary of the operation.
+   */
   async importExamsFromExcel(buffer, adminUserId) {
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];
@@ -476,6 +535,13 @@ export const AdminService = {
     return results;
   },
 
+  /**
+   * Lists exams with filtering and pagination.
+   * @param {object} filters - Filters (status, q).
+   * @param {number} [limit=50] - Limit.
+   * @param {number} [offset=0] - Offset.
+   * @returns {Promise<{items: Array, total: number}>} List of exams and total count.
+   */
   async listExams(filters = {}, limit = 50, offset = 0) {
     let q = supabaseAdmin
       .from('exams')
@@ -550,6 +616,11 @@ export const AdminService = {
     return { items, total: count ?? 0 };
   },
 
+  /**
+   * Deletes an exam.
+   * @param {string} examId - The ID of the exam.
+   * @returns {Promise<{id: string, deleted: boolean}>} Result.
+   */
   async deleteExam(examId) {
     // Deleting an exam usually requires deleting related rows (exam_lecturers).
     // Supabase cascade delete might handle this if foreign keys are set up with ON DELETE CASCADE.
@@ -564,6 +635,11 @@ export const AdminService = {
     return { id: examId, deleted: true };
   },
 
+  /**
+   * Deletes a user.
+   * @param {string} userId - The ID of the user.
+   * @returns {Promise<{id: string, deleted: boolean}>} Result.
+   */
   async deleteUser(userId) {
     // 1. Delete from Auth (admin)
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
@@ -580,6 +656,12 @@ export const AdminService = {
     return { id: userId, deleted: true };
   },
 
+  /**
+   * Creates a new exam.
+   * @param {object} examData - Exam data.
+   * @param {string} adminUserId - ID of the admin creating the exam.
+   * @returns {Promise<object>} The created exam.
+   */
   async createExam({ courseCode, courseName, lecturerEmail, lecturer_id, examDate, examTime, duration }, adminUserId) {
     // 1. Identify/Validate Lecturer
     // If lecturer_id is provided directly (new flow), use it.
@@ -690,7 +772,11 @@ export const AdminService = {
 
 
   /**
-   * Update an exam's time/duration/course and validate conflicts
+   * Updates an exam's details and validates conflicts.
+   * @param {string} examId - The ID of the exam.
+   * @param {object} updates - The updates (original_start_time, original_duration, extra_time, course_id).
+   * @param {string} adminUserId - The ID of the admin performing the update.
+   * @returns {Promise<object>} The updated exam.
    */
   async updateExam(examId, { original_start_time, original_duration, extra_time, course_id }, adminUserId) {
     // Build update payload
@@ -777,7 +863,9 @@ export const AdminService = {
   },
 
   /**
-   * List all courses with student count and lecturer info
+   * Lists all courses with student count and lecturer info.
+   * @param {object} filters - Filters (search, lecturer_id).
+   * @returns {Promise<Array>} List of courses.
    */
   async listCourses(filters = {}) {
     let q = supabaseAdmin
@@ -825,7 +913,9 @@ export const AdminService = {
   },
 
   /**
-   * Create a new course
+   * Creates a new course.
+   * @param {object} courseData - Course data (course_name, course_code, lecturer_id).
+   * @returns {Promise<object>} The created course.
    */
   async createCourse({ course_name, course_code, lecturer_id }) {
     if (!course_name || !course_code) {
@@ -924,7 +1014,10 @@ export const AdminService = {
   },
 
   /**
-   * Update course details
+   * Updates course details.
+   * @param {string} courseId - The ID of the course.
+   * @param {object} updates - The updates.
+   * @returns {Promise<object>} The updated course.
    */
   async updateCourse(courseId, { course_name, course_code, lecturer_id }) {
     const updates = {};
@@ -988,7 +1081,9 @@ export const AdminService = {
   },
 
   /**
-   * Delete a course
+   * Deletes a course.
+   * @param {string} courseId - The ID of the course.
+   * @returns {Promise<{id: string, deleted: boolean}>} Result.
    */
   async deleteCourse(courseId) {
     // Delete related course_registrations first
@@ -1007,7 +1102,9 @@ export const AdminService = {
   },
 
   /**
-   * Get students in a course
+   * Gets students enrolled in a course.
+   * @param {string} courseId - The ID of the course.
+   * @returns {Promise<Array>} List of students.
    */
   async getCourseStudents(courseId) {
     const { data, error } = await supabaseAdmin
@@ -1035,7 +1132,9 @@ export const AdminService = {
   },
 
   /**
-   * Get available students for a course (students not yet enrolled)
+   * Gets available students for a course (not yet enrolled).
+   * @param {string} courseId - The ID of the course.
+   * @returns {Promise<Array>} List of available students.
    */
   async getAvailableStudents(courseId) {
     // Get all students with role 'student'
@@ -1079,7 +1178,9 @@ export const AdminService = {
   },
 
   /**
-   * Add student to course manually
+   * Adds a student to a course manually.
+   * @param {string} courseId - The ID of the course.
+   * @param {object} studentData - Student identifier (student_id, email, or id).
    */
   async addStudentToCourse(courseId, { student_id, email, id }) {
     // Find student by ID (profile ID from client) or student_id column or email
@@ -1165,7 +1266,10 @@ export const AdminService = {
   },
 
   /**
-   * Bulk import students to course from Excel
+   * Bulk imports students to a course from an Excel file buffer.
+   * @param {string} courseId - The ID of the course.
+   * @param {Buffer} buffer - The Excel file buffer.
+   * @returns {Promise<{imported: number, failed: number, errors: Array, skipped: number}>} Summary.
    */
   async bulkImportStudentsToCourse(courseId, buffer) {
     const workbook = xlsx.read(buffer, { type: 'buffer' });
@@ -1255,7 +1359,9 @@ export const AdminService = {
   },
 
   /**
-   * Remove student from course
+   * Removes a student from a course.
+   * @param {string} courseId - The ID of the course.
+   * @param {string} studentId - The ID of the student.
    */
   async removeStudentFromCourse(courseId, studentId) {
     const { error } = await supabaseAdmin
@@ -1276,7 +1382,9 @@ export const AdminService = {
   // ========== COURSE LECTURERS ==========
 
   /**
-   * Get lecturers assigned to a course
+   * Gets lecturers assigned to a course.
+   * @param {string} courseId - The ID of the course.
+   * @returns {Promise<Array>} List of lecturers.
    */
   async getCourseLecturers(courseId) {
     const { data, error } = await supabaseAdmin
@@ -1303,7 +1411,9 @@ export const AdminService = {
   },
 
   /**
-   * Get available lecturers for a course (lecturers not yet assigned)
+   * Gets available lecturers for a course (not yet assigned).
+   * @param {string} courseId - The ID of the course.
+   * @returns {Promise<Array>} List of available lecturers.
    */
   async getAvailableLecturers(courseId) {
     // Get all lecturers
@@ -1342,7 +1452,9 @@ export const AdminService = {
   },
 
   /**
-   * Add lecturer to course
+   * Adds a lecturer to a course.
+   * @param {string} courseId - The ID of the course.
+   * @param {object} lecturerData - Contains the lecturer ID.
    */
   async addLecturerToCourse(courseId, { id: lecturerId }) {
     if (!lecturerId) {
@@ -1381,7 +1493,9 @@ export const AdminService = {
   },
 
   /**
-   * Remove lecturer from course
+   * Removes a lecturer from a course.
+   * @param {string} courseId - The ID of the course.
+   * @param {string} lecturerId - The ID of the lecturer.
    */
   async removeLecturerFromCourse(courseId, lecturerId) {
     const { error } = await supabaseAdmin
@@ -1400,7 +1514,9 @@ export const AdminService = {
   },
 
   /**
-   * Import courses from Excel file
+   * Imports courses from an Excel file buffer.
+   * @param {Buffer} buffer - The Excel file buffer.
+   * @returns {Promise<{imported: number, failed: number, skipped: number, errors: Array}>} Summary.
    */
   async importCoursesFromExcel(buffer) {
     console.log("Starting course import...");
@@ -1510,6 +1626,11 @@ export const AdminService = {
 
   // ========== CLASSROOMS (ADMIN) ==========
 
+  /**
+   * Lists classrooms for admin view.
+   * @param {object} filters - Filters (search, exam_id).
+   * @returns {Promise<Array>} List of classrooms.
+   */
   async listClassroomsForAdmin(filters = {}) {
     let query = supabaseAdmin
       .from('classrooms')
@@ -1569,6 +1690,12 @@ export const AdminService = {
     }));
   },
 
+  /**
+   * Creates a new classroom.
+   * @param {object} classroomData - Classroom data.
+   * @param {string} adminUserId - ID of the admin.
+   * @returns {Promise<object>} The created classroom.
+   */
   async createClassroomForAdmin(classroomData, adminUserId) {
     const { exam_id, room_number, supervisor_id, floor_supervisor_id } = classroomData;
 
@@ -1652,6 +1779,13 @@ export const AdminService = {
     return result;
   },
 
+  /**
+   * Updates a classroom.
+   * @param {string} classroomId - The ID of the classroom.
+   * @param {object} classroomData - Updates.
+   * @param {string} adminUserId - ID of the admin.
+   * @returns {Promise<object>} The updated classroom.
+   */
   async updateClassroomForAdmin(classroomId, classroomData, adminUserId) {
     const { room_number, supervisor_id, floor_supervisor_id, exam_id } = classroomData;
 
@@ -1729,6 +1863,10 @@ export const AdminService = {
     return result;
   },
 
+  /**
+   * Deletes a classroom.
+   * @param {string} classroomId - The ID of the classroom.
+   */
   async deleteClassroomForAdmin(classroomId) {
     const { error } = await supabaseAdmin
       .from('classrooms')
@@ -1744,6 +1882,13 @@ export const AdminService = {
     return { success: true };
   },
 
+  /**
+   * Assigns supervisors to a classroom.
+   * @param {string} classroomId - The ID of the classroom.
+   * @param {object} assignmentData - Supervisor IDs.
+   * @param {string} adminUserId - ID of the admin.
+   * @returns {Promise<object>} The updated classroom.
+   */
   async assignSupervisorsToClassroom(classroomId, assignmentData, adminUserId) {
     const { supervisor_id, floor_supervisor_id } = assignmentData;
 
@@ -1827,6 +1972,10 @@ export const AdminService = {
     return result;
   },
 
+  /**
+   * Gets supervisors available for assignment.
+   * @returns {Promise<Array>} List of supervisors.
+   */
   async getSupervisorsForAssignment() {
     const { data, error } = await supabaseAdmin
       .from('profiles')
@@ -1849,6 +1998,12 @@ export const AdminService = {
     }));
   },
 
+  /**
+   * Imports classrooms from an Excel file buffer.
+   * @param {Buffer} buffer - The Excel file buffer.
+   * @param {string} adminUserId - ID of the admin.
+   * @returns {Promise<{imported: number, updated: number, failed: number, errors: Array}>} Summary.
+   */
   async importClassroomsFromExcel(buffer, adminUserId) {
     const workbook = xlsx.read(buffer, { type: 'buffer' });
     const sheetName = workbook.SheetNames[0];

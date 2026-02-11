@@ -5,6 +5,9 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../state/AuthContext";
 import { useTheme } from "../../state/ThemeContext";
 
+/**
+ * Navigation bar for the admin dashboard.
+ */
 export default function AdminNavbar() {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();

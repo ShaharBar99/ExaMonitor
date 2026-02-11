@@ -1,3 +1,7 @@
+/**
+ * @fileoverview Handlers for authentication logic, including login, registration, and token persistence.
+ */
+
 import * as authApiDefault from "../api/authApi";
 import { findMockUser,addMockUser  } from "../mocks/authMock"; // Import mock lookup helper
 
@@ -7,7 +11,12 @@ export const AUTH_ROLES = ["student", "supervisor", "lecturer", "admin", "floor_
 // Default role for initial state. // Used by LoginPage
 export const DEFAULT_ROLE = "student"; // Pick student as default (change if you want)
 
-// Normalize a role string coming from UI. // Prevents invalid role values
+/**
+ * Normalizes a role string to ensure it matches a supported role.
+ *
+ * @param {string} role - The role string to normalize.
+ * @returns {string} The normalized role, or the default role if invalid.
+ */
 export function normalizeRole(role) { // Convert any input role to a supported role
   const r = String(role || "").trim().toLowerCase(); // Normalize string and case
   return AUTH_ROLES.includes(r) ? r : DEFAULT_ROLE; // Return safe role
@@ -26,6 +35,13 @@ export const ROLE_OPTIONS = [ // Role options array
   { value: "admin", label: "מנהל מערכת" }, // Admin
 ]; // End role options
 
+/**
+ * Persists authentication tokens to local or session storage.
+ *
+ * @param {string} token - The access token.
+ * @param {string} refreshToken - The refresh token.
+ * @param {boolean} rememberMe - Whether to persist across sessions (localStorage vs sessionStorage).
+ */
 export function persistAuthToken(token, refreshToken, rememberMe) {
   // Always save to localStorage for admin/supervisor features to work across navigation
   localStorage.setItem("token", token);
@@ -37,7 +53,13 @@ export function persistAuthToken(token, refreshToken, rememberMe) {
   }
 }
 
-// Single validator for login/register. // Avoid duplicate validation functions
+/**
+ * Validates authentication payload for login or registration.
+ *
+ * @param {object} payload - The payload to validate.
+ * @param {boolean} requireName - Whether the 'name' field is required (for registration).
+ * @returns {{ok: boolean, errors: object, value: object}} The validation result.
+ */
 export function validateAuthPayload(payload, requireName) { // Validate inputs with optional name requirement
   const errors = {}; // Create errors object
   const username = String(payload?.username || "").trim(); // Normalize username
@@ -57,7 +79,17 @@ export function validateAuthPayload(payload, requireName) { // Validate inputs w
   }; // End return
 } // End validateAuthPayload
 
-// Update loginWithApi to use validateAuthPayload. // Removes validateLoginPayload duplication
+/**
+ * Handles the login process via API or mock.
+ *
+ * @param {object} credentials - The login credentials.
+ * @param {string} credentials.username - The username.
+ * @param {string} credentials.password - The password.
+ * @param {string} credentials.role - The requested role.
+ * @param {boolean} credentials.rememberMe - Whether to remember the user.
+ * @param {object} [deps] - Dependencies for injection (api, mock flags).
+ * @returns {Promise<{ok: boolean, data?: object, errors?: object}>} The result of the login attempt.
+ */
 export async function loginWithApi({ username, password, role, rememberMe }, deps) { // Backend-driven login
   const { ok, errors, value } = validateAuthPayload( // Validate using shared validator
     { username, password, role }, // Payload
@@ -78,6 +110,19 @@ export async function loginWithApi({ username, password, role, rememberMe }, dep
   persistAuthToken(result?.token, result?.refreshToken, Boolean(rememberMe)); // Persist token if present
   return { ok: true, data: result }; // Return success
 } // End loginWithApi
+
+/**
+ * Handles the registration process via API or mock.
+ *
+ * @param {object} userData - The user registration data.
+ * @param {string} userData.name - Full name.
+ * @param {string} userData.username - Username.
+ * @param {string} userData.email - Email address.
+ * @param {string} userData.password - Password.
+ * @param {string} userData.role - Role.
+ * @param {object} [deps] - Dependencies for injection.
+ * @returns {Promise<{ok: boolean, data?: object, errors?: object, apiError?: object}>} The result of the registration attempt.
+ */
 export async function registerWithApi({ name, username, email, password, role }, deps) { // Register handler
   const { ok, errors, value } = validateAuthPayload( // Use the shared validator
     { name, username, email, password, role }, // Payload
@@ -105,7 +150,16 @@ export async function registerWithApi({ name, username, email, password, role },
   return { ok: true, data: result }; // Return backend result
 } // End registerWithApi 
 
-// Simple mock login (temporary): checks username/password/role against mockUsers. // Replace later
+/**
+ * Simulates a login process using mock data.
+ *
+ * @param {object} credentials - Login credentials.
+ * @param {string} credentials.username - Username.
+ * @param {string} credentials.password - Password.
+ * @param {string} credentials.role - Role.
+ * @param {object} [options] - Mock options (delay).
+ * @returns {Promise<{ok: boolean, data?: object, apiError?: object}>} The mock login result.
+ */
 export async function mockLogin({ username, password, role }, options) { // Mock backend login
   const delayMs = Number(options?.delayMs ?? 250); // Delay for realism
   await new Promise((resolve) => setTimeout(resolve, delayMs)); // Wait delay

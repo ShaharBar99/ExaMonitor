@@ -2,6 +2,15 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from "html5-qrcode";
 import { useTheme } from '../state/ThemeContext';
 
+/**
+ * A component for scanning student admission QR codes or uploading barcode images.
+ * Supports both camera feed and file upload.
+ *
+ * @param {object} props - Component props.
+ * @param {Function} props.onScan - Callback function when a code is successfully scanned.
+ * @param {Function} props.onClose - Callback function to close the scanner.
+ * @returns {JSX.Element} The scanner UI.
+ */
 export default function AdmissionScanner({ onScan, onClose }) {
   const { isDark } = useTheme();
   const scannerRef = useRef(null);

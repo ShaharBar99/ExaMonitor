@@ -1,8 +1,16 @@
 import { attendanceApi } from '../api/attendanceApi';
 
+/**
+ * Handlers for attendance management logic.
+ */
 export const attendanceHandlers = {
   /**
-   * אתחול מסך ניהול הכיתה עבור משגיח
+   * Initializes the supervisor console with student data.
+   * @param {string} examId - The exam ID.
+   * @param {string} supervisorId - The supervisor ID.
+   * @param {Function} setStudents - State setter for students.
+   * @param {Function} setLoading - State setter for loading status.
+   * @param {Function} setExamContext - State setter for exam context.
    */
   initSupervisorConsole: async (examId, supervisorId, setStudents, setLoading, setExamContext) => {
     try {
@@ -29,7 +37,10 @@ export const attendanceHandlers = {
 
 
   /**
-   * טעינת סטטוס סטודנטים לפי מבחן
+   * Loads attendance records for an exam.
+   * @param {string} examId - The exam ID.
+   * @param {Function} setAttendance - State setter for attendance.
+   * @param {Function} setIsLoading - State setter for loading status.
    */
   loadAttendanceByExam: async (examId, setAttendance, setIsLoading) => {
     try {
@@ -46,7 +57,9 @@ export const attendanceHandlers = {
 
   
   /**
-   * טעינת ספירת הפסקות לפי מבחן
+   * Loads the count of breaks for an exam.
+   * @param {string} examId - The exam ID.
+   * @param {Function} setBreaksCount - State setter for breaks count.
    */
   loadBreaksCountByExam: async (examId, setBreaksCount) => {
     try {
@@ -58,7 +71,10 @@ export const attendanceHandlers = {
   },
 
   /**
-   * שינוי סטטוס סטודנט (כולל עדכון UI מקומי)
+   * Changes a student's attendance status.
+   * @param {string} attendanceId - The attendance record ID.
+   * @param {string} newStatus - The new status.
+   * @param {Function} setStudents - State setter for students to update UI optimistically.
    */
   changeStudentStatus: async (attendanceId, newStatus, setStudents) => {
     // Map Hebrew statuses to English database values
@@ -97,7 +113,9 @@ export const attendanceHandlers = {
   },
 
   /**
-   * טעינת סיכום קומה (עבור מנהל קומה)
+   * Loads a summary for the floor supervisor.
+   * @param {string} floorId - The floor ID.
+   * @param {Function} setSummary - State setter for summary data.
    */
   loadFloorSummary: async (floorId, setSummary) => {
     try {
@@ -109,7 +127,10 @@ export const attendanceHandlers = {
   },
 
   /**
-   * שיבוץ משגיח לחדר (פעולת מנהיגות)
+   * Assigns a supervisor to a room.
+   * @param {string} roomId - The room ID.
+   * @param {string} supervisorId - The supervisor ID.
+   * @param {Function} callback - Callback function on success.
    */
   handleAssignSupervisor: async (roomId, supervisorId, callback) => {
     try {
@@ -121,6 +142,12 @@ export const attendanceHandlers = {
       alert("שיבוץ המשגיח נכשל");
     }
   },
+
+  /**
+   * Gets exams on a specific floor.
+   * @param {string} floorId - The floor ID.
+   * @param {Function} setExams - State setter for exams.
+   */
   handleGetExamsOnFloor: async (floorId, setExams) => {
     try {
       const data = await attendanceApi.getExamsOnFloor(floorId);
@@ -131,7 +158,10 @@ export const attendanceHandlers = {
   },
 
   /**
-   * התחלת הפסקה לסטודנט
+   * Starts a break for a student.
+   * @param {string} studentId - The student ID.
+   * @param {string} reason - The reason for the break.
+   * @param {Function} setStudents - State setter for students.
    */
   handleStartBreak: async (studentId, reason, setStudents) => {
     try {
@@ -144,7 +174,9 @@ export const attendanceHandlers = {
   },
 
   /**
-   * סיום הפסקה לסטודנט
+   * Ends a break for a student.
+   * @param {string} studentId - The student ID.
+   * @param {Function} setStudents - State setter for students.
    */
   handleEndBreak: async (studentId, setStudents) => {
     try {
@@ -165,7 +197,11 @@ export const attendanceHandlers = {
   // src/handlers/attendanceHandlers.js
 
   /**
-   * הוספת סטודנט לרשימת הנוכחות
+   * Adds a student to the attendance list.
+   * @param {string} classroomId - The classroom ID.
+   * @param {string} studentProfileId - The student profile ID.
+   * @param {Function} setStudents - State setter for students.
+   * @param {string} [studentId=null] - Optional student ID.
    */
   handleAddStudent: async (classroomId, studentProfileId, setStudents, studentId=null) => {
     try {
@@ -195,7 +231,9 @@ export const attendanceHandlers = {
   },
 
     /**
-     * הסרת סטודנט (ביטול נוכחות)
+     * Removes a student from the attendance list.
+     * @param {string} studentId - The student ID to remove.
+     * @param {Function} setStudents - State setter for students.
      */
   handleRemoveStudent: async (studentId, setStudents) => {
 
@@ -209,8 +247,13 @@ export const attendanceHandlers = {
           alert("נכשל בהסרת הסטודנט");
         }
       },
+
       /**
-       * לוגיקת חיפוש סטודנטים בזמן אמת
+       * Searches for eligible students.
+       * @param {string} examId - The exam ID.
+       * @param {string} query - The search query.
+       * @param {Function} setSearchResults - State setter for search results.
+       * @param {Function} setIsSearching - State setter for searching status.
        */
       handleSearchEligible: async (examId, query, setSearchResults, setIsSearching) => {
       if (!query || query.length < 2) {

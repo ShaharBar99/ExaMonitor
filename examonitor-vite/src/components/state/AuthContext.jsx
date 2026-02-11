@@ -12,6 +12,9 @@ const AuthContext = createContext({
     setRefreshToken: () => {}
 });
 
+/**
+ * Context provider for authentication state.
+ */
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => {
         try { return JSON.parse(localStorage.getItem('user')) || null; } catch { return null; }

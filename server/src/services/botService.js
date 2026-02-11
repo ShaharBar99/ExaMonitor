@@ -51,7 +51,18 @@ const getExamContext = async (examId) => {
         return summary;
     }
 
+/**
+ * Service for handling AI bot interactions.
+ */
 export const BotService = {
+    /**
+     * Generates a reply from the AI bot.
+     * @param {string} message - The user's message.
+     * @param {string} role - The user's role.
+     * @param {string} examId - The exam ID.
+     * @param {object} currentStats - Current exam statistics.
+     * @returns {Promise<string>} The bot's reply.
+     */
     async getReply(message, role, examId, currentStats) {
         try {
             // 1. קבלת הקשר מה-DB

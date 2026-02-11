@@ -3,6 +3,15 @@ import FormField from "../../shared/FormField";
 import { createNewCourse, updateCourseDetails } from "../../../handlers/courseHandlers";
 import { listUsers } from "../../../api/usersApi"; // Use listUsers instead of searchLecturerByEmail
 
+/**
+ * Modal component for creating or editing a course.
+ *
+ * @param {object} props
+ * @param {Function} props.onClose - Function to close the modal.
+ * @param {Function} props.onSuccess - Function called on successful creation/update.
+ * @param {boolean} props.isDark - Theme mode.
+ * @param {object} [props.initialData] - Data for editing an existing course.
+ */
 export default function CreateCourseModal({ onClose, onSuccess, isDark, initialData = null }) {
   const [formData, setFormData] = useState({ name: "", code: "", lecturerId: "" });
   const [loading, setLoading] = useState(false);

@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 import StudentCard from './StudentCard';
 import { useTheme } from '../state/ThemeContext';
 
+/**
+ * Displays a grid of student cards with search functionality.
+ *
+ * @param {object} props
+ * @param {Array} props.students - List of student objects.
+ * @param {Function} props.onStatusChange - Callback for status changes.
+ * @param {Function} props.onMoveClass - Callback for moving a student.
+ */
 const StudentGrid = ({ students, onStatusChange, onMoveClass }) => {
   const [search, setSearch] = useState('');
   const { isDark } = useTheme();

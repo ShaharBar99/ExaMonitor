@@ -1,5 +1,15 @@
 import { messageApi } from "../api/messageApi";
+
+/**
+ * Handlers for chat messaging logic.
+ */
 export const messageHandlers = {
+  /**
+   * Handles sending a message with optimistic UI update.
+   * @param {string} text - The message text.
+   * @param {string} userRole - The sender's role.
+   * @param {Function} setMessages - State setter for messages.
+   */
   handleSend: async (text, userRole, setMessages) => {
     if (!text || !text.trim()) return;
 
@@ -34,6 +44,12 @@ export const messageHandlers = {
     }
   },
 
+  /**
+   * Initializes the chat by fetching message history.
+   * @param {string} examId - The exam ID.
+   * @param {string} chatType - The type of chat channel.
+   * @param {Function} setMessages - State setter for messages.
+   */
   initChat: async (examId, chatType, setMessages) => {
     try {
       const data = await messageApi.getMessages(examId, chatType);

@@ -3,6 +3,15 @@ import FormField from "../../shared/FormField";
 import { createNewUser, updateUser } from "../../../handlers/adminUserHandlers";
 import { AUTH_ROLES } from "../../../handlers/authHandlers";
 
+/**
+ * Modal component for creating or editing a user.
+ *
+ * @param {object} props
+ * @param {Function} props.onClose - Function to close the modal.
+ * @param {Function} props.onSuccess - Function called on successful creation/update.
+ * @param {boolean} props.isDark - Theme mode.
+ * @param {object} [props.initialData] - Data for editing an existing user.
+ */
 export default function CreateUserModal({ onClose, onSuccess, isDark, initialData = null }) {
   const [formData, setFormData] = useState({
     full_name: "",

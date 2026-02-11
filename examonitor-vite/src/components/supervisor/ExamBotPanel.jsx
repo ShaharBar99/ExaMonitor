@@ -3,6 +3,16 @@ import { botHandlers } from "../../handlers/BotHandlers";
 import { useParams } from "react-router-dom";
 import { useTheme } from '../state/ThemeContext'; 
 
+/**
+ * Chat interface for the AI Exam Bot.
+ *
+ * @param {object} props
+ * @param {string} props.userRole - The role of the current user.
+ * @param {object} [props.externalMessage] - Message to display from external sources.
+ * @param {Function} [props.onAction] - Callback for bot actions.
+ * @param {object} [props.liveStats] - Live exam statistics.
+ * @param {string} [props.userName] - Name of the user.
+ */
 export default function ExamBotPanel({ 
   userRole = "supervisor", 
   externalMessage = null, 

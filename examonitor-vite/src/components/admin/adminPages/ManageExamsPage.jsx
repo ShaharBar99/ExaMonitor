@@ -5,6 +5,9 @@ import CreateExamModal from "../adminComponents/CreateExamModal";
 import AdminTable from "../adminComponents/AdminTable";
 import ManageExamLecturersModal from "../adminComponents/ManageExamLecturersModal";
 
+/**
+ * Admin page for managing exams (create, edit, delete, import, assign lecturers).
+ */
 export default function ManageExamsPage() {
   const { isDark } = useTheme();
   const [exams, setExams] = useState([]);

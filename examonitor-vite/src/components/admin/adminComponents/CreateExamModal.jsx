@@ -3,6 +3,15 @@ import FormField from "../../shared/FormField";
 import { createExam, updateExam } from "../../../handlers/adminExamHandlers";
 import { fetchCourses, fetchCourseLecturers } from "../../../handlers/courseHandlers"; // fetchCourseLecturers needed here
 
+/**
+ * Modal component for creating or editing an exam.
+ *
+ * @param {object} props
+ * @param {Function} props.onClose - Function to close the modal.
+ * @param {Function} props.onSuccess - Function called on successful creation/update.
+ * @param {boolean} props.isDark - Theme mode.
+ * @param {object} [props.initialData] - Data for editing an existing exam.
+ */
 export default function CreateExamModal({ onClose, onSuccess, isDark, initialData = null }) {
   const [formData, setFormData] = useState({
     course_id: "",

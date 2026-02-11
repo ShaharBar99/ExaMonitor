@@ -7,6 +7,18 @@ import AdmissionScanner from './AdmissionScanner';
 import { useAuth } from '../state/AuthContext';
 import { useExam } from '../state/ExamContext';
 
+/**
+ * Component for managing student attendance in an exam.
+ * Allows marking attendance, breaks, and moving students between classrooms.
+ *
+ * @param {object} props
+ * @param {string} props.examId - The ID of the exam.
+ * @param {object} props.classrooms - The classroom data.
+ * @param {boolean} props.isDark - Theme mode.
+ * @param {Array} props.students - List of students.
+ * @param {Function} props.setStudents - State setter for students.
+ * @param {Function} props.setBotMsg - Function to set bot messages.
+ */
 export default function AttendanceManager({ 
   examId, 
   classrooms, 

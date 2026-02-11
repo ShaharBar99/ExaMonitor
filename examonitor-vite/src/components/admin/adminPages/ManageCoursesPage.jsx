@@ -7,6 +7,9 @@ import CourseStudentsModal from "../adminComponents/ManageStudentsModal";
 import ManageLecturersModal from "../adminComponents/ManageLecturersModal";
 import { fetchCourses, deleteCourseHandler, filterCourses, importCoursesFromExcel } from "../../../handlers/courseHandlers";
 
+/**
+ * Admin page for managing courses (create, edit, delete, import, assign students/lecturers).
+ */
 export default function ManageCoursesPage() {
   const { isDark } = useTheme();
   const { user } = useAuth();

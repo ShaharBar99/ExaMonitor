@@ -61,8 +61,16 @@
 // // };
 import { apiFetch } from './http';
 const useMock = String(import.meta.env.VITE_USE_AUTH_MOCK || "").toLowerCase() === "true";
+
+/**
+ * API for managing exam timers.
+ */
 export const timerApi = {
-  // קבלת הגדרות זמן וסנכרון (זמן התחלה, משך, הארכות) 
+  /**
+   * Retrieves timing configuration for an exam.
+   * @param {string} examId - The exam ID.
+   * @returns {Promise<Object>} Timing data (startTime, duration, extraTime, isPaused).
+   */
   getExamTiming: async (examId) => {
     if (useMock) {
       return { startTime: new Date().toISOString(), originalDuration: 180, extraTime: 15, isPaused: false };
@@ -70,7 +78,14 @@ export const timerApi = {
     return apiFetch(`/exams/${examId}/timing`);
   },
 
-  // עדכון תוספת זמן (גלובלי או לסטודנט ספציפי) 
+  /**
+   * Adds extra time to an exam.
+   * @param {string} examId - The exam ID.
+   * @param {number} minutes - Minutes to add.
+   * @param {string} reason - Reason for the extension.
+   * @param {string} [studentId=null] - Optional student ID for individual extension.
+   * @returns {Promise<Object>} The result.
+   */
   addExtraTime: async (examId, minutes, reason, studentId = null) => {
     if (useMock) return { success: true };
     return apiFetch(`/exams/${examId}/extra-time`, { 

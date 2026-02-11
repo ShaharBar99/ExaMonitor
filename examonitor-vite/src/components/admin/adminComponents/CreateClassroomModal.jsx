@@ -3,6 +3,15 @@ import FormField from "../../shared/FormField";
 import { createNewClassroom, updateClassroomDetails } from "../../../handlers/classroomHandlers";
 import { fetchExamsForAssignment, fetchSupervisors } from "../../../handlers/classroomHandlers";
 
+/**
+ * Modal component for creating or editing a classroom.
+ *
+ * @param {object} props
+ * @param {Function} props.onClose - Function to close the modal.
+ * @param {Function} props.onSuccess - Function called on successful creation/update.
+ * @param {boolean} props.isDark - Theme mode.
+ * @param {object} [props.initialData] - Data for editing an existing classroom.
+ */
 export default function CreateClassroomModal({ onClose, onSuccess, isDark, initialData = null }) {
   const [formData, setFormData] = useState({ 
     room_number: "", 

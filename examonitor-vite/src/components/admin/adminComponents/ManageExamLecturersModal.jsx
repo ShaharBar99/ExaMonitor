@@ -28,6 +28,15 @@ import { examsApi } from "../../../api/examsApi"; // To get full user names we m
 */
 // I should update `examService.listExamLecturers` to do the same.
 
+/**
+ * Modal for managing lecturers assigned to a specific exam.
+ * Allows adding and removing lecturers.
+ *
+ * @param {object} props
+ * @param {object} props.exam - The exam object.
+ * @param {Function} props.onClose - Callback to close the modal.
+ * @param {boolean} props.isDark - Theme mode.
+ */
 export default function ManageExamLecturersModal({ exam, onClose, isDark }) {
     const [lecturers, setLecturers] = useState([]);
     const [loading, setLoading] = useState(false);
